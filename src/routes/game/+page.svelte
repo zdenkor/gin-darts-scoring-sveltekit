@@ -6,6 +6,9 @@
 	const names = $derived(
 		url.searchParams.get('names')?.split(',').map(s => s.trim()).filter(Boolean) || null
 	);
+	const bots = $derived(
+		url.searchParams.get('bots')?.split(',').map(s => s.trim()) || []
+	);
 	const start = $derived(Number(url.searchParams.get('start')) || 501);
 	const inRule = $derived(url.searchParams.get('in') || 'single');
 	const outRule = $derived(url.searchParams.get('out') || 'double');
@@ -13,6 +16,6 @@
 	const setsToWin = $derived(Number(url.searchParams.get('sets')) || 1);
 </script>
 
-{#key `${names?.join(',') || 'continue'}-${start}-${inRule}-${outRule}-${legsToWin}-${setsToWin}`}
-	<GameScreen {names} {start} {inRule} {outRule} {legsToWin} {setsToWin} />
+{#key `${names?.join(',') || 'continue'}-${bots.join(',')}-${start}-${inRule}-${outRule}-${legsToWin}-${setsToWin}`}
+	<GameScreen {names} {bots} {start} {inRule} {outRule} {legsToWin} {setsToWin} />
 {/key}

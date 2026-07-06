@@ -2,7 +2,8 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
-	import { new01, submitTurnTotal01 } from '$lib/game/engine.js';
+	import { new01, submitTurnTotal01, dartValue } from '$lib/game/engine.js';
+	import { playTurn } from '$lib/game/dartbot.js';
 	import PlayerCard from '$lib/ui/PlayerCard.svelte';
 	import Calculator from '$lib/ui/Calculator.svelte';
 	import HistoryStrip from '$lib/ui/HistoryStrip.svelte';
@@ -10,9 +11,10 @@
 	import { saveCurrentGame, loadCurrentGame, clearCurrentGame } from '$lib/util/currentGame.js';
 	import { recordGameHistory, gameHistoryEntryFromState } from '$lib/util/history.js';
 
-	/** @type {{names?: string[] | null, start?: number, inRule?: string, outRule?: string, legsToWin?: number, setsToWin?: number}} */
+	/** @type {{names?: string[] | null, bots?: string[], start?: number, inRule?: string, outRule?: string, legsToWin?: number, setsToWin?: number}} */
 	let {
 		names = null,
+		bots = [],
 		start = 501,
 		inRule = 'single',
 		outRule = 'double',
@@ -27,6 +29,7 @@
 	let future = $state(/** @type {any[]} */ ([]));
 
 	let persistTimer = 0;
+	let botTimer = 0;
 
 	async function init() {
 		const saved = await loadCurrentGame();
@@ -36,7 +39,14 @@
 			game = structuredClone(saved);
 		} else {
 			const playerNames = wantsNew ? names : ['Player 1', 'Player 2'];
+			const playerBots = wantsNew && bots.length ? bots : [];
 			game = new01(playerNames, { start, in: inRule, out: outRule, legsToWin, setsToWin });
+			game.players.forEach((p, i) => {
+				if (playerBots[i]) {
+					p.isBot = true;
+					p.botLevel = Number(playerBots[i]) || 5;
+				}
+			});
 			if (hasSaved) {
 				try { await clearCurrentGame(); } catch {}
 			}
@@ -59,6 +69,7 @@
 		init();
 		return () => {
 			if (persistTimer) clearTimeout(persistTimer);
+			if (botTimer) clearTimeout(botTimer);
 		};
 	});
 
@@ -84,6 +95,24 @@
 		past = [...past, before];
 		future = [];
 	}
+
+	function runBotTurn() {
+		if (!game || game.winner != null) return;
+		const p = game.players[game.current];
+		if (!p.isBot) return;
+		const darts = playTurn(p.score, { in: game.opts?.in, out: game.opts?.out }, p.botLevel || 5);
+		const total = darts.reduce((s, d) => s + dartValue(d), 0);
+		commitTurn(total);
+	}
+
+	$effect(() => {
+		const g = game;
+		if (!g || g.winner != null) return;
+		const p = g.players[g.current];
+		if (!p?.isBot) return;
+		if (botTimer) clearTimeout(botTimer);
+		botTimer = setTimeout(() => runBotTurn(), 800);
+	});
 
 	function undo() {
 		if (past.length === 0) return;

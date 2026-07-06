@@ -5,7 +5,10 @@
 
 	const START_OPTIONS = [301, 401, 501, 701, 1001];
 
-	let players = $state(['Gin', 'Alex']);
+	let players = $state([
+		{ name: 'Gin', isBot: false },
+		{ name: 'Alex', isBot: true, botLevel: 5 }
+	]);
 	let start = $state(501);
 	let inRule = $state('single');
 	let outRule = $state('double');
@@ -13,20 +16,32 @@
 	let setsToWin = $state(1);
 
 	function addPlayer() {
-		if (players.length < 4) players = [...players, `Player ${players.length + 1}`];
+		if (players.length < 4) players = [...players, { name: `Player ${players.length + 1}`, isBot: false }];
 	}
 	function removePlayer(index) {
 		players = players.filter((_, i) => i !== index);
 	}
 	function updateName(index, value) {
-		players = players.map((n, i) => i === index ? value : n);
+		players = players.map((p, i) => i === index ? { ...p, name: value } : p);
+	}
+	function toggleBot(index) {
+		players = players.map((p, i) => i === index
+			? { ...p, isBot: !p.isBot, botLevel: p.botLevel ?? 5 }
+			: p
+		);
+	}
+	function updateBotLevel(index, value) {
+		players = players.map((p, i) => i === index ? { ...p, botLevel: Number(value) } : p);
 	}
 
 	function startGame() {
-		const names = players.map(n => n.trim()).filter(Boolean);
-		if (names.length < 1) return;
+		const entries = players
+			.map(p => ({ name: p.name.trim(), isBot: p.isBot, botLevel: p.botLevel ?? 5 }))
+			.filter(p => p.name);
+		if (entries.length < 1) return;
 		const params = new URLSearchParams({
-			names: names.join(','),
+			names: entries.map(p => p.name).join(','),
+			bots: entries.map(p => (p.isBot ? String(p.botLevel) : '')).join(','),
 			start: String(start),
 			in: inRule,
 			out: outRule,
@@ -43,15 +58,35 @@
 
 		<div class="section">
 			<h2>Players</h2>
-			{#each players as name, i}
+			{#each players as p, i}
 				<div class="player-row">
 					<span class="player-num">P{i + 1}</span>
 					<input
 						type="text"
-						value={name}
+						value={p.name}
 						oninput={(e) => updateName(i, e.currentTarget.value)}
 						placeholder={`Player ${i + 1}`}
 					/>
+					<button
+						type="button"
+						class="btn ghost"
+						class:active={p.isBot}
+						onclick={() => toggleBot(i)}
+						title="Toggle bot"
+					>
+						🤖
+					</button>
+					{#if p.isBot}
+						<select
+							value={p.botLevel ?? 5}
+							onchange={(e) => updateBotLevel(i, e.currentTarget.value)}
+							class="level-select"
+						>
+							{#each Array.from({ length: 15 }, (_, n) => n + 1) as lvl}
+								<option value={lvl}>L{lvl}</option>
+							{/each}
+						</select>
+					{/if}
 					{#if players.length > 1}
 						<button class="btn ghost" type="button" onclick={() => removePlayer(i)}>✕</button>
 					{/if}
