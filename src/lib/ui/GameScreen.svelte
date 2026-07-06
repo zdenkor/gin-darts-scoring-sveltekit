@@ -10,6 +10,7 @@
 	import GameToolbar from '$lib/ui/GameToolbar.svelte';
 	import { saveCurrentGame, loadCurrentGame, clearCurrentGame } from '$lib/util/currentGame.js';
 	import { recordGameHistory, gameHistoryEntryFromState } from '$lib/util/history.js';
+	import { deepClone } from '$lib/util/deepClone.js';
 
 	/** @type {{names?: string[] | null, bots?: string[], start?: number, inRule?: string, outRule?: string, legsToWin?: number, setsToWin?: number}} */
 	let {
@@ -46,7 +47,7 @@
 		const hasSaved = saved && saved.players?.length && !saved.endedAt;
 		const wantsNew = Array.isArray(names) && names.length > 0;
 		if (hasSaved && !wantsNew) {
-			game = structuredClone(saved);
+			game = deepClone(saved);
 		} else {
 			const playerNames = wantsNew ? names : ['Player 1', 'Player 2'];
 			const playerBots = wantsNew && bots.length ? bots : [];
@@ -80,11 +81,11 @@
 	}
 
 	function snapshot() {
-		return structuredClone(game);
+		return deepClone(game);
 	}
 
 	function restore(state) {
-		game = structuredClone(state);
+		game = deepClone(state);
 	}
 
 	async function commitTurn(total) {
@@ -95,7 +96,7 @@
 		if (result.events.some(e => e.type === 'bust')) {
 			lastCommitError = 'Bust!';
 		}
-		game = structuredClone(result.state);
+		game = deepClone(result.state);
 		past = [...past, before];
 		future = [];
 		await persist();

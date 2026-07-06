@@ -4,13 +4,14 @@
 // =================================================================
 
 import { put, get, del } from '$lib/db/idb.js';
+import { deepClone } from '$lib/util/deepClone.js';
 
 const CURRENT_KEY = 'current';
 const STORE = 'games';
 
 export async function saveCurrentGame(gameState) {
 	try {
-		await put(STORE, { id: CURRENT_KEY, state: structuredClone(gameState), savedAt: Date.now() }, CURRENT_KEY);
+		await put(STORE, { id: CURRENT_KEY, state: deepClone(gameState), savedAt: Date.now() }, CURRENT_KEY);
 	} catch (e) {
 		console.warn('saveCurrentGame failed', e);
 	}
