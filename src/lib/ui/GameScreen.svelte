@@ -253,10 +253,13 @@
 		gap: var(--space-sm);
 		flex: 0 1 auto;
 		min-height: 0;
-		max-height: 40%;
+		max-height: min(50cqh, 24rem);
 	}
 	@container game-screen (min-height: 700px) {
-		.scoreboard { max-height: 45%; }
+		.scoreboard { max-height: min(58cqh, 32rem); }
+	}
+	@container game-screen (min-height: 900px) {
+		.scoreboard { max-height: min(62cqh, 38rem); }
 	}
 	@container game-screen (min-width: 35rem) {
 		.scoreboard {
