@@ -1,0 +1,17 @@
+<footer class="app-footer">
+	<span>Gin's Online Dart's Scoring System</span>
+	<span class="muted">v0.8.0-sveltekit</span>
+</footer>
+
+<style>
+	.app-footer {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 12px 18px;
+		border-top: 1px solid var(--line);
+		font-size: var(--text-sm);
+		color: var(--muted);
+	}
+	.muted { color: var(--muted); }
+</style>
