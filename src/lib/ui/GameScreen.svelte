@@ -258,12 +258,12 @@
 	@container game-screen (min-height: 700px) {
 		.scoreboard { max-height: 45%; }
 	}
-	@container game-screen (min-width: 560px) {
+	@container game-screen (min-width: 35rem) {
 		.scoreboard {
 			grid-template-columns: repeat(2, 1fr);
 		}
 	}
-	@container game-screen (min-width: 1000px) {
+	@container game-screen (min-width: 62.5rem) {
 		.scoreboard {
 			grid-template-columns: repeat(var(--cols, 2), 1fr);
 		}
@@ -272,7 +272,7 @@
 		background: var(--danger);
 		color: #2a070c;
 		padding: var(--space-xs) var(--space-sm);
-		border-radius: 10px;
+		border-radius: var(--radius);
 		text-align: center;
 		font-weight: 700;
 		font-size: var(--text-sm);
@@ -300,20 +300,14 @@
 		padding: var(--space-sm);
 		display: grid;
 		gap: var(--space-xs);
-		min-width: 240px;
+		min-width: 15rem;
 		z-index: 110;
-	}
-	.command-backdrop {
-		position: fixed;
-		inset: 0;
-		background: rgba(0,0,0,0.5);
-		z-index: 100;
 	}
 	.command-item {
 		background: var(--surface-2);
 		border: 1px solid var(--line);
 		color: var(--text);
-		border-radius: 10px;
+		border-radius: var(--radius);
 		padding: var(--space-sm) var(--space-md);
 		text-align: left;
 		font-weight: 600;

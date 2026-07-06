@@ -68,18 +68,14 @@
 		background: var(--surface-2);
 		border: 1px solid var(--line);
 		color: var(--text);
-		width: 6.5vh;
-		height: 6.5vh;
-		min-width: 38px;
-		min-height: 38px;
-		max-width: 48px;
-		max-height: 48px;
+		width: clamp(2.4rem, 6.5cqi, 3rem);
+		height: clamp(2.4rem, 6.5cqi, 3rem);
 		border-radius: 0.5em;
 		padding: 0;
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		font-size: 1.3em;
+		font-size: var(--text-lg);
 		line-height: 1;
 		cursor: pointer;
 	}
@@ -92,7 +88,6 @@
 	.icon-btn.danger {
 		color: var(--danger);
 		background: transparent;
-		font-size: 1.3em;
 	}
 	.icon-btn.danger > svg {
 		width: 80%;
@@ -102,7 +97,7 @@
 	.icon-btn.danger:hover {
 		background: rgba(239, 68, 68, 0.15);
 	}
-@container app (max-width: 360px) {
-		.meta { font-size: 11px; gap: var(--space-sm); }
+@container app (max-width: 22.5rem) {
+		.meta { font-size: var(--text-xs); gap: var(--space-sm); }
 	}
 </style>

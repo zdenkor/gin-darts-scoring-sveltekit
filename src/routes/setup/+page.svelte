@@ -47,8 +47,9 @@
 			legs: String(legsToWin),
 			sets: String(setsToWin)
 		});
-		return `${base}/game?${params.toString()}`;
+		return `${base}/game/?${params.toString()}`;
 	}
+	let url = $derived(gameUrl());
 </script>
 
 <div class="screen setup-screen">
@@ -137,6 +138,7 @@
 					<label>Legs to win</label>
 					<input type="number" min="1" max="99" bind:value={legsToWin} />
 				</div>
+
 				<div class="field">
 					<label>Sets to win</label>
 					<input type="number" min="1" max="99" bind:value={setsToWin} />
@@ -146,11 +148,14 @@
 
 		<div class="actions">
 			<a class="btn ghost" href="{base}/">Cancel</a>
-			<button class="btn primary" type="button" onclick={() => { const url = gameUrl(); if (url) window.location.href = url; }}>Start game</button>
+			{#if url}
+				<a class="btn primary" href={url}>Start game</a>
+			{:else}
+				<button class="btn primary" type="button" disabled>Start game</button>
+			{/if}
 		</div>
 	</div>
 </div>
-
 <style>
 	.setup-screen h1 {
 		margin: 0 0 var(--space-md);

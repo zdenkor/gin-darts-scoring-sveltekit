@@ -163,16 +163,16 @@
 		flex-direction: column;
 		gap: var(--space-sm);
 		width: 100%;
-		max-width: 720px;
+		max-width: 45rem;
 		margin-inline: auto;
 	}
 	.calc-display {
 		background: var(--bg);
 		border: 1px solid var(--line);
-		border-radius: 10px;
+		border-radius: var(--radius);
 		padding: var(--space-sm) var(--space-md);
 		text-align: right;
-		min-height: 44px;
+		min-height: 2.75rem;
 		display: flex;
 		align-items: center;
 		justify-content: flex-end;
@@ -187,7 +187,7 @@
 		grid-template-columns: 1fr;
 		gap: var(--space-sm);
 	}
-	@container calculator (min-width: 420px) {
+	@container calculator (min-width: 26rem) {
 		.calc-body { grid-template-columns: auto 1fr auto; }
 	}
 	.fast-col {
@@ -195,7 +195,7 @@
 		grid-template-columns: 1fr;
 		gap: var(--space-sm);
 	}
-	@container calculator (min-width: 420px) {
+	@container calculator (min-width: 26rem) {
 		.fast-col { display: grid; }
 	}
 	.numpad {
@@ -207,8 +207,8 @@
 		background: var(--surface-2);
 		border: 1px solid var(--line);
 		color: var(--text);
-		border-radius: 10px;
-		min-height: 44px;
+		border-radius: var(--radius);
+		min-height: 2.75rem;
 		font-weight: 600;
 		font-size: var(--text-md);
 		cursor: pointer;
@@ -232,13 +232,13 @@
 	}
 	.fast-btn {
 		background: var(--surface);
-		min-width: 72px;
+		min-width: 4.5rem;
 	}
-	@container calculator (min-width: 420px) {
-		.fast-btn { min-width: 84px; }
+	@container calculator (min-width: 26rem) {
+		.fast-btn { min-width: 5.25rem; }
 	}
-	@container calculator (min-width: 560px) {
-		.fast-btn { min-width: 96px; }
+	@container calculator (min-width: 35rem) {
+		.fast-btn { min-width: 6rem; }
 	}
 	.actions {
 		display: grid;
