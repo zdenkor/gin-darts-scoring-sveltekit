@@ -1,6 +1,10 @@
+<script>
+	import { APP_VERSION } from '$lib/version.js';
+</script>
+
 <footer class="app-footer">
 	<span>Gin's Online Dart's Scoring System</span>
-	<span class="muted">v0.8.0-sveltekit</span>
+	<span class="muted">{APP_VERSION}</span>
 </footer>
 
 <style>

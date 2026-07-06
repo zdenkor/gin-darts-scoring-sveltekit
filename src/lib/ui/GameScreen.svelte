@@ -238,17 +238,25 @@
 	.game-screen {
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-md);
+		gap: var(--space-sm);
 		height: 100%;
 		min-height: 0;
-		container-type: inline-size;
+		container-type: size;
 		container-name: game-screen;
+	}
+	@container game-screen (min-height: 900px) {
+		.game-screen { gap: var(--space-md); }
 	}
 	.scoreboard {
 		display: grid;
 		grid-template-columns: 1fr;
-		gap: var(--space-md);
-		flex: 0 0 auto;
+		gap: var(--space-sm);
+		flex: 0 1 auto;
+		min-height: 0;
+		max-height: 40%;
+	}
+	@container game-screen (min-height: 700px) {
+		.scoreboard { max-height: 45%; }
 	}
 	@container game-screen (min-width: 560px) {
 		.scoreboard {
@@ -263,20 +271,23 @@
 	.bust-banner {
 		background: var(--danger);
 		color: #2a070c;
-		padding: var(--space-sm) var(--space-md);
+		padding: var(--space-xs) var(--space-sm);
 		border-radius: 10px;
 		text-align: center;
 		font-weight: 700;
+		font-size: var(--text-sm);
 		animation: shake .3s ease;
+		flex: 0 0 auto;
 	}
 	.winner-banner {
 		background: var(--accent);
 		color: #062018;
-		padding: var(--space-md);
+		padding: var(--space-sm) var(--space-md);
 		border-radius: var(--radius);
 		text-align: center;
 		font-weight: 700;
-		font-size: var(--text-lg);
+		font-size: var(--text-md);
+		flex: 0 0 auto;
 	}
 	.command-sheet {
 		position: fixed;

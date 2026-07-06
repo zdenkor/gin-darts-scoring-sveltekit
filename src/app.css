@@ -27,6 +27,7 @@
   --space-lg: clamp(1rem, 3cqi, 2rem);
 
   --text-sm: clamp(0.75rem, 1.6cqi, 0.875rem);
+  --text-xs: clamp(0.625rem, 1.2cqi, 0.75rem);
   --text-md: clamp(0.875rem, 2cqi, 1rem);
   --text-lg: clamp(1rem, 3cqi, 1.5rem);
   --text-xl: clamp(1.5rem, 5cqi, 3rem);
@@ -103,6 +104,13 @@ main {
   width: 100%;
   container-type: inline-size;
   container-name: app;
+}
+
+.game-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
 }
 
 button, a, input, select, textarea {

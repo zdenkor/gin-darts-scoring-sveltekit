@@ -113,16 +113,16 @@
 <svelte:window onkeydown={onKeyDown} />
 
 <form bind:this={formRef} class="calculator" role="group" aria-label="Score entry" onsubmit={(e) => { e.preventDefault(); commit(); }}>
+	<div class="calc-display">
+		<span class="calc-entered">{buffer}</span>
+	</div>
+
 	<div class="actions">
 		<button class="action-btn" type="button" disabled={!canUndo || disabled} onclick={() => onUndo?.()}>↶</button>
 		<button class="action-btn" type="button" disabled={!canRedo || disabled} onclick={() => onRedo?.()}>↷</button>
 		<button class="action-btn primary" type="submit" disabled={disabled}>＝</button>
 		<button class="action-btn" type="button" disabled={disabled} onclick={reset}>00</button>
 		<button class="action-btn" type="button" onclick={() => onMore?.()} aria-label="More commands">⋯</button>
-	</div>
-
-	<div class="calc-display">
-		<span class="calc-entered">{buffer}</span>
 	</div>
 
 	<div class="calc-body">
@@ -232,7 +232,13 @@
 	}
 	.fast-btn {
 		background: var(--surface);
-		min-width: 56px;
+		min-width: 72px;
+	}
+	@container calculator (min-width: 420px) {
+		.fast-btn { min-width: 84px; }
+	}
+	@container calculator (min-width: 560px) {
+		.fast-btn { min-width: 96px; }
 	}
 	.actions {
 		display: grid;

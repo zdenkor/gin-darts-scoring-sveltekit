@@ -40,15 +40,15 @@
 		border: 1px solid var(--line);
 		border-radius: var(--radius);
 		overflow: hidden;
-		font-size: var(--text-sm);
-		max-height: min(45vh, 360px);
+		font-size: var(--text-xs);
+		max-height: min(25vh, 220px);
 		overflow-y: auto;
 	}
 	.history-header, .history-row {
 		display: grid;
 		grid-template-columns: 2em 1fr;
-		gap: var(--space-sm);
-		padding: var(--space-xs) var(--space-sm);
+		gap: var(--space-xs);
+		padding: calc(var(--space-xs) * 0.75) var(--space-sm);
 		border-bottom: 1px solid var(--line);
 		align-items: center;
 	}
@@ -76,12 +76,15 @@
 	.muted { color: var(--muted); }
 	.history-empty {
 		text-align: center;
-		padding: var(--space-md);
-		font-size: var(--text-sm);
+		padding: var(--space-sm);
+		font-size: var(--text-xs);
 	}
 @container app (min-width: 480px) {
+		.history-strip { font-size: var(--text-sm); max-height: min(28vh, 260px); }
 		.history-header, .history-row {
 			grid-template-columns: 2em repeat(var(--cols, 2), 1fr);
+			gap: var(--space-sm);
+			padding: var(--space-xs) var(--space-sm);
 		}
 	}
 </style>

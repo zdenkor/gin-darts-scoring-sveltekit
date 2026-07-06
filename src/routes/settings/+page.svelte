@@ -4,6 +4,7 @@
 	import { base } from '$app/paths';
 	import { version } from '$app/environment';
 	import { auth } from '$lib/state/auth.svelte.js';
+	import { APP_VERSION } from '$lib/version.js';
 	import {
 		loadAllSettings, saveAllSettings, applyTheme,
 		getEffectiveGoogleClientId, getEffectiveSuperadminEmails
@@ -125,7 +126,7 @@
 
 		<section class="settings-section">
 			<h2>About</h2>
-			<p class="muted">Version <strong>v0.8.0-sveltekit</strong></p>
+			<p class="muted">Version <strong>{APP_VERSION}</strong></p>
 			<p class="muted">Build env: {version ? 'production' : 'development'}</p>
 		</section>
 

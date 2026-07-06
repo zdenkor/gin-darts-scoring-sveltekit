@@ -30,10 +30,14 @@
 	<div class="toolbar-actions">
 		<button class="icon-btn" type="button" title="Fullscreen" aria-label="Fullscreen" onclick={toggleFullscreen}>
 			<svg viewBox="0 0 24 24" aria-hidden="true">
-				<path fill="currentColor" d="M5 5h6v2H7v4H5V5zm8 0h6v6h-2V7h-4V5zM5 13h2v4h4v2H5v-6zm12 0h6v6h-6v-2h4v-4h-2v-2z"/>
+				<path fill="currentColor" d="M5 5h6v2H7v4H5V5zm8 0h6v6h-2V7h-4V5zM5 13h2v4h4v2H5v-6zm12 0h6v6h-6v-2h4v-4h-4z"/>
 			</svg>
 		</button>
-		<button class="icon-btn danger" type="button" title="Exit game" aria-label="Exit game" onclick={onExit}>⏻</button>
+		<button class="icon-btn danger" type="button" title="Exit game" aria-label="Exit game" onclick={onExit}>
+			<svg viewBox="0 0 24 24" aria-hidden="true">
+				<path fill="currentColor" d="M12 3a1 1 0 0 1 1 1v8a1 1 0 1 1-2 0V4a1 1 0 0 1 1-1zm-4.22 3.22a1 1 0 0 1-1.415 1.415 8 8 0 1 0 11.31 0 1 1 0 1 1-1.414-1.415 6 6 0 1 1-8.485 0z"/>
+			</svg>
+		</button>
 	</div>
 </div>
 
@@ -88,7 +92,12 @@
 	.icon-btn.danger {
 		color: var(--danger);
 		background: transparent;
-		font-size: 2em;
+		font-size: 1.3em;
+	}
+	.icon-btn.danger > svg {
+		width: 80%;
+		height: 80%;
+		display: block;
 	}
 	.icon-btn.danger:hover {
 		background: rgba(239, 68, 68, 0.15);

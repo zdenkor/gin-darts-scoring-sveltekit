@@ -10,7 +10,7 @@
 
 <div class="app-shell">
 	<Header />
-	<main class="app-main">
+	<main class="app-main game-layout">
 		{@render children()}
 	</main>
 	<Footer />

@@ -38,13 +38,14 @@
 		background: var(--surface);
 		border: 2px solid var(--line);
 		border-radius: var(--radius);
-		padding: var(--space-md);
+		padding: var(--space-sm) var(--space-md);
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-sm);
+		gap: var(--space-xs);
 		container-type: inline-size;
 		container-name: player;
 		transition: border-color .15s ease;
+		min-height: 0;
 	}
 	.player-card.active {
 		border-color: var(--accent);
@@ -54,7 +55,7 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		font-size: var(--text-md);
+		font-size: var(--text-sm);
 	}
 	.name {
 		font-weight: 600;
@@ -64,27 +65,30 @@
 	}
 	.sets {
 		color: var(--muted);
-		font-size: var(--text-sm);
+		font-size: var(--text-xs);
 	}
 	.score {
-		font-size: clamp(2.5rem, 22cqi, 6rem);
+		font-size: clamp(1.75rem, 14cqi, 4rem);
 		font-weight: 700;
 		text-align: center;
 		line-height: 1;
 	}
 	.score.long {
-		font-size: clamp(1.75rem, 16cqi, 4rem);
+		font-size: clamp(1.5rem, 12cqi, 3rem);
 	}
 	.footer {
 		display: flex;
 		justify-content: space-between;
-		font-size: var(--text-sm);
+		font-size: var(--text-xs);
 		color: var(--muted);
 	}
 	.checkout {
 		color: var(--accent);
 	}
 @container player (min-width: 320px) {
-		.score { font-size: clamp(3rem, 18cqi, 7rem); }
+		.score { font-size: clamp(2rem, 12cqi, 5rem); }
+	}
+@container player (min-width: 560px) {
+		.score { font-size: clamp(2.25rem, 10cqi, 6rem); }
 	}
 </style>
