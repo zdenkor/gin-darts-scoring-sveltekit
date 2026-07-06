@@ -204,21 +204,21 @@
 
 		{#if showCommands}
 			<div class="command-sheet" role="dialog" aria-modal="true">
-				<button class="command-item" disabled={past.length === 0} on:click={() => moreCommand('undo')}>↶ Undo</button>
-				<button class="command-item" disabled={future.length === 0} on:click={() => moreCommand('redo')}>↷ Redo</button>
-				<button class="command-item" on:click={() => moreCommand('stats')}>Stats</button>
-				<button class="command-item" disabled={game.winner == null} on:click={() => moreCommand('finish')}>Finish game</button>
-				<button class="command-item danger" on:click={() => moreCommand('exit')}>Exit game</button>
-				<button class="command-item" on:click={() => (showCommands = false)}>Cancel</button>
-			</div>
-			<div class="command-backdrop" role="button" tabindex="0" on:click={() => (showCommands = false)} on:keydown={(e) => e.key === 'Enter' && (showCommands = false)}"></div>
+				<button class="command-item" disabled={past.length === 0} onclick={() => moreCommand('undo')}>↶ Undo</button>
+					<button class="command-item" disabled={future.length === 0} onclick={() => moreCommand('redo')}>↷ Redo</button>
+					<button class="command-item" onclick={() => moreCommand('stats')}>Stats</button>
+					<button class="command-item" disabled={game.winner == null} onclick={() => moreCommand('finish')}>Finish game</button>
+					<button class="command-item danger" onclick={() => moreCommand('exit')}>Exit game</button>
+					<button class="command-item" onclick={() => (showCommands = false)}>Cancel</button>
+				</div>
+				<div class="command-backdrop" onclick={() => (showCommands = false)} aria-hidden="true"></div>
 		{/if}
 	</div>
 {:else}
 	<div class="screen">
 		<div class="card">
 			<p class="muted">Loading game…</p>
-			<button class="btn" on:click={() => goto(`${base}/`)}>Back to menu</button>
+			<button class="btn" onclick={() => goto(`${base}/`)}>Back to menu</button>
 		</div>
 	</div>
 {/if}

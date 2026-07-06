@@ -1,4 +1,6 @@
 <script>
+	import { onMount } from 'svelte';
+
 	/** @type {{onCommit: (value: number) => void, onChange?: (value: number) => void, onUndo?: () => void, onRedo?: () => void, onMore?: () => void, canUndo?: boolean, canRedo?: boolean, disabled?: boolean}} */
 	let {
 		onCommit,
@@ -46,6 +48,7 @@
 		if (disabled) return false;
 		const value = parseInt(buffer, 10) || 0;
 		if (value > 180) return false;
+		console.log('Calculator commit', value);
 		onCommit(value);
 		buffer = '0';
 		updateDisplay();
@@ -56,6 +59,7 @@
 		if (disabled) return;
 		buffer = String(value);
 		updateDisplay();
+		console.log('fastScore', value);
 		formRef?.requestSubmit();
 	}
 
@@ -79,6 +83,31 @@
 		buffer = '0';
 		updateDisplay();
 	}
+
+	function handleNativeClick(e) {
+		const target = /** @type {HTMLElement} */ (e.target).closest('button');
+		if (!target || target.disabled) return;
+		const text = target.textContent?.trim();
+		if (!text) return;
+		if (target.type === 'submit') {
+			e.preventDefault();
+			commit();
+			return;
+		}
+		if (text === '↶') { onUndo?.(); return; }
+		if (text === '↷') { onRedo?.(); return; }
+		if (text === '00') { reset(); return; }
+		if (text === '⋯') { onMore?.(); return; }
+		if (FAST_SCORES.includes(Number(text))) { fastScore(Number(text)); return; }
+		handleTile(text);
+	}
+
+	onMount(() => {
+		const form = formRef;
+		if (!form) return;
+		form.addEventListener('click', handleNativeClick);
+		return () => form.removeEventListener('click', handleNativeClick);
+	});
 </script>
 
 <svelte:window onkeydown={onKeyDown} />
@@ -91,7 +120,7 @@
 	<div class="calc-body">
 		<div class="fast-col left">
 			{#each LEFT_FAST as score}
-				<button class="fast-btn" type="button" disabled={disabled} on:click={() => fastScore(score)}>{score}</button>
+				<button class="fast-btn" type="button" disabled={disabled} onclick={() => fastScore(score)}>{score}</button>
 			{/each}
 		</div>
 
@@ -100,7 +129,7 @@
 				{#if tile === '↵'}
 					<button class="num-btn wide" type="submit" disabled={disabled}>{tile}</button>
 				{:else}
-					<button class="num-btn" class:wide={tile === '⌫'} type="button" disabled={disabled} on:click={() => handleTile(tile)}>
+					<button class="num-btn" class:wide={tile === '⌫'} type="button" disabled={disabled} onclick={() => handleTile(tile)}>
 						{tile}
 					</button>
 				{/if}
@@ -109,17 +138,17 @@
 
 		<div class="fast-col right">
 			{#each RIGHT_FAST as score}
-				<button class="fast-btn" type="button" disabled={disabled} on:click={() => fastScore(score)}>{score}</button>
+				<button class="fast-btn" type="button" disabled={disabled} onclick={() => fastScore(score)}>{score}</button>
 			{/each}
 		</div>
 	</div>
 
 	<div class="actions">
-		<button class="action-btn" type="button" disabled={!canUndo || disabled} on:click={() => onUndo?.()}>↶</button>
-		<button class="action-btn" type="button" disabled={!canRedo || disabled} on:click={() => onRedo?.()}>↷</button>
+		<button class="action-btn" type="button" disabled={!canUndo || disabled} onclick={() => onUndo?.()}>↶</button>
+		<button class="action-btn" type="button" disabled={!canRedo || disabled} onclick={() => onRedo?.()}>↷</button>
 		<button class="action-btn primary" type="submit" disabled={disabled}>＝</button>
-		<button class="action-btn" type="button" disabled={disabled} on:click={reset}>00</button>
-		<button class="action-btn" type="button" on:click={() => onMore?.()} aria-label="More commands">⋯</button>
+		<button class="action-btn" type="button" disabled={disabled} onclick={reset}>00</button>
+		<button class="action-btn" type="button" onclick={() => onMore?.()} aria-label="More commands">⋯</button>
 	</div>
 </form>
 
