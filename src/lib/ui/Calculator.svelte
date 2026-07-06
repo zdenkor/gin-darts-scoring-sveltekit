@@ -22,6 +22,7 @@
 	const RIGHT_FAST = FAST_SCORES.slice(4);
 
 	let buffer = $state('0');
+	let formRef = $state(/** @type {HTMLFormElement|null} */ (null));
 
 	function updateDisplay() {
 		onChange?.(parseInt(buffer, 10) || 0);
@@ -42,22 +43,25 @@
 	}
 
 	function commit() {
-		if (disabled) return;
+		if (disabled) return false;
 		const value = parseInt(buffer, 10) || 0;
+		if (value > 180) return false;
 		onCommit(value);
 		buffer = '0';
 		updateDisplay();
+		return false;
 	}
 
 	function fastScore(value) {
 		if (disabled) return;
 		buffer = String(value);
 		updateDisplay();
+		formRef?.requestSubmit();
 	}
 
 	function handleTile(tile) {
 		if (tile === '⌫') backspace();
-		else if (tile === '↵') commit();
+		else if (tile === '↵') formRef?.requestSubmit();
 		else pressDigit(tile);
 	}
 
@@ -65,13 +69,21 @@
 		if (disabled) return;
 		if (e.key >= '0' && e.key <= '9') pressDigit(e.key);
 		else if (e.key === 'Backspace') backspace();
-		else if (e.key === 'Enter') commit();
+		else if (e.key === 'Enter') {
+			e.preventDefault();
+			formRef?.requestSubmit();
+		}
+	}
+
+	function reset() {
+		buffer = '0';
+		updateDisplay();
 	}
 </script>
 
 <svelte:window onkeydown={onKeyDown} />
 
-<div class="calculator" role="group" aria-label="Score entry">
+<form bind:this={formRef} class="calculator" role="group" aria-label="Score entry" onsubmit={(e) => { e.preventDefault(); commit(); }}>
 	<div class="calc-display">
 		<span class="calc-entered">{buffer}</span>
 	</div>
@@ -85,9 +97,13 @@
 
 		<div class="numpad">
 			{#each TILES as tile}
-				<button class="num-btn" class:wide={tile === '↵' || tile === '⌫'} type="button" disabled={disabled} onclick={() => handleTile(tile)}>
-					{tile}
+				{#if tile === '↵'}
+					<button class="num-btn wide" type="submit" disabled={disabled}>{tile}</button>
+				{:else}
+					<button class="num-btn" class:wide={tile === '⌫'} type="button" disabled={disabled} onclick={() => handleTile(tile)}>
+						{tile}
 					</button>
+				{/if}
 			{/each}
 		</div>
 
@@ -101,11 +117,11 @@
 	<div class="actions">
 		<button class="action-btn" type="button" disabled={!canUndo || disabled} onclick={() => onUndo?.()}>↶</button>
 		<button class="action-btn" type="button" disabled={!canRedo || disabled} onclick={() => onRedo?.()}>↷</button>
-		<button class="action-btn primary" type="button" disabled={disabled} onclick={commit}>＝</button>
-		<button class="action-btn" type="button" disabled={disabled} onclick={() => { buffer = '0'; updateDisplay(); }}>00</button>
+		<button class="action-btn primary" type="submit" disabled={disabled}>＝</button>
+		<button class="action-btn" type="button" disabled={disabled} onclick={reset}>00</button>
 		<button class="action-btn" type="button" onclick={() => onMore?.()} aria-label="More commands">⋯</button>
 	</div>
-</div>
+</form>
 
 <style>
 	.calculator {
