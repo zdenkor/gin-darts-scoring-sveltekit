@@ -113,6 +113,14 @@
 <svelte:window onkeydown={onKeyDown} />
 
 <form bind:this={formRef} class="calculator" role="group" aria-label="Score entry" onsubmit={(e) => { e.preventDefault(); commit(); }}>
+	<div class="actions">
+		<button class="action-btn" type="button" disabled={!canUndo || disabled} onclick={() => onUndo?.()}>↶</button>
+		<button class="action-btn" type="button" disabled={!canRedo || disabled} onclick={() => onRedo?.()}>↷</button>
+		<button class="action-btn primary" type="submit" disabled={disabled}>＝</button>
+		<button class="action-btn" type="button" disabled={disabled} onclick={reset}>00</button>
+		<button class="action-btn" type="button" onclick={() => onMore?.()} aria-label="More commands">⋯</button>
+	</div>
+
 	<div class="calc-display">
 		<span class="calc-entered">{buffer}</span>
 	</div>
@@ -141,14 +149,6 @@
 				<button class="fast-btn" type="button" disabled={disabled} onclick={() => fastScore(score)}>{score}</button>
 			{/each}
 		</div>
-	</div>
-
-	<div class="actions">
-		<button class="action-btn" type="button" disabled={!canUndo || disabled} onclick={() => onUndo?.()}>↶</button>
-		<button class="action-btn" type="button" disabled={!canRedo || disabled} onclick={() => onRedo?.()}>↷</button>
-		<button class="action-btn primary" type="submit" disabled={disabled}>＝</button>
-		<button class="action-btn" type="button" disabled={disabled} onclick={reset}>00</button>
-		<button class="action-btn" type="button" onclick={() => onMore?.()} aria-label="More commands">⋯</button>
 	</div>
 </form>
 
