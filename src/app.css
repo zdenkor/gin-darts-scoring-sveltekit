@@ -98,6 +98,12 @@ body {
   min-height: 100dvh;
 }
 
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
 main {
   flex: 1;
   padding: var(--space-md);
