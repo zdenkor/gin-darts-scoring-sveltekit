@@ -32,7 +32,17 @@
 	let lastBotIndex = -1;
 
 	async function init() {
-		const saved = await loadCurrentGame();
+		let saved = null;
+		try {
+			// IndexedDB can hang in some browser contexts (private mode, disabled storage).
+			// Race it against a timeout so the UI never stays stuck on "Loading game…".
+			saved = await Promise.race([
+				loadCurrentGame(),
+				new Promise((_, reject) => setTimeout(() => reject(new Error('loadCurrentGame timeout')), 3000))
+			]);
+		} catch (e) {
+			console.warn('init: could not load saved game, starting new', e);
+		}
 		const hasSaved = saved && saved.players?.length && !saved.endedAt;
 		const wantsNew = Array.isArray(names) && names.length > 0;
 		if (hasSaved && !wantsNew) {

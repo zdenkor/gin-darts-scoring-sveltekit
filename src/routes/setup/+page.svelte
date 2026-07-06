@@ -1,5 +1,4 @@
 <script>
-	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { X01_IN_OPTIONS, X01_OUT_OPTIONS } from '$lib/game/engine.js';
 
@@ -34,11 +33,11 @@
 		players = players.map((p, i) => i === index ? { ...p, botLevel: Number(value) } : p);
 	}
 
-	function startGame() {
+	function gameUrl() {
 		const entries = players
 			.map(p => ({ name: p.name.trim(), isBot: p.isBot, botLevel: p.botLevel ?? 5 }))
 			.filter(p => p.name);
-		if (entries.length < 1) return;
+		if (entries.length < 1) return null;
 		const params = new URLSearchParams({
 			names: entries.map(p => p.name).join(','),
 			bots: entries.map(p => (p.isBot ? String(p.botLevel) : '')).join(','),
@@ -48,7 +47,7 @@
 			legs: String(legsToWin),
 			sets: String(setsToWin)
 		});
-		goto(`${base}/game?${params.toString()}`);
+		return `${base}/game?${params.toString()}`;
 	}
 </script>
 
@@ -147,7 +146,7 @@
 
 		<div class="actions">
 			<a class="btn ghost" href="{base}/">Cancel</a>
-			<button class="btn primary" type="button" onclick={startGame}>Start game</button>
+			<button class="btn primary" type="button" onclick={() => { const url = gameUrl(); if (url) window.location.href = url; }}>Start game</button>
 		</div>
 	</div>
 </div>
