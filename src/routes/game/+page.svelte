@@ -16,6 +16,4 @@
 	const setsToWin = $derived(Number(url.searchParams.get('sets')) || 1);
 </script>
 
-{#key `${names?.join(',') || 'continue'}-${bots.join(',')}-${start}-${inRule}-${outRule}-${legsToWin}-${setsToWin}`}
-	<GameScreen {names} {bots} {start} {inRule} {outRule} {legsToWin} {setsToWin} />
-{/key}
+<GameScreen {names} {bots} {start} {inRule} {outRule} {legsToWin} {setsToWin} />
