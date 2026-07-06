@@ -10,7 +10,7 @@
 // All functions return Promises.
 // =================================================================
 
-const DB_NAME = 'gindarts';
+const DB_NAME = 'gindarts-legacy';
 const DB_VERSION = 4;
 
 let _dbPromise = null;
