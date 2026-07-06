@@ -5,7 +5,7 @@
 // =================================================================
 
 const DB_NAME = 'gindarts';
-const DB_VERSION = 5;
+const DB_VERSION = 6;
 
 let _dbPromise = null;
 
@@ -68,6 +68,11 @@ function ensureStores(db) {
   if (!db.objectStoreNames.contains('svk_players')) {
     const sps = db.createObjectStore('svk_players', { keyPath: 'svkId' });
     sps.createIndex('surname', 'surname', { unique: false });
+  }
+  if (!db.objectStoreNames.contains('history')) {
+    const hs = db.createObjectStore('history', { keyPath: 'id', autoIncrement: true });
+    hs.createIndex('playerName', 'playerName', { unique: false });
+    hs.createIndex('endedAt', 'endedAt', { unique: false });
   }
 }
 

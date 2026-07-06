@@ -1,6 +1,15 @@
 <script>
-	/** @type {{onCommit: (value: number) => void, onChange?: (value: number) => void}} */
-	let { onCommit, onChange = () => {} } = $props();
+	/** @type {{onCommit: (value: number) => void, onChange?: (value: number) => void, onUndo?: () => void, onRedo?: () => void, onMore?: () => void, canUndo?: boolean, canRedo?: boolean, disabled?: boolean}} */
+	let {
+		onCommit,
+		onChange = () => {},
+		onUndo,
+		onRedo,
+		onMore,
+		canUndo = false,
+		canRedo = false,
+		disabled = false
+	} = $props();
 
 	const TILES = [
 		'1', '2', '3',
@@ -19,18 +28,21 @@
 	}
 
 	function pressDigit(digit) {
+		if (disabled) return;
 		if (buffer === '0') buffer = digit;
 		else if (buffer.length < 4) buffer += digit;
 		updateDisplay();
 	}
 
 	function backspace() {
+		if (disabled) return;
 		if (buffer.length > 1) buffer = buffer.slice(0, -1);
 		else buffer = '0';
 		updateDisplay();
 	}
 
 	function commit() {
+		if (disabled) return;
 		const value = parseInt(buffer, 10) || 0;
 		onCommit(value);
 		buffer = '0';
@@ -38,6 +50,7 @@
 	}
 
 	function fastScore(value) {
+		if (disabled) return;
 		buffer = String(value);
 		updateDisplay();
 	}
@@ -49,6 +62,7 @@
 	}
 
 	function onKeyDown(e) {
+		if (disabled) return;
 		if (e.key >= '0' && e.key <= '9') pressDigit(e.key);
 		else if (e.key === 'Backspace') backspace();
 		else if (e.key === 'Enter') commit();
@@ -65,31 +79,31 @@
 	<div class="calc-body">
 		<div class="fast-col left">
 			{#each LEFT_FAST as score}
-				<button class="fast-btn" type="button" onclick={() => fastScore(score)}>{score}</button>
+				<button class="fast-btn" type="button" disabled={disabled} onclick={() => fastScore(score)}>{score}</button>
 			{/each}
 		</div>
 
 		<div class="numpad">
 			{#each TILES as tile}
-				<button class="num-btn" class:wide={tile === '↵' || tile === '⌫'} type="button" onclick={() => handleTile(tile)}>
+				<button class="num-btn" class:wide={tile === '↵' || tile === '⌫'} type="button" disabled={disabled} onclick={() => handleTile(tile)}>
 					{tile}
-				</button>
+					</button>
 			{/each}
 		</div>
 
 		<div class="fast-col right">
 			{#each RIGHT_FAST as score}
-				<button class="fast-btn" type="button" onclick={() => fastScore(score)}>{score}</button>
+				<button class="fast-btn" type="button" disabled={disabled} onclick={() => fastScore(score)}>{score}</button>
 			{/each}
 		</div>
 	</div>
 
 	<div class="actions">
-		<button class="action-btn" type="button">↶</button>
-		<button class="action-btn" type="button">↷</button>
-		<button class="action-btn primary" type="button" onclick={commit}>＝</button>
-		<button class="action-btn" type="button" onclick={() => { buffer = '0'; updateDisplay(); }}>00</button>
-		<button class="action-btn" type="button">⋯</button>
+		<button class="action-btn" type="button" disabled={!canUndo || disabled} onclick={() => onUndo?.()}>↶</button>
+		<button class="action-btn" type="button" disabled={!canRedo || disabled} onclick={() => onRedo?.()}>↷</button>
+		<button class="action-btn primary" type="button" disabled={disabled} onclick={commit}>＝</button>
+		<button class="action-btn" type="button" disabled={disabled} onclick={() => { buffer = '0'; updateDisplay(); }}>00</button>
+		<button class="action-btn" type="button" onclick={() => onMore?.()} aria-label="More commands">⋯</button>
 	</div>
 </div>
 
@@ -164,6 +178,13 @@
 	.num-btn {
 		aspect-ratio: 1.3 / 1;
 	}
+	.num-btn.wide {
+		aspect-ratio: auto;
+	}
+	.num-btn:disabled, .fast-btn:disabled, .action-btn:disabled {
+		opacity: 0.35;
+		cursor: not-allowed;
+	}
 	.fast-btn {
 		background: var(--surface);
 		min-width: 56px;
@@ -184,5 +205,8 @@
 	}
 	.action-btn.primary:hover {
 		background: #2cd49a;
+	}
+@container calculator (min-width: 480px) {
+		.action-btn { font-size: var(--text-xl); }
 	}
 </style>

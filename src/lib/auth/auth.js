@@ -53,6 +53,10 @@ export async function register({ username, displayName, password, role = 'user' 
   return { id, username, displayName, role };
 }
 
+export async function createUser(username, password, role = 'user') {
+  return register({ username, password, role });
+}
+
 export async function login({ username, password }) {
   username = (username || '').trim().toLowerCase();
   const users = await getAll('users');
