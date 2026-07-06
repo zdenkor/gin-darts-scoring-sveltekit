@@ -30,6 +30,7 @@
 
 	let persistTimer = 0;
 	let botTimer = 0;
+	let lastBotIndex = -1;
 
 	async function init() {
 		const saved = await loadCurrentGame();
@@ -53,6 +54,7 @@
 		}
 		past = [];
 		future = [];
+		scheduleBotIfNeeded();
 	}
 
 	$effect(() => {
@@ -94,25 +96,32 @@
 		game = structuredClone(result.state);
 		past = [...past, before];
 		future = [];
+		scheduleBotIfNeeded();
+	}
+
+	function isCurrentBot() {
+		if (!game) return false;
+		return !!game.players[game.current]?.isBot;
 	}
 
 	function runBotTurn() {
 		if (!game || game.winner != null) return;
 		const p = game.players[game.current];
-		if (!p.isBot) return;
+		if (!p?.isBot) return;
+		lastBotIndex = game.current;
 		const darts = playTurn(p.score, { in: game.opts?.in, out: game.opts?.out }, p.botLevel || 5);
 		const total = darts.reduce((s, d) => s + dartValue(d), 0);
 		commitTurn(total);
 	}
 
-	$effect(() => {
-		const g = game;
-		if (!g || g.winner != null) return;
-		const p = g.players[g.current];
-		if (!p?.isBot) return;
+	function scheduleBotIfNeeded() {
 		if (botTimer) clearTimeout(botTimer);
-		botTimer = setTimeout(() => runBotTurn(), 800);
-	});
+		if (!game || game.winner != null) return;
+		const idx = game.current;
+		if (game.players[idx]?.isBot && idx !== lastBotIndex) {
+			botTimer = setTimeout(() => runBotTurn(), 800);
+		}
+	}
 
 	function undo() {
 		if (past.length === 0) return;
@@ -121,6 +130,8 @@
 		past = past.slice(0, -1);
 		restore(previous);
 		lastCommitError = '';
+		lastBotIndex = -1;
+		scheduleBotIfNeeded();
 	}
 
 	function redo() {
@@ -130,6 +141,8 @@
 		future = future.slice(1);
 		restore(next);
 		lastCommitError = '';
+		lastBotIndex = -1;
+		scheduleBotIfNeeded();
 	}
 
 	function exitGame() {
@@ -191,7 +204,7 @@
 			canUndo={past.length > 0}
 			canRedo={future.length > 0}
 			onMore={() => (showCommands = true)}
-			disabled={game.winner != null}
+			disabled={game.winner != null || isCurrentBot()}
 		/>
 
 		{#if showCommands}
