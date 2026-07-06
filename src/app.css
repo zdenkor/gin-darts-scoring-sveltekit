@@ -32,6 +32,44 @@
   --text-xl: clamp(1.5rem, 5cqi, 3rem);
 }
 
+html.theme-dark {
+  /* keeps the dark palette above */
+}
+
+html.theme-light {
+  --bg: #f4f6f8;
+  --bg-2: #e8ecf1;
+  --surface: #ffffff;
+  --surface-2: #eef1f5;
+  --line: #c8d0db;
+  --text: #121820;
+  --muted: #5d6875;
+  --accent: #0d9b6b;
+  --accent-2: #d12d4e;
+  --warn: #b47a1f;
+  --danger: #d9303e;
+  --good: #2e9d63;
+  --shadow: 0 6px 18px rgba(0,0,0,.12);
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not(.theme-dark):not(.theme-light) {
+    --bg: #f4f6f8;
+    --bg-2: #e8ecf1;
+    --surface: #ffffff;
+    --surface-2: #eef1f5;
+    --line: #c8d0db;
+    --text: #121820;
+    --muted: #5d6875;
+    --accent: #0d9b6b;
+    --accent-2: #d12d4e;
+    --warn: #b47a1f;
+    --danger: #d9303e;
+    --good: #2e9d63;
+    --shadow: 0 6px 18px rgba(0,0,0,.12);
+  }
+}
+
 * { box-sizing: border-box; }
 
 html { font-size: 16px; }
