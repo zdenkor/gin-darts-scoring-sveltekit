@@ -29,11 +29,11 @@ jobs:
           ref: ${{ github.event.inputs.branch || github.ref_name }}
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
       - run: npm ci
       - run: npm run build
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v4
         with:
           path: build
   deploy:
@@ -45,3 +45,5 @@ jobs:
     steps:
       - uses: actions/deploy-pages@v4
         id: deployment
+      - name: Wait for deployment propagation
+        run: sleep 30
