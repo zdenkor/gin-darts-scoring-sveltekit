@@ -24,11 +24,11 @@
 	</div>
 
 	<div class="version-grid">
-		<button class="version-tile new" type="button" onclick={() => go('/setup')}>
+		<button class="version-tile new" type="button" onclick={() => go('/dashboard')}>
 			<span class="badge new-badge">NEW</span>
 			<h2>SvelteKit version</h2>
 			<p>Modern responsive UI, continue game, stats, online P2P, competitions.</p>
-			<span class="action">Start new version →</span>
+			<span class="action">Open dashboard →</span>
 		</button>
 
 		<a class="version-tile legacy" href={`${base}/legacy/index.html`}>
