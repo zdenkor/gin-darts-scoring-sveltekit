@@ -60,20 +60,24 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		font-size: var(--text-xs);
+		font-size: clamp(1rem, 6cqi, 2rem);
 		min-height: 0;
 		flex: 0 0 auto;
 		flex-shrink: 0;
+		gap: var(--space-xs);
 	}
 	.name {
 		font-weight: 600;
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
+		min-width: 0;
 	}
 	.sets {
 		color: var(--muted);
-		font-size: var(--text-xs);
+		font-size: clamp(1rem, 6cqi, 2rem);
+		white-space: nowrap;
+		flex: 0 0 auto;
 	}
 	.score {
 		font-size: clamp(2rem, 12cqi, 4rem);
@@ -93,25 +97,28 @@
 	.footer {
 		display: flex;
 		justify-content: space-between;
-		font-size: var(--text-xs);
+		font-size: clamp(1rem, 6cqi, 2rem);
 		color: var(--muted);
 		min-height: 0;
 		flex: 0 0 auto;
 		flex-shrink: 0;
+		gap: var(--space-xs);
 	}
 	.checkout {
 		color: var(--accent);
 	}
 	@container player (min-width: 20rem) {
 		.score { font-size: clamp(2.5rem, 14cqi, 5rem); }
+		.card-header, .footer { font-size: clamp(1.25rem, 7cqi, 2.5rem); }
 	}
 	@container player (min-width: 35rem) {
 		.score { font-size: clamp(3rem, 12cqi, 6rem); }
+		.card-header, .footer { font-size: clamp(1.5rem, 6cqi, 3rem); }
 	}
 	@container player (max-height: 8rem) {
 		.score { font-size: clamp(1.5rem, 8cqi, 2.5rem); }
 		.player-card { padding: 2px; }
-		.card-header, .footer { font-size: calc(var(--text-xs) * 0.85); }
+		.card-header, .footer { font-size: clamp(0.75rem, 4cqi, 1.25rem); }
 	}
 	.player-card.compact {
 		width: calc(50% - var(--space-xs) * 0.5);
@@ -122,21 +129,33 @@
 	.player-card.compact .score {
 		font-size: clamp(1.75rem, 14cqi, 3rem);
 	}
+	.player-card.compact .card-header,
+	.player-card.compact .footer {
+		font-size: clamp(0.875rem, 7cqi, 1.5rem);
+	}
 	@container player (max-height: 6rem) {
 		.player-card.compact { min-width: 120px; }
 		.player-card.compact .score { font-size: clamp(1.5rem, 12cqi, 2.5rem); }
+		.player-card.compact .card-header,
+		.player-card.compact .footer { font-size: clamp(0.75rem, 6cqi, 1.25rem); }
 	}
 	@container player (min-width: 12rem) {
 		.player-card.compact .score { font-size: clamp(2rem, 18cqi, 4rem); }
+		.player-card.compact .card-header,
+		.player-card.compact .footer { font-size: clamp(1rem, 9cqi, 2rem); }
 	}
 	@container player (min-width: 18rem) {
 		.player-card.compact .score { font-size: clamp(2.5rem, 16cqi, 5rem); }
+		.player-card.compact .card-header,
+		.player-card.compact .footer { font-size: clamp(1.25rem, 8cqi, 2.5rem); }
 	}
 	@container player (min-height: 14rem) {
 		.score { font-size: clamp(2.5rem, 14cqi, 5.5rem); }
+		.card-header, .footer { font-size: clamp(1.25rem, 7cqi, 2.75rem); }
 	}
 	@container player (min-height: 20rem) {
 		.score { font-size: clamp(3rem, 16cqi, 7rem); }
+		.card-header, .footer { font-size: clamp(1.5rem, 8cqi, 3.5rem); }
 	}
 	@media (prefers-reduced-motion: reduce) {
 		.player-card { transition: none; }

@@ -317,20 +317,6 @@
 	@container game-screen (max-height: 520px) {
 		.game-screen { gap: 2px; padding: 2px; }
 	}
-	:global(.game-screen > .history-strip),
-	:global(.game-screen > .history-empty) {
-		max-height: min(15cqh, 6rem);
-		min-height: 0;
-		overflow: hidden;
-	}
-	@container game-screen (min-height: 700px) {
-		:global(.game-screen > .history-strip),
-		:global(.game-screen > .history-empty) { max-height: min(18cqh, 8rem); }
-	}
-	@container game-screen (max-height: 520px) {
-		:global(.game-screen > .history-strip),
-		:global(.game-screen > .history-empty) { display: none; }
-	}
 	.scoreboard {
 		display: grid;
 		grid-template-columns: 1fr;

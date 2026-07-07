@@ -161,6 +161,10 @@
 		margin: 0 0 var(--space-md);
 		font-size: var(--text-xl);
 	}
+	.setup-screen {
+		padding: var(--space-md);
+		box-sizing: border-box;
+	}
 	.setup-screen h2 {
 		margin: 0 0 var(--space-sm);
 		font-size: var(--text-lg);

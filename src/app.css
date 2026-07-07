@@ -251,6 +251,12 @@ input:focus, select:focus {
   overflow-y: auto;
 }
 
+/* ---------- Fullscreen: hide app chrome ---------- */
+:fullscreen .app-header,
+:fullscreen .app-footer {
+  display: none;
+}
+
 /* ---------- Accessibility: reduced motion ---------- */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

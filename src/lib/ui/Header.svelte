@@ -3,6 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import favicon from '$lib/assets/favicon.svg';
+	import settingsIcon from '$lib/assets/settings.svg?raw';
 	import { auth } from '$lib/state/auth.svelte.js';
 
 	const isAuthed = $derived(auth.isSignedIn);
@@ -26,7 +27,9 @@
 	</button>
 
 	<nav class="header-actions">
-		<a class="icon-btn" href="{base}/settings" title="Settings" aria-label="Settings"><span class="icon">⚙</span></a>
+		<a class="icon-btn" href="{base}/settings" title="Settings" aria-label="Settings">
+			<span class="icon icon-svg">{@html settingsIcon}</span>
+		</a>
 
 		{#if isAuthed}
 			{#if isAdmin}
@@ -62,6 +65,9 @@
 		text-align: left;
 	}
 	.brand img { width: 2em; height: 2em; }
+.icon { line-height: 1; }
+.icon-svg { display: inline-flex; align-items: center; justify-content: center; }
+.icon-svg :global(svg) { width: 1.1em; height: 1.1em; display: block; color: inherit; }
 	.brand-text h1 {
 		font-size: var(--text-md);
 		margin: 0;
