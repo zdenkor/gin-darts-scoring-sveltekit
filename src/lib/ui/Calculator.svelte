@@ -165,6 +165,7 @@
 		width: 100%;
 		height: auto;
 		max-height: 100%;
+		min-height: 18rem;
 		max-width: 45rem;
 		margin-inline: auto;
 	}
@@ -224,8 +225,8 @@
 	.calc-body {
 		display: grid;
 		grid-template-columns: 1fr 2fr 1fr;
+		grid-auto-rows: minmax(2.8rem, 1fr);
 		gap: var(--space-xs);
-		flex: 1 1 0;
 		min-height: 0;
 		overflow: hidden;
 	}
@@ -236,7 +237,7 @@
 	.fast-col {
 		display: grid;
 		grid-template-columns: 1fr;
-		grid-template-rows: repeat(4, 1fr);
+		grid-template-rows: repeat(4, minmax(2.8rem, 1fr));
 		gap: var(--space-xs);
 		min-height: 0;
 	}
@@ -258,7 +259,7 @@
 	.numpad {
 		display: grid;
 		grid-template-columns: repeat(3, 1fr);
-		grid-template-rows: repeat(4, 1fr);
+		grid-template-rows: repeat(4, minmax(2.8rem, 1fr));
 		gap: var(--space-xs);
 		min-height: 0;
 	}
