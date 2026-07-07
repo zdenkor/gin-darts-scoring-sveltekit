@@ -50,7 +50,7 @@
 		transition: border-color .15s ease;
 		min-height: 0;
 		overflow: hidden;
-		justify-content: space-between;
+		height: 100%;
 	}
 	.player-card.active {
 		border-color: var(--accent);
@@ -62,6 +62,8 @@
 		align-items: center;
 		font-size: var(--text-xs);
 		min-height: 0;
+		flex: 0 0 auto;
+		flex-shrink: 0;
 	}
 	.name {
 		font-weight: 600;
@@ -78,11 +80,11 @@
 		font-weight: 700;
 		text-align: center;
 		line-height: 1;
-		flex: 0 0 auto;
+		flex: 1 1 0;
+		min-height: 0;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		min-height: 0;
 		padding: 0;
 	}
 	.score.long {
@@ -94,44 +96,46 @@
 		font-size: var(--text-xs);
 		color: var(--muted);
 		min-height: 0;
+		flex: 0 0 auto;
+		flex-shrink: 0;
 	}
 	.checkout {
 		color: var(--accent);
 	}
-@container player (min-width: 20rem) {
+	@container player (min-width: 20rem) {
 		.score { font-size: clamp(2.5rem, 14cqi, 5rem); }
 	}
-@container player (min-width: 35rem) {
+	@container player (min-width: 35rem) {
 		.score { font-size: clamp(3rem, 12cqi, 6rem); }
 	}
-@container player (max-height: 8rem) {
+	@container player (max-height: 8rem) {
 		.score { font-size: clamp(1.5rem, 8cqi, 2.5rem); }
 		.player-card { padding: 2px; }
 		.card-header, .footer { font-size: calc(var(--text-xs) * 0.85); }
 	}
-.player-card.compact {
-	width: calc(50% - var(--space-xs) * 0.5);
-	min-width: 140px;
-	max-width: 220px;
-	flex-shrink: 0;
-}
-.player-card.compact .score {
-	font-size: clamp(1.75rem, 14cqi, 3rem);
-}
-@container player (max-height: 6rem) {
-	.player-card.compact { min-width: 120px; }
-	.player-card.compact .score { font-size: clamp(1.5rem, 12cqi, 2.5rem); }
-}
-@container player (min-width: 12rem) {
-	.player-card.compact .score { font-size: clamp(2rem, 18cqi, 4rem); }
-}
-@container player (min-width: 18rem) {
-	.player-card.compact .score { font-size: clamp(2.5rem, 16cqi, 5rem); }
-}
-@container player (min-height: 14rem) {
-	.score { font-size: clamp(2.5rem, 14cqi, 5.5rem); }
-}
-@container player (min-height: 20rem) {
+	.player-card.compact {
+		width: calc(50% - var(--space-xs) * 0.5);
+		min-width: 140px;
+		max-width: 220px;
+		flex-shrink: 0;
+	}
+	.player-card.compact .score {
+		font-size: clamp(1.75rem, 14cqi, 3rem);
+	}
+	@container player (max-height: 6rem) {
+		.player-card.compact { min-width: 120px; }
+		.player-card.compact .score { font-size: clamp(1.5rem, 12cqi, 2.5rem); }
+	}
+	@container player (min-width: 12rem) {
+		.player-card.compact .score { font-size: clamp(2rem, 18cqi, 4rem); }
+	}
+	@container player (min-width: 18rem) {
+		.player-card.compact .score { font-size: clamp(2.5rem, 16cqi, 5rem); }
+	}
+	@container player (min-height: 14rem) {
+		.score { font-size: clamp(2.5rem, 14cqi, 5.5rem); }
+	}
+	@container player (min-height: 20rem) {
 		.score { font-size: clamp(3rem, 16cqi, 7rem); }
 	}
 </style>
