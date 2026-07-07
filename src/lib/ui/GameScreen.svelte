@@ -325,7 +325,7 @@
 <style>
 	.game-screen {
 		display: grid;
-		grid-template-rows: auto auto 1fr minmax(6rem, 7rem) auto;
+		grid-template-rows: auto auto 1fr minmax(8rem, 8rem) auto;
 		gap: 0;
 		height: 100%;
 		min-height: 0;
