@@ -9,11 +9,17 @@
 	 *   - `delta` is the change in score (negative for x01 = thrown)
 	 *   - `scoreAfter` is the player's score after the turn
 	 *   - `what` starts with "BUST" if the turn busted
+	 *
+	 * For the player who did NOT throw in this round, we show their
+	 * current score (so the row always shows the running state of both
+	 * players) and leave the "Scored" cell blank (no dash).
 	 */
-	/** @type {{players: Array<{name: string, history?: Array<{what?: string, delta?: number, scoreAfter?: number, round?: number, thrown?: number, remain?: number, bust?: boolean}>}>}} */
+	/** @type {{players: Array<{name: string, score?: number, history?: Array<{what?: string, delta?: number, scoreAfter?: number, round?: number, thrown?: number, remain?: number, bust?: boolean}>}>}} */
 	let { players = [] } = $props();
 
-	const maxRounds = $derived(Math.max(0, ...players.map(p => p.history?.length || 0)) * Math.max(1, players.length));
+	const maxRounds = $derived(
+		Math.max(0, ...players.map(p => p.history?.length || 0)) * Math.max(1, players.length)
+	);
 	const rounds = $derived(Array.from({ length: maxRounds }, (_, i) => i + 1));
 
 	function normalize(entry) {
@@ -33,15 +39,26 @@
 		return { thrown, remain, bust: isBust };
 	}
 
+	/**
+	 * Returns { thrown, remain, bust, threw } for a given player at a
+	 * given global round. `threw` is true if this player threw in this
+	 * round; if false, the cell shows the player's *current* score
+	 * (not a dash).
+	 */
 	function entryFor(playerIndex, roundNumber /* 1-based global */) {
 		const player = players[playerIndex];
 		if (!player) return null;
 		const numPlayers = players.length;
-		// Did this player throw in this global round?
-		if ((roundNumber - 1) % numPlayers !== playerIndex) return null;
-		// Their history index = number of times they threw in rounds 1..N
+		const threw = (roundNumber - 1) % numPlayers === playerIndex;
+		if (!threw) {
+			// Player did not throw in this round — show their current score
+			// as the "to go" cell, with no "scored" value.
+			return { thrown: null, remain: player.score ?? 0, bust: false, threw: false };
+		}
 		const raw = player.history?.[Math.floor((roundNumber - 1 - playerIndex) / numPlayers)];
-		return normalize(raw);
+		const norm = normalize(raw);
+		if (!norm) return { thrown: null, remain: player.score ?? 0, bust: false, threw: true };
+		return { ...norm, threw: true };
 	}
 </script>
 
@@ -60,21 +77,21 @@
 			<div class="history-row" class:active={round === maxRounds}>
 				{#if players.length >= 1}
 					{@const e1 = entryFor(0, round)}
-					<span class="thrown" class:empty={!e1} class:bust={e1?.bust}>
-						{e1 ? e1.thrown : '—'}
+					<span class="thrown" class:empty={!e1?.threw} class:bust={e1?.bust}>
+						{e1 && e1.threw ? e1.thrown : ''}
 					</span>
-					<span class="remain" class:empty={!e1} class:bust={e1?.bust}>
-						{e1 ? (e1.bust ? 'BUST' : e1.remain) : '—'}
+					<span class="remain" class:empty={!e1?.threw} class:bust={e1?.bust}>
+						{e1 ? (e1.bust && e1.threw ? 'BUST' : e1.remain) : ''}
 					</span>
 				{/if}
 				<span class="dart">{round * 3}</span>
 				{#if players.length >= 2}
 					{@const e2 = entryFor(1, round)}
-					<span class="thrown" class:empty={!e2} class:bust={e2?.bust}>
-						{e2 ? e2.thrown : '—'}
+					<span class="thrown" class:empty={!e2?.threw} class:bust={e2?.bust}>
+						{e2 && e2.threw ? e2.thrown : ''}
 					</span>
-					<span class="remain" class:empty={!e2} class:bust={e2?.bust}>
-						{e2 ? (e2.bust ? 'BUST' : e2.remain) : '—'}
+					<span class="remain" class:empty={!e2?.threw} class:bust={e2?.bust}>
+						{e2 ? (e2.bust && e2.threw ? 'BUST' : e2.remain) : ''}
 					</span>
 				{/if}
 			</div>
@@ -128,8 +145,8 @@
 		color: var(--muted);
 	}
 	.thrown.empty, .remain.empty {
-		color: var(--muted);
-		opacity: 0.5;
+		/* empty cell: no number, no dash — just blank */
+		opacity: 0.35;
 	}
 	.bust {
 		color: var(--danger);

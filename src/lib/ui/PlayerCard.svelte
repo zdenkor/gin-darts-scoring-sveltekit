@@ -30,7 +30,7 @@
 		<div class="footer">
 			<span class="avg">Avg: {avg}</span>
 			{#if checkouts.length > 0}
-				<span class="checkout">Out: {checkouts.slice(0, 3).join(', ')}</span>
+				<span class="checkout">Out: {checkouts.slice(0, 3).map(c => c.description).join(', ')}</span>
 			{/if}
 		</div>
 	{/if}

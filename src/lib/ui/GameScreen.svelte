@@ -207,7 +207,17 @@
 	}
 
 	async function finishGame() {
-		if (game.winner == null) return;
+		// Allow finishing the game manually even before someone reaches
+		// zero (mirrors the Legacy "Finish" button, which works at any
+		// time). If no winner was determined by the engine, treat the
+		// player with the lowest current score as the winner.
+		if (game.winner == null) {
+			let leader = 0;
+			for (let i = 1; i < game.players.length; i++) {
+				if (game.players[i].score < game.players[leader].score) leader = i;
+			}
+			game = { ...game, winner: leader, endedAt: Date.now() };
+		}
 		const entry = gameHistoryEntryFromState(game);
 		await recordGameHistory(entry);
 		await clearCurrentGame();
@@ -263,6 +273,7 @@
 				canRedo={future.length > 0}
 				onMore={() => (showCommands = true)}
 				disabled={game.winner != null || isCurrentBot()}
+				currentScore={game?.players[game.current]?.score ?? null}
 			/>
 		</div>
 
@@ -271,7 +282,7 @@
 				<button class="command-item" disabled={past.length === 0} onclick={() => moreCommand('undo')}>↶ Undo</button>
 				<button class="command-item" disabled={future.length === 0} onclick={() => moreCommand('redo')}>↷ Redo</button>
 				<button class="command-item" onclick={() => moreCommand('stats')}>Stats</button>
-				<button class="command-item" disabled={game.winner == null} onclick={() => moreCommand('finish')}>Finish game</button>
+				<button class="command-item" onclick={() => moreCommand('finish')}>Finish game</button>
 				<button class="command-item danger" onclick={() => moreCommand('exit')}>Exit game</button>
 				<button class="command-item" onclick={() => (showCommands = false)}>Cancel</button>
 			</div>
@@ -314,7 +325,7 @@
 <style>
 	.game-screen {
 		display: grid;
-		grid-template-rows: auto auto 1fr auto auto;
+		grid-template-rows: auto auto 1fr minmax(8rem, 8rem) auto;
 		gap: 0;
 		height: 100%;
 		min-height: 0;
@@ -346,9 +357,8 @@
 		grid-auto-rows: 1fr;
 		gap: var(--space-xs);
 		min-height: 0;
-		overflow: hidden;
+		overflow: auto;
 		height: 100%;
-		min-height: 8rem;
 		align-self: stretch;
 	}
 	.scoreboard.compact {
@@ -383,17 +393,16 @@
 			flex: 0 0 calc(50% - 1px);
 		}
 	}
-	@container game-screen (min-width: 35rem) {
+	@container game-screen (min-width: 25rem) {
 		.scoreboard:not(.compact) { grid-template-columns: repeat(2, 1fr); }
 	}
-	@container game-screen (min-width: 62.5rem) {
+	@container game-screen (min-width: 50rem) {
 		.scoreboard:not(.compact) { grid-template-columns: repeat(var(--cols, 2), 1fr); }
 	}
 	.calculator-slot {
 		min-height: 0;
 		max-height: min(70cqh, 30rem);
 		overflow: hidden;
-		align-self: end;
 	}
 	@media (orientation: landscape) and (max-height: 500px) {
 		:global(.game-screen) {

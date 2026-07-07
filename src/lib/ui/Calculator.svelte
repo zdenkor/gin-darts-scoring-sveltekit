@@ -1,7 +1,5 @@
 <script>
-	import { onMount } from 'svelte';
-
-	/** @type {{onCommit: (value: number) => void, onChange?: (value: number) => void, onUndo?: () => void, onRedo?: () => void, onMore?: () => void, canUndo?: boolean, canRedo?: boolean, disabled?: boolean}} */
+	/** @type {{onCommit: (value: number) => void, onChange?: (value: number) => void, onUndo?: () => void, onRedo?: () => void, onMore?: () => void, canUndo?: boolean, canRedo?: boolean, disabled?: boolean, currentScore?: number|null}} */
 	let {
 		onCommit,
 		onChange = () => {},
@@ -10,7 +8,8 @@
 		onMore,
 		canUndo = false,
 		canRedo = false,
-		disabled = false
+		disabled = false,
+		currentScore = null
 	} = $props();
 
 	const TILES = [
@@ -48,25 +47,62 @@
 		if (disabled) return false;
 		const value = parseInt(buffer, 10) || 0;
 		if (value > 180) return false;
-		console.log('Calculator commit', value);
 		onCommit(value);
 		buffer = '0';
 		updateDisplay();
 		return false;
 	}
 
+	function commitEquals() {
+		// "=" commits the player's current remaining score (a "checkout"
+		// shortcut when the user just wants to confirm whatever is left).
+		if (disabled) return;
+		if (currentScore == null) {
+			// Fall back to buffered value if we don't know the score.
+			commit();
+			return;
+		}
+		commitValue(currentScore);
+	}
+
+	function commitValue(value) {
+		if (disabled) return;
+		if (value > 180) return;
+		onCommit(value);
+		buffer = '0';
+		updateDisplay();
+	}
+
 	function fastScore(value) {
 		if (disabled) return;
 		buffer = String(value);
 		updateDisplay();
-		console.log('fastScore', value);
-		formRef?.requestSubmit();
+		// Fast score: commit immediately on next tick.
+		setTimeout(() => {
+			if (buffer === String(value)) {
+				commitValue(value);
+			}
+		}, 0);
+	}
+
+	function handleAction(text) {
+		if (text === '↶') onUndo?.();
+		else if (text === '↷') onRedo?.();
+		else if (text === '00') commitValue(0); // quick 0 / BUST
+		else if (text === '⋯') onMore?.();
 	}
 
 	function handleTile(tile) {
+		if (disabled) return;
 		if (tile === '⌫') backspace();
-		else if (tile === '↵') formRef?.requestSubmit();
+		else if (tile === '↵') commit();
 		else pressDigit(tile);
+	}
+
+	function handleFast(text) {
+		if (disabled) return;
+		const n = Number(text);
+		if (FAST_SCORES.includes(n)) fastScore(n);
 	}
 
 	function onKeyDown(e) {
@@ -75,82 +111,68 @@
 		else if (e.key === 'Backspace') backspace();
 		else if (e.key === 'Enter') {
 			e.preventDefault();
-			formRef?.requestSubmit();
+			commit();
 		}
 	}
 
-	function reset() {
-		buffer = '0';
-		updateDisplay();
-	}
-
-	function handleNativeClick(e) {
+	// Single delegated click handler. No Svelte onclick on individual
+	// buttons (that would double-fire with the native listener).
+	function handleClick(e) {
 		const target = /** @type {HTMLElement} */ (e.target).closest('button');
 		if (!target || target.disabled) return;
 		const text = target.textContent?.trim();
 		if (!text) return;
+		// Submit button: let <form onsubmit> handle it via native submit.
 		if (target.type === 'submit') {
-			e.preventDefault();
-			commit();
+			// Don't preventDefault — let the form submit naturally.
 			return;
 		}
-		if (text === '↶') { onUndo?.(); return; }
-		if (text === '↷') { onRedo?.(); return; }
-		if (text === '00') { reset(); return; }
-		if (text === '⋯') { onMore?.(); return; }
-		if (FAST_SCORES.includes(Number(text))) { fastScore(Number(text)); return; }
-		handleTile(text);
+		// Action buttons.
+		handleAction(text);
+		// Fast score buttons (left/right columns).
+		handleFast(text);
+		// Numpad tiles (1-9, 0, ⌫, ↵).
+		if (TILES.includes(text)) handleTile(text);
 	}
-
-	onMount(() => {
-		const form = formRef;
-		if (!form) return;
-		form.addEventListener('click', handleNativeClick);
-		return () => form.removeEventListener('click', handleNativeClick);
-	});
 </script>
 
 <svelte:window onkeydown={onKeyDown} />
 
-<form bind:this={formRef} class="calculator" role="group" aria-label="Score entry" onsubmit={(e) => { e.preventDefault(); commit(); }}>
+<form bind:this={formRef} class="calculator" role="group" aria-label="Score entry" onclick={handleClick} onsubmit={(e) => { e.preventDefault(); commitEquals(); }}>
 	<div class="calc-display">
 		<span class="calc-entered">{buffer}</span>
 	</div>
 
 	<div class="actions">
-			<button class="action-btn" type="button" disabled={!canUndo || disabled} onclick={() => onUndo?.()}>↶</button>
-			<button class="action-btn" type="button" disabled={!canRedo || disabled} onclick={() => onRedo?.()}>↷</button>
-			<button class="action-btn" type="submit" disabled={disabled}>＝</button>
-			<button class="action-btn" type="button" disabled={disabled} onclick={reset}>00</button>
-			<button class="action-btn" type="button" onclick={() => onMore?.()} aria-label="More commands">⋯</button>
+		<button class="action-btn" type="button" disabled={!canUndo || disabled}>↶</button>
+		<button class="action-btn" type="button" disabled={!canRedo || disabled}>↷</button>
+		<button class="action-btn" type="submit" disabled={disabled}>＝</button>
+		<button class="action-btn" type="button" disabled={disabled}>00</button>
+		<button class="action-btn" type="button" aria-label="More commands">⋯</button>
+	</div>
+
+	<div class="calc-body">
+		<div class="fast-col left">
+			{#each LEFT_FAST as score}
+				<button class="fast-btn" type="button" disabled={disabled}>{score}</button>
+			{/each}
 		</div>
 
-		<div class="calc-body">
-			<div class="fast-col left">
-				{#each LEFT_FAST as score}
-					<button class="fast-btn" type="button" disabled={disabled} onclick={() => fastScore(score)}>{score}</button>
-				{/each}
-			</div>
-
-			<div class="numpad">
-				{#each TILES as tile}
-					{#if tile === '↵'}
-						<button class="num-btn primary" type="submit" disabled={disabled}>{tile}</button>
-					{:else if tile === '⌫'}
-						<button class="num-btn danger" type="button" disabled={disabled} onclick={() => handleTile(tile)}>
-							{tile}
-						</button>
-					{:else}
-						<button class="num-btn" type="button" disabled={disabled} onclick={() => handleTile(tile)}>
-							{tile}
-						</button>
-					{/if}
-				{/each}
-			</div>
+		<div class="numpad">
+			{#each TILES as tile}
+				{#if tile === '↵'}
+					<button class="num-btn primary" type="submit" disabled={disabled}>{tile}</button>
+				{:else if tile === '⌫'}
+					<button class="num-btn danger" type="button" disabled={disabled}>{tile}</button>
+				{:else}
+					<button class="num-btn" type="button" disabled={disabled}>{tile}</button>
+				{/if}
+			{/each}
+		</div>
 
 		<div class="fast-col right">
 			{#each RIGHT_FAST as score}
-				<button class="fast-btn" type="button" disabled={disabled} onclick={() => fastScore(score)}>{score}</button>
+				<button class="fast-btn" type="button" disabled={disabled}>{score}</button>
 			{/each}
 		</div>
 	</div>
@@ -226,7 +248,7 @@
 	}
 	.calc-body {
 		display: grid;
-		grid-template-columns: 1fr 2fr 1fr;
+		grid-template-columns: 0.667fr 2fr 0.667fr;
 		grid-auto-rows: minmax(clamp(2.5rem, 6vh, 4rem), 1fr);
 		gap: var(--space-xs);
 		min-height: 0;
@@ -234,10 +256,6 @@
 	}
 	@media (orientation: landscape) and (max-height: 500px) {
 		.calc-body { grid-template-columns: 1fr; grid-auto-rows: minmax(clamp(2.2rem, 7vh, 3rem), 1fr); }
-		.fast-col { display: none; }
-	}
-	@container calculator (max-width: 26rem) {
-		.calc-body { grid-template-columns: 1fr; }
 		.fast-col { display: none; }
 	}
 	.fast-col {
