@@ -2,9 +2,11 @@
 // Record finished games into history for stats.
 // =================================================================
 
-import { put, getAll, del } from '$lib/db/idb.js';
+import { put, get, getAll, del } from '$lib/db/idb.js';
 
 const STORE = 'history';
+const STATS_STORE = 'game-stats';
+const STATS_KEY = 'stats';
 
 function uuid() {
 	if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
@@ -13,6 +15,52 @@ function uuid() {
 		const v = c === 'x' ? r : (r & 0x3) | 0x8;
 		return v.toString(16);
 	});
+}
+
+// =================================================================
+// Stats — per-type lifetime record (wins, best, played).
+// Mirrors the vanilla `recordGameResult` from legacy store.js.
+// =================================================================
+
+/** @typedef {{played: number, wins: Record<string, number>, best: Record<string, number>}} TypeStats */
+
+/** @returns {Promise<Record<string, TypeStats>>} */
+export async function loadStats() {
+	try {
+		const row = await get(STATS_STORE, STATS_KEY);
+		return row?.data || {};
+	} catch (e) {
+		console.warn('loadStats failed', e);
+		return {};
+	}
+}
+
+/**
+ * Update lifetime stats for one finished game and persist.
+ * For x01: best = lowest remaining score (0 is best).
+ * For cricket/shanghai: best = highest score.
+ */
+export async function recordGameResult(state) {
+	if (!state || state.winner == null) return;
+	const type = state.type || 'x01';
+	const stats = await loadStats();
+	stats[type] = stats[type] || { played: 0, wins: {}, best: {} };
+	stats[type].played += 1;
+	const winner = state.players[state.winner];
+	if (!winner) return;
+	const name = winner.name;
+	stats[type].wins[name] = (stats[type].wins[name] || 0) + 1;
+	const score = winner.score | 0;
+	const prev = stats[type].best[name] || 0;
+	const isBetter = type === 'x01'
+		? (prev === 0 ? score === 0 : score < prev)
+		: score > prev;
+	if (isBetter) stats[type].best[name] = score;
+	try {
+		await put(STATS_STORE, { id: STATS_KEY, data: stats });
+	} catch (e) {
+		console.warn('recordGameResult failed', e);
+	}
 }
 
 export async function recordGameHistory(entry) {

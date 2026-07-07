@@ -9,7 +9,7 @@
 	import HistoryStrip from '$lib/ui/HistoryStrip.svelte';
 	import GameToolbar from '$lib/ui/GameToolbar.svelte';
 	import { saveCurrentGame, loadCurrentGame, clearCurrentGame } from '$lib/util/currentGame.js';
-	import { recordGameHistory, gameHistoryEntryFromState } from '$lib/util/history.js';
+	import { recordGameHistory, recordGameResult, gameHistoryEntryFromState } from '$lib/util/history.js';
 	import { deepClone } from '$lib/util/deepClone.js';
 
 	/** @type {{names?: string[] | null, bots?: string[], start?: number, inRule?: string, outRule?: string, legsToWin?: number, setsToWin?: number}} */
@@ -27,6 +27,7 @@
 	let lastCommitError = $state('');
 	let showCommands = $state(false);
 	let showExitModal = $state(false);
+	let showEndEarlyModal = $state(false);
 	let past = $state(/** @type {any[]} */ ([]));
 	let future = $state(/** @type {any[]} */ ([]));
 
@@ -197,6 +198,7 @@
 		if (game && game.winner != null) {
 			const entry = gameHistoryEntryFromState(game);
 			try { await recordGameHistory(entry); } catch {}
+			try { await recordGameResult(game); } catch {}
 			try { await clearCurrentGame(); } catch {}
 		}
 		window.location.href = `${base}/`;
@@ -219,18 +221,58 @@
 			game = { ...game, winner: leader, endedAt: Date.now() };
 		}
 		const entry = gameHistoryEntryFromState(game);
-		await recordGameHistory(entry);
+		try { await recordGameHistory(entry); } catch {}
+		try { await recordGameResult(game); } catch {}
 		await clearCurrentGame();
 		goto(`${base}/stats?newGame=true`);
+	}
+
+	// Index of the player currently leading the match. For x01 the lowest
+	// remaining score leads; for cricket/shanghai the highest leads.
+	// Ties go to the first player in the list.
+	function leadingPlayerIndex() {
+		const type = game?.type || 'x01';
+		if (type === 'x01') {
+			let best = Infinity, idx = 0;
+			for (let i = 0; i < game.players.length; i++) {
+				if (game.players[i].score < best) { best = game.players[i].score; idx = i; }
+			}
+			return idx;
+		}
+		let best = -Infinity, idx = 0;
+		for (let i = 0; i < game.players.length; i++) {
+			if ((game.players[i].score || 0) > best) { best = game.players[i].score || 0; idx = i; }
+		}
+		return idx;
+	}
+
+	function confirmEndEarly() {
+		if (!game || game.winner != null) return;
+		showCommands = false;
+		showEndEarlyModal = true;
+	}
+
+	function cancelEndEarly() {
+		showEndEarlyModal = false;
+	}
+
+	async function doEndEarly() {
+		if (!game || game.winner != null) return;
+		showEndEarlyModal = false;
+		game = { ...game, winner: leadingPlayerIndex(), endedAt: Date.now() };
+		await finishGame();
 	}
 
 	function moreCommand(cmd) {
 		if (cmd === 'undo') undo();
 		else if (cmd === 'redo') redo();
-		else if (cmd === 'finish' && game.winner != null) finishGame();
-			else if (cmd === 'exit') exitGame();
-			showCommands = false;
+		else if (cmd === 'finish') {
+			if (game.winner != null) finishGame();
+			else confirmEndEarly();
 		}
+		else if (cmd === 'exit') exitGame();
+		showCommands = false;
+	}
 
 		$effect(() => {
 			if (typeof window === 'undefined') return;
@@ -339,6 +381,20 @@
 				</div>
 			</div>
 			<div class="command-backdrop" onclick={cancelExit} aria-hidden="true"></div>
+		{/if}
+
+		{#if showEndEarlyModal}
+			<div class="exit-modal" role="dialog" aria-modal="true">
+				<div class="exit-modal-box">
+					<h3>End match early?</h3>
+					<p class="muted">The current match will be saved to history with the leading player marked as the winner.</p>
+					<div class="exit-actions">
+						<button class="btn" onclick={cancelEndEarly}>Cancel</button>
+						<button class="btn danger" onclick={doEndEarly}>End match</button>
+					</div>
+				</div>
+			</div>
+			<div class="command-backdrop" onclick={cancelEndEarly} aria-hidden="true"></div>
 		{/if}
 	</div>
 {:else}

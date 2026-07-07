@@ -18,7 +18,7 @@
 	let { players = [] } = $props();
 
 	const maxRounds = $derived(
-		Math.max(0, ...players.map(p => p.history?.length || 0)) * Math.max(1, players.length)
+		Math.max(0, ...players.map(p => p.history?.length || 0))
 	);
 	const rounds = $derived(Array.from({ length: maxRounds }, (_, i) => i + 1));
 
@@ -41,23 +41,17 @@
 
 	/**
 	 * Returns { thrown, remain, bust, threw } for a given player at a
-	 * given global round. `threw` is true if this player threw in this
-	 * round; if false, the cell shows the player's *current* score
-	 * (not a dash).
+	 * given global throw number. History entries are stored in throw order
+	 * (interleaved between players), so player.history[i] is the player's
+	 * i-th throw globally. If the player hasn't thrown that many times
+	 * yet, the cell is empty.
 	 */
-	function entryFor(playerIndex, roundNumber /* 1-based global */) {
+	function entryFor(playerIndex, throwNumber /* 1-based global */) {
 		const player = players[playerIndex];
 		if (!player) return null;
-		const numPlayers = players.length;
-		const threw = (roundNumber - 1) % numPlayers === playerIndex;
-		if (!threw) {
-			// Player did not throw in this round — show their current score
-			// as the "to go" cell, with no "scored" value.
-			return { thrown: null, remain: player.score ?? 0, bust: false, threw: false };
-		}
-		const raw = player.history?.[Math.floor((roundNumber - 1 - playerIndex) / numPlayers)];
+		const raw = player.history?.[throwNumber - 1];
 		const norm = normalize(raw);
-		if (!norm) return { thrown: null, remain: player.score ?? 0, bust: false, threw: true };
+		if (!norm) return { thrown: null, remain: player.score ?? 0, bust: false, threw: false };
 		return { ...norm, threw: true };
 	}
 </script>

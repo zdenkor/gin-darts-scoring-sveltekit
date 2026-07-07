@@ -5,7 +5,7 @@
 // =================================================================
 
 const DB_NAME = 'gindarts';
-const DB_VERSION = 7;
+const DB_VERSION = 8;
 
 let _dbPromise = null;
 
@@ -79,6 +79,11 @@ function ensureStores(db) {
   if (!db.objectStoreNames.contains('current-game')) {
     db.createObjectStore('current-game', { keyPath: 'id' });
   }
+  // Lifetime per-type stats: { type: { played, wins, best } }. Single
+  // row keyed 'stats' so we can read/write it in one transaction.
+  if (!db.objectStoreNames.contains('game-stats')) {
+    db.createObjectStore('game-stats', { keyPath: 'id' });
+  }
 }
 
 async function tx(storeNames, mode = 'readonly') {
@@ -106,7 +111,12 @@ function reqToPromise(req) {
 
 export async function put(storeName, value, key) {
   const { stores, done } = await tx([storeName], 'readwrite');
-  const id = await reqToPromise(stores[storeName].put(value, key));
+  const store = stores[storeName];
+  // In-line keyPath stores (e.g. { keyPath: 'id' }) extract the key from
+  // the value object — passing an explicit key in that case throws a
+  // DataError. Only forward the key when the store uses out-of-line keys.
+  const useKey = !store.keyPath;
+  const id = await reqToPromise(useKey ? store.put(value, key) : store.put(value));
   await done;
   return id;
 }
