@@ -205,8 +205,15 @@
 		font-size: var(--text-xl);
 	}
 	.setup-screen {
-		padding: var(--space-md);
+		padding: clamp(1rem, 4cqi, 2rem);
+		padding-bottom: clamp(2rem, 8cqi, 4rem);
 		box-sizing: border-box;
+		width: 100%;
+		max-width: 100%;
+	}
+	.setup-screen :global(.card) {
+		padding: var(--space-lg);
+		padding-bottom: clamp(2rem, 6cqi, 3rem);
 	}
 	.setup-screen h2 {
 		margin: 0 0 var(--space-sm);

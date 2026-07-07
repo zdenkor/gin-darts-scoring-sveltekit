@@ -91,19 +91,14 @@
 		border-radius: var(--radius);
 		font-size: var(--text-xs);
 		min-height: 3.5rem;
-		max-height: 3.5rem;
+		max-height: 100%;
 		overflow-y: auto;
 		overflow-x: hidden;
-		flex-shrink: 0;
+		flex-shrink: 1;
+		height: 100%;
 	}
 	@container app (min-width: 30rem) {
 		.history-strip { font-size: var(--text-sm); }
-	}
-	@container game-screen (min-height: 800px) {
-		.history-strip { min-height: 5rem; max-height: 5rem; }
-	}
-	@container game-screen (min-height: 1100px) {
-		.history-strip { min-height: 7rem; max-height: 7rem; }
 	}
 	.history-header, .history-row {
 		display: grid;
@@ -151,18 +146,16 @@
 		padding: var(--space-xs);
 		font-size: var(--text-xs);
 		min-height: 3.5rem;
-		max-height: 3.5rem;
+		max-height: 100%;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		flex-shrink: 0;
+		flex-shrink: 1;
+		height: 100%;
 	}
 	@container app (min-width: 30rem) {
 		.history-strip { font-size: var(--text-sm); }
 		.history-empty { padding: var(--space-sm); }
-	}
-	@media (min-width: 80rem) {
-		.history-strip, .history-empty { min-height: 4rem; max-height: 4rem; }
 	}
 	@media (orientation: landscape) and (max-height: 520px) {
 		.history-strip, .history-empty { display: none; }

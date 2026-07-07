@@ -314,8 +314,8 @@
 <style>
 	.game-screen {
 		display: grid;
-		grid-template-rows: auto auto auto auto auto;
-		gap: var(--space-xs);
+		grid-template-rows: auto auto 1fr auto auto;
+		gap: 0;
 		height: 100%;
 		min-height: 0;
 		padding: var(--space-xs);
@@ -326,6 +326,7 @@
 		max-width: 90rem;
 		margin-inline: auto;
 	}
+	.game-screen > .scoreboard { margin-bottom: 0; }
 	@media (min-width: 120rem) {
 		.game-screen {
 			max-width: 80rem;
@@ -334,10 +335,10 @@
 		}
 	}
 	@container game-screen (min-height: 900px) {
-		.game-screen { gap: var(--space-sm); padding: var(--space-sm); }
+		.game-screen { padding: var(--space-sm); }
 	}
 	@container game-screen (max-height: 520px) {
-		.game-screen { gap: 2px; padding: 2px; }
+		.game-screen { padding: 2px; }
 	}
 	.scoreboard {
 		display: grid;
@@ -390,7 +391,7 @@
 	}
 	.calculator-slot {
 		min-height: 0;
-		max-height: min(55cqh, 24rem);
+		max-height: min(70cqh, 30rem);
 		overflow: hidden;
 		align-self: end;
 	}
