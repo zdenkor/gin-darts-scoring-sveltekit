@@ -1,4 +1,7 @@
 <script>
+	import deleteIcon from '$lib/assets/delete.svg?raw';
+	import enterIcon from '$lib/assets/enter.svg?raw';
+
 	/** @type {{onCommit: (value: number) => void, onChange?: (value: number) => void, onUndo?: () => void, onRedo?: () => void, onMore?: () => void, canUndo?: boolean, canRedo?: boolean, disabled?: boolean, currentScore?: number|null}} */
 	let {
 		onCommit,
@@ -162,9 +165,9 @@
 		<div class="numpad">
 			{#each TILES as tile}
 				{#if tile === '↵'}
-					<button class="num-btn primary" type="submit" disabled={disabled}>{tile}</button>
+					<button class="num-btn primary icon-svg" type="submit" disabled={disabled} aria-label="Enter">{@html enterIcon}</button>
 				{:else if tile === '⌫'}
-					<button class="num-btn danger" type="button" disabled={disabled}>{tile}</button>
+					<button class="num-btn danger icon-svg" type="button" disabled={disabled} aria-label="Delete">{@html deleteIcon}</button>
 				{:else}
 					<button class="num-btn" type="button" disabled={disabled}>{tile}</button>
 				{/if}
@@ -245,6 +248,12 @@
 		opacity: 0.35;
 		cursor: not-allowed;
 	}
+	/* Hide the touch focus ring on action buttons — on mobile the
+	   browser keeps :focus on the last-tapped button, so without
+	   this the last pressed tile stays "lit" after the tap ends.
+	   Keyboard focus (Tab) still shows the ring via :focus-visible. */
+	.action-btn:focus { outline: none; -webkit-tap-highlight-color: transparent; }
+	.action-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 	.calc-body {
 		display: grid;
 		grid-template-columns: 0.667fr 2fr 0.667fr;
@@ -300,12 +309,21 @@
 		min-width: 0;
 		flex: 1;
 	}
-	.num-btn:hover, .fast-btn:hover {
-		background: #232c3d;
+	/* Hover only on devices with a real pointer (mouse) — on mobile the
+	   browser keeps :hover on the last-tapped element, so without this
+	   guard the pressed tile stays highlighted with #232c3d. */
+	@media (hover: hover) {
+		.num-btn:hover, .fast-btn:hover {
+			background: #232c3d;
+		}
+		.action-btn:hover { background: #232c3d; }
 	}
 	.num-btn:active, .fast-btn:active {
 		transform: translateY(1px);
 	}
+	/* Same mobile-tap focus reset as .action-btn above. */
+	.num-btn:focus, .fast-btn:focus { outline: none; -webkit-tap-highlight-color: transparent; }
+	.num-btn:focus-visible, .fast-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 	.num-btn.primary {
 		background: var(--accent);
 		border-color: var(--accent);
@@ -325,6 +343,15 @@
 	.num-btn:disabled, .fast-btn:disabled {
 		opacity: 0.35;
 		cursor: not-allowed;
+	}
+	.num-btn.icon-svg {
+		padding: 0;
+	}
+	.num-btn.icon-svg :global(svg) {
+		width: 1.4em;
+		height: 1.4em;
+		color: inherit;
+		stroke: currentColor;
 	}
 	@container calculator (min-width: 30rem) {
 		.action-btn { font-size: var(--text-lg); }
