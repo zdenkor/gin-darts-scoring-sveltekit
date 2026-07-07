@@ -107,7 +107,7 @@
 		border: 1px solid var(--line);
 		border-radius: var(--radius);
 		font-size: var(--text-xs);
-		min-height: 3.5rem;
+		min-height: 2.5rem;
 		max-height: 100%;
 		overflow-y: auto;
 		overflow-x: hidden;
@@ -162,7 +162,7 @@
 		text-align: center;
 		padding: var(--space-xs);
 		font-size: var(--text-xs);
-		min-height: 3.5rem;
+		min-height: 2.5rem;
 		max-height: 100%;
 		display: flex;
 		align-items: center;

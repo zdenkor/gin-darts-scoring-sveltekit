@@ -232,7 +232,7 @@
 		cursor: pointer;
 		transition: background .1s ease;
 		padding: var(--space-xs);
-		min-height: clamp(2.6rem, 5vh, 3.5rem);
+		min-height: clamp(2.2rem, 4vh, 3rem);
 		min-width: 0;
 		flex: 1;
 	}
@@ -249,7 +249,7 @@
 	.calc-body {
 		display: grid;
 		grid-template-columns: 0.667fr 2fr 0.667fr;
-		grid-auto-rows: minmax(clamp(2.2rem, 5vh, 3.5rem), 1fr);
+			grid-auto-rows: minmax(clamp(2rem, 4vh, 3rem), 1fr);
 		gap: var(--space-xs);
 		min-height: 0;
 		overflow: hidden;
