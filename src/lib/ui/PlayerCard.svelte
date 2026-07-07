@@ -1,7 +1,7 @@
 <script>
 	import { checkoutSuggestions } from '$lib/game/engine.js';
 
-	/** @type {{name: string, score: number, start: number, legsWon?: number, setsWon?: number, dartsThrown?: number, isActive?: boolean, outRule?: string, checkoutDarts?: number}} */
+	/** @type {{name: string, score: number, start: number, legsWon?: number, setsWon?: number, dartsThrown?: number, isActive?: boolean, outRule?: string, checkoutDarts?: number, compact?: boolean}} */
 	let {
 		name,
 		score,
@@ -11,7 +11,8 @@
 		dartsThrown = 0,
 		isActive = false,
 		outRule = 'single',
-		checkoutDarts = 3
+		checkoutDarts = 3,
+		compact = false
 	} = $props();
 
 	const avg = $derived(dartsThrown > 0 ? ((start - score) / dartsThrown * 3).toFixed(1) : '0.0');
@@ -19,18 +20,20 @@
 	const isLong = $derived(String(score).length > 2);
 </script>
 
-<div class="player-card" class:active={isActive}>
+<div class="player-card" class:active={isActive} class:compact>
 	<div class="card-header">
 		<span class="name">{name}</span>
 		<span class="sets">S:{setsWon} L:{legsWon}</span>
 	</div>
 	<div class="score" class:long={isLong}>{score}</div>
-	<div class="footer">
-		<span class="avg">Avg: {avg}</span>
-		{#if checkouts.length > 0}
-			<span class="checkout">Out: {checkouts.slice(0, 3).join(', ')}</span>
-		{/if}
-	</div>
+	{#if !compact}
+		<div class="footer">
+			<span class="avg">Avg: {avg}</span>
+			{#if checkouts.length > 0}
+				<span class="checkout">Out: {checkouts.slice(0, 3).join(', ')}</span>
+			{/if}
+		</div>
+	{/if}
 </div>
 
 <style>
@@ -38,11 +41,11 @@
 		background: var(--surface);
 		border: 2px solid var(--line);
 		border-radius: var(--radius);
-		padding: var(--space-xs) var(--space-xs);
+		padding: calc(var(--space-xs) * 0.5);
 		display: flex;
 		flex-direction: column;
 		gap: 0;
-		container-type: inline-size;
+		container-type: size;
 		container-name: player;
 		transition: border-color .15s ease;
 		min-height: 0;
@@ -71,7 +74,7 @@
 		font-size: var(--text-xs);
 	}
 	.score {
-		font-size: clamp(1.75rem, 10cqi, 3.5rem);
+		font-size: clamp(2rem, 12cqi, 4rem);
 		font-weight: 700;
 		text-align: center;
 		line-height: 1;
@@ -80,10 +83,10 @@
 		align-items: center;
 		justify-content: center;
 		min-height: 0;
-		padding: var(--space-xs) 0;
+		padding: 0;
 	}
 	.score.long {
-		font-size: clamp(1.5rem, 9cqi, 3rem);
+		font-size: clamp(1.75rem, 11cqi, 3.5rem);
 	}
 	.footer {
 		display: flex;
@@ -96,9 +99,39 @@
 		color: var(--accent);
 	}
 @container player (min-width: 20rem) {
-		.score { font-size: clamp(2rem, 12cqi, 4rem); }
+		.score { font-size: clamp(2.5rem, 14cqi, 5rem); }
 	}
 @container player (min-width: 35rem) {
-		.score { font-size: clamp(2.25rem, 10cqi, 4.5rem); }
+		.score { font-size: clamp(3rem, 12cqi, 6rem); }
+	}
+@container player (max-height: 8rem) {
+		.score { font-size: clamp(1.5rem, 8cqi, 2.5rem); }
+		.player-card { padding: 2px; }
+		.card-header, .footer { font-size: calc(var(--text-xs) * 0.85); }
+	}
+.player-card.compact {
+	width: calc(50% - var(--space-xs) * 0.5);
+	min-width: 140px;
+	max-width: 220px;
+	flex-shrink: 0;
+}
+.player-card.compact .score {
+	font-size: clamp(1.75rem, 14cqi, 3rem);
+}
+@container player (max-height: 6rem) {
+	.player-card.compact { min-width: 120px; }
+	.player-card.compact .score { font-size: clamp(1.5rem, 12cqi, 2.5rem); }
+}
+@container player (min-width: 12rem) {
+	.player-card.compact .score { font-size: clamp(2rem, 18cqi, 4rem); }
+}
+@container player (min-width: 18rem) {
+	.player-card.compact .score { font-size: clamp(2.5rem, 16cqi, 5rem); }
+}
+@container player (min-height: 14rem) {
+	.score { font-size: clamp(2.5rem, 14cqi, 5.5rem); }
+}
+@container player (min-height: 20rem) {
+		.score { font-size: clamp(3rem, 16cqi, 7rem); }
 	}
 </style>

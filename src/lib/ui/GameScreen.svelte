@@ -179,7 +179,7 @@
 
 		<HistoryStrip players={game.players} />
 
-		<div class="scoreboard" style:--cols={game.players.length}>
+		<div class="scoreboard" class:compact={game.players.length > 2} style:--cols={game.players.length}>
 			{#each game.players as player, i}
 				<PlayerCard
 					name={player.name}
@@ -191,6 +191,7 @@
 					isActive={i === game.current}
 					outRule={game.opts?.out}
 					checkoutDarts={3}
+					compact={game.players.length > 2}
 				/>
 			{/each}
 		</div>
@@ -239,7 +240,7 @@
 <style>
 	.game-screen {
 		display: grid;
-		grid-template-rows: auto auto 1fr minmax(0, 45%);
+		grid-template-rows: auto auto auto 1fr;
 		gap: var(--space-xs);
 		height: 100%;
 		min-height: 0;
@@ -251,6 +252,9 @@
 	@container game-screen (min-height: 900px) {
 		.game-screen { gap: var(--space-sm); padding: var(--space-sm); }
 	}
+	@container game-screen (max-height: 560px) {
+		.game-screen { gap: 2px; padding: 2px; }
+	}
 	:global(.game-screen > .history-strip),
 	:global(.game-screen > .history-empty) {
 		max-height: min(15cqh, 6rem);
@@ -261,22 +265,96 @@
 		:global(.game-screen > .history-strip),
 		:global(.game-screen > .history-empty) { max-height: min(18cqh, 8rem); }
 	}
+	@container game-screen (max-height: 520px) {
+		:global(.game-screen > .history-strip),
+		:global(.game-screen > .history-empty) { display: none; }
+	}
 	.scoreboard {
 		display: grid;
 		grid-template-columns: 1fr;
 		gap: var(--space-xs);
 		min-height: 0;
+		max-height: 40%;
 		overflow: hidden;
 	}
+	.scoreboard.compact {
+		display: flex;
+		flex-direction: row;
+		gap: var(--space-xs);
+		overflow-x: auto;
+		overflow-y: hidden;
+		scroll-snap-type: x mandatory;
+		scrollbar-width: thin;
+	}
+	.scoreboard.compact::-webkit-scrollbar {
+		height: 6px;
+	}
+	.scoreboard.compact::-webkit-scrollbar-track {
+		background: var(--bg-2);
+		border-radius: 3px;
+	}
+	.scoreboard.compact::-webkit-scrollbar-thumb {
+		background: var(--line);
+		border-radius: 3px;
+	}
+	.scoreboard.compact :global(.player-card) {
+		flex: 0 0 calc(50% - var(--space-xs) * 0.5);
+		max-width: none;
+		width: auto;
+		scroll-snap-align: start;
+	}
+	@container game-screen (max-height: 560px) {
+		.scoreboard { gap: 2px; max-height: 35%; }
+		.scoreboard.compact { gap: 2px; }
+		.scoreboard.compact :global(.player-card) {
+			flex: 0 0 calc(50% - 1px);
+		}
+	}
 	@container game-screen (min-width: 35rem) {
-		.scoreboard { grid-template-columns: repeat(2, 1fr); }
+		.scoreboard:not(.compact) { grid-template-columns: repeat(2, 1fr); }
 	}
 	@container game-screen (min-width: 62.5rem) {
-		.scoreboard { grid-template-columns: repeat(var(--cols, 2), 1fr); }
+		.scoreboard:not(.compact) { grid-template-columns: repeat(var(--cols, 2), 1fr); }
 	}
 	.calculator-slot {
 		min-height: 0;
 		overflow: hidden;
+	}
+	@media (orientation: landscape) and (max-height: 500px) {
+		:global(.game-screen) {
+			grid-template-columns: minmax(0, 45%) 1fr;
+			grid-template-rows: auto auto 1fr;
+			grid-template-areas:
+				"toolbar toolbar"
+				"banner banner"
+				"scoreboard calculator";
+		}
+		:global(.game-screen > .game-toolbar) { grid-area: toolbar; }
+		:global(.game-screen > .history-strip),
+		:global(.game-screen > .history-empty) { display: none; }
+		:global(.game-screen > .scoreboard) {
+			grid-area: scoreboard;
+			max-height: 100%;
+			grid-template-columns: 1fr;
+		}
+		:global(.game-screen > .scoreboard.compact) {
+			display: flex;
+			grid-template-columns: none;
+		}
+		:global(.game-screen > .scoreboard.compact .player-card) {
+			flex: 0 0 100%;
+		}
+		:global(.game-screen > .bust-banner),
+		:global(.game-screen > .winner-banner) {
+			grid-area: banner;
+			margin: 0;
+		}
+		:global(.game-screen > .calculator-slot) { grid-area: calculator; }
+	}
+	@media (orientation: landscape) and (max-height: 380px) {
+		:global(.game-screen) {
+			grid-template-columns: minmax(0, 38%) 1fr;
+		}
 	}
 	.bust-banner {
 		background: var(--danger);
