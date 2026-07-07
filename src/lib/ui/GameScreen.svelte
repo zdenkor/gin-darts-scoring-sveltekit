@@ -300,6 +300,15 @@
 		overflow: hidden;
 		container-type: size;
 		container-name: game-screen;
+		max-width: 90rem;
+		margin-inline: auto;
+	}
+	@media (min-width: 120rem) {
+		.game-screen {
+			max-width: 80rem;
+			gap: var(--space-md);
+			padding: var(--space-md);
+		}
 	}
 	@container game-screen (min-height: 900px) {
 		.game-screen { gap: var(--space-sm); padding: var(--space-sm); }
@@ -426,6 +435,14 @@
 		text-align: center;
 		font-weight: 700;
 		font-size: var(--text-md);
+	}
+	@media (min-width: 80rem) {
+		:global(.game-screen > .game-toolbar) { font-size: var(--text-md); }
+		.bust-banner { font-size: var(--text-md); padding: var(--space-sm) var(--space-md); }
+		.winner-banner { font-size: var(--text-lg); padding: var(--space-sm) var(--space-lg); }
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.bust-banner { animation: none; }
 	}
 	.command-sheet {
 		position: fixed;

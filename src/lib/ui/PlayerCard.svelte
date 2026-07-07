@@ -138,4 +138,7 @@
 	@container player (min-height: 20rem) {
 		.score { font-size: clamp(3rem, 16cqi, 7rem); }
 	}
+	@media (prefers-reduced-motion: reduce) {
+		.player-card { transition: none; }
+	}
 </style>

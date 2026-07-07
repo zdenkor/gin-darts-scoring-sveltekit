@@ -98,6 +98,13 @@
 		background: rgba(239, 68, 68, 0.15);
 	}
 @container app (max-width: 22.5rem) {
-		.meta { font-size: var(--text-xs); gap: var(--space-sm); }
-	}
+	.meta { font-size: var(--text-xs); gap: var(--space-sm); }
+}
+@media (min-width: 80rem) {
+	.meta { font-size: var(--text-md); gap: var(--space-lg); }
+	.toolbar-actions { gap: var(--space-sm); }
+}
+@media (prefers-reduced-motion: reduce) {
+	.icon-btn { transition: none; }
+}
 </style>

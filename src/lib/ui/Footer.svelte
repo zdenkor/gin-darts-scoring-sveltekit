@@ -18,4 +18,13 @@
 		color: var(--muted);
 	}
 	.muted { color: var(--muted); }
+	@media (orientation: landscape) and (max-height: 400px) {
+		.app-footer { padding: var(--space-xs) var(--space-sm); font-size: var(--text-xs); }
+	}
+	@media (min-width: 80rem) {
+		.app-footer { padding: var(--space-md) var(--space-lg); font-size: var(--text-md); }
+	}
+	@media (min-width: 120rem) {
+		.app-footer { padding: var(--space-lg) var(--space-xl); font-size: var(--text-lg); }
+	}
 </style>

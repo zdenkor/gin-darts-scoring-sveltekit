@@ -161,6 +161,15 @@ button, a { cursor: pointer; }
   border-radius: var(--radius);
   padding: var(--space-md);
   box-shadow: var(--shadow);
+  max-width: 50rem;
+  margin-inline: auto;
+  width: 100%;
+}
+@media (min-width: 80rem) {
+  .card { padding: var(--space-lg); max-width: 55rem; }
+}
+@media (min-width: 120rem) {
+  .card { padding: var(--space-xl); max-width: 60rem; }
 }
 
 /* ---------- Form fields ---------- */
@@ -240,4 +249,13 @@ input:focus, select:focus {
 }
 .screen.scrollable {
   overflow-y: auto;
+}
+
+/* ---------- Accessibility: reduced motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

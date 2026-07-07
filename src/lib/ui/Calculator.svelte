@@ -165,8 +165,8 @@
 		width: 100%;
 		height: auto;
 		max-height: 100%;
-		min-height: 18rem;
-		max-width: 45rem;
+		min-height: clamp(15rem, 35vh, 24rem);
+		max-width: clamp(40rem, 60vw, 80rem);
 		margin-inline: auto;
 	}
 	.calc-display {
@@ -206,7 +206,7 @@
 		cursor: pointer;
 		transition: background .1s ease;
 		padding: var(--space-xs);
-		min-height: 0;
+		min-height: clamp(2.6rem, 5vh, 3.5rem);
 		min-width: 0;
 		flex: 1;
 	}
@@ -225,10 +225,14 @@
 	.calc-body {
 		display: grid;
 		grid-template-columns: 1fr 2fr 1fr;
-		grid-auto-rows: minmax(2.8rem, 1fr);
+		grid-auto-rows: minmax(clamp(2.5rem, 6vh, 4rem), 1fr);
 		gap: var(--space-xs);
 		min-height: 0;
 		overflow: hidden;
+	}
+	@media (orientation: landscape) and (max-height: 500px) {
+		.calc-body { grid-template-columns: 1fr; grid-auto-rows: minmax(clamp(2.2rem, 7vh, 3rem), 1fr); }
+		.fast-col { display: none; }
 	}
 	@container calculator (max-width: 26rem) {
 		.calc-body { grid-template-columns: 1fr; }
@@ -237,7 +241,7 @@
 	.fast-col {
 		display: grid;
 		grid-template-columns: 1fr;
-		grid-template-rows: repeat(4, minmax(2.8rem, 1fr));
+		grid-template-rows: repeat(4, minmax(clamp(2.5rem, 6vh, 4rem), 1fr));
 		gap: var(--space-xs);
 		min-height: 0;
 	}
@@ -259,7 +263,7 @@
 	.numpad {
 		display: grid;
 		grid-template-columns: repeat(3, 1fr);
-		grid-template-rows: repeat(4, minmax(2.8rem, 1fr));
+		grid-template-rows: repeat(4, minmax(clamp(2.5rem, 6vh, 4rem), 1fr));
 		gap: var(--space-xs);
 		min-height: 0;
 	}
@@ -290,8 +294,16 @@
 		opacity: 0.35;
 		cursor: not-allowed;
 	}
-@container calculator (min-width: 30rem) {
+	@container calculator (min-width: 30rem) {
 		.action-btn { font-size: var(--text-lg); }
 		.num-btn, .fast-btn { font-size: var(--text-lg); }
+	}
+	@media (min-width: 80rem) {
+		.action-btn { font-size: var(--text-lg); padding: var(--space-sm); }
+		.num-btn, .fast-btn { font-size: var(--text-lg); padding: var(--space-sm); }
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.action-btn, .num-btn, .fast-btn { transition: none; }
+		.num-btn:active, .fast-btn:active { transform: none; }
 	}
 </style>

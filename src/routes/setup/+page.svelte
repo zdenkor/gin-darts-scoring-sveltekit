@@ -207,7 +207,22 @@
 	}
 	.actions a { text-decoration: none; }
 @container app (max-width: 400px) {
-		.field-row { grid-template-columns: 1fr; }
-		.actions { flex-direction: column; }
-	}
+	.field-row { grid-template-columns: 1fr; }
+	.actions { flex-direction: column; }
+}
+@media (min-width: 80rem) {
+	.setup-screen h1 { font-size: clamp(2rem, 3vw, 3rem); }
+	.setup-screen h2 { font-size: var(--text-xl); }
+	.player-row { gap: var(--space-md); }
+	.option-row { gap: var(--space-md); }
+	.actions { gap: var(--space-lg); }
+}
+@media (min-width: 120rem) {
+	.setup-screen h1 { font-size: clamp(2.5rem, 3.5vw, 4rem); }
+}
+@media (orientation: landscape) and (max-height: 500px) {
+	.setup-screen h1 { font-size: var(--text-lg); margin-bottom: var(--space-sm); }
+	.section { margin-bottom: var(--space-md); }
+	.player-row { margin-bottom: var(--space-xs); }
+}
 </style>

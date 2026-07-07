@@ -85,6 +85,26 @@
 		text-overflow: ellipsis;
 	}
 @container app (max-width: 380px) {
-		.user-pill { display: none; }
-	}
+	.user-pill { display: none; }
+}
+@media (orientation: landscape) and (max-height: 400px) {
+	.brand-text .subtitle { display: none; }
+	.brand-text h1 { font-size: var(--text-sm); }
+	.app-header { padding: var(--space-xs) var(--space-sm); }
+}
+@media (min-width: 80rem) {
+	.brand-text h1 { font-size: var(--text-lg); }
+	.brand-text .subtitle { font-size: var(--text-sm); }
+	.app-header { padding: var(--space-md) var(--space-lg); gap: var(--space-md); }
+	.header-actions { gap: var(--space-md); }
+	.brand img { width: 2.5em; height: 2.5em; }
+}
+@media (min-width: 120rem) {
+	.brand-text h1 { font-size: var(--text-xl); }
+	.brand img { width: 3em; height: 3em; }
+	.app-header { padding: var(--space-lg) var(--space-xl); }
+}
+@media (prefers-reduced-motion: reduce) {
+	.brand, .icon-btn { transition: none; }
+}
 </style>
