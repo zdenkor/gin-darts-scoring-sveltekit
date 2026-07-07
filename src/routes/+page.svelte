@@ -17,7 +17,7 @@
 	}
 </script>
 
-<div class="screen">
+<div class="screen scrollable">
 	<div class="hero">
 		<h1>Gin's Online Dart's Scoring System</h1>
 		<p class="subtitle">Choose which version to use</p>
@@ -54,7 +54,7 @@
 	.screen {
 		display: flex;
 		flex-direction: column;
-		justify-content: center;
+		justify-content: flex-start;
 		align-items: center;
 		gap: var(--space-lg);
 		text-align: center;

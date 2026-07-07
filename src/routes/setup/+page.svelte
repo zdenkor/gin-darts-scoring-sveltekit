@@ -52,7 +52,7 @@
 	let url = $derived(gameUrl());
 </script>
 
-<div class="screen setup-screen">
+<div class="screen setup-screen scrollable">
 	<div class="card">
 		<h1>New X01 game</h1>
 

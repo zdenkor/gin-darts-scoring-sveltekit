@@ -28,7 +28,7 @@
 	];
 </script>
 
-<div class="screen">
+<div class="screen scrollable">
 	<div class="hero">
 		<h1>SvelteKit Dashboard</h1>
 		<p class="subtitle">Choose what to do next</p>
