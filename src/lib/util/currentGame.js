@@ -7,7 +7,7 @@ import { put, get, del } from '$lib/db/idb.js';
 import { deepClone } from '$lib/util/deepClone.js';
 
 const CURRENT_KEY = 'current';
-const STORE = 'games';
+const STORE = 'current-game';
 
 export async function saveCurrentGame(gameState) {
 	try {

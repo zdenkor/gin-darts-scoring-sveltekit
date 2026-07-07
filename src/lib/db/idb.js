@@ -5,7 +5,7 @@
 // =================================================================
 
 const DB_NAME = 'gindarts';
-const DB_VERSION = 6;
+const DB_VERSION = 7;
 
 let _dbPromise = null;
 
@@ -73,6 +73,11 @@ function ensureStores(db) {
     const hs = db.createObjectStore('history', { keyPath: 'id', autoIncrement: true });
     hs.createIndex('playerName', 'playerName', { unique: false });
     hs.createIndex('endedAt', 'endedAt', { unique: false });
+  }
+  // Current game snapshot. String key (no autoIncrement) — autoIncrement
+  // stores require numeric keys, and 'current' is a stable string id.
+  if (!db.objectStoreNames.contains('current-game')) {
+    db.createObjectStore('current-game', { keyPath: 'id' });
   }
 }
 

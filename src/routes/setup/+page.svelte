@@ -120,15 +120,18 @@
 							placeholder={`Player ${i + 1}`}
 						/>
 					{/if}
+					<!-- Dartbot on/off toggle (text button, classic click-effect).
+					     aria-pressed announces state to screen readers; class:active
+					     drives the colour. -->
 					<button
 						type="button"
-						class="btn ghost"
+						class="bot-toggle-btn"
 						class:active={p.isBot}
 						onclick={() => toggleBot(i)}
+						aria-pressed={p.isBot}
 						title={p.isBot ? 'Switch to human' : 'Switch to bot'}
-						aria-label={p.isBot ? 'Switch to human' : 'Switch to bot'}
 					>
-						🤖
+						{p.isBot ? 'Bot ON' : 'Bot OFF'}
 					</button>
 					{#if players.length > 1}
 						<button class="btn ghost" type="button" onclick={() => removePlayer(i)} aria-label="Remove player">✕</button>
@@ -287,5 +290,34 @@
 	.setup-screen h1 { font-size: var(--text-lg); margin-bottom: var(--space-sm); }
 	.section { margin-bottom: var(--space-md); }
 	.player-row { margin-bottom: var(--space-xs); }
+}
+
+/* Dartbot on/off toggle. aria-pressed carries the binary state
+   to assistive tech; the visible colour flips via .active.
+   Same focus / hover guards as the calc buttons so the
+   pressed state clears on mobile. */
+.bot-toggle-btn {
+	padding: 0.5rem 1rem;
+	font-weight: 700;
+	font-size: var(--text-sm);
+	letter-spacing: 0.05em;
+	border: 2px solid var(--danger);
+	border-radius: 8px;
+	background-color: var(--danger);
+	color: #2a070c;
+	cursor: pointer;
+	transition: background-color .15s ease, border-color .15s ease, transform .08s ease;
+	min-height: 36px;
+}
+.bot-toggle-btn:focus { outline: none; -webkit-tap-highlight-color: transparent; }
+.bot-toggle-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (hover: hover) {
+	.bot-toggle-btn:hover { filter: brightness(1.1); }
+}
+.bot-toggle-btn:active { transform: scale(0.95); }
+.bot-toggle-btn.active {
+	background-color: var(--accent);
+	border-color: var(--accent);
+	color: #062018;
 }
 </style>
