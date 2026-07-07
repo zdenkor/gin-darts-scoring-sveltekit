@@ -292,7 +292,7 @@
 <style>
 	.game-screen {
 		display: grid;
-		grid-template-rows: auto auto 1fr auto auto;
+		grid-template-rows: auto auto minmax(15rem, 1fr) auto auto;
 		gap: var(--space-xs);
 		height: 100%;
 		min-height: 0;
