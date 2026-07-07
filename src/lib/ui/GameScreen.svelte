@@ -292,7 +292,7 @@
 <style>
 	.game-screen {
 		display: grid;
-		grid-template-rows: auto auto auto 1fr;
+		grid-template-rows: auto auto minmax(0, 55%) minmax(0, 45%);
 		gap: var(--space-xs);
 		height: 100%;
 		min-height: 0;
@@ -302,10 +302,13 @@
 		container-name: game-screen;
 	}
 	@container game-screen (min-height: 900px) {
-		.game-screen { gap: var(--space-sm); padding: var(--space-sm); }
+		.game-screen { gap: var(--space-sm); padding: var(--space-sm); grid-template-rows: auto auto minmax(0, 58%) minmax(0, 40%); }
 	}
-	@container game-screen (max-height: 560px) {
-		.game-screen { gap: 2px; padding: 2px; }
+	@container game-screen (max-height: 620px) {
+		.game-screen { grid-template-rows: auto auto minmax(0, 50%) minmax(0, 50%); }
+	}
+	@container game-screen (max-height: 520px) {
+		.game-screen { gap: 2px; padding: 2px; grid-template-rows: auto auto minmax(0, 48%) minmax(0, 50%); }
 	}
 	:global(.game-screen > .history-strip),
 	:global(.game-screen > .history-empty) {
