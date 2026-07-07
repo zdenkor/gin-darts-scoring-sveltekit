@@ -26,6 +26,7 @@
 	let game = $state(/** @type {any} */ (null));
 	let lastCommitError = $state('');
 	let showCommands = $state(false);
+	let showExitModal = $state(false);
 	let past = $state(/** @type {any[]} */ ([]));
 	let future = $state(/** @type {any[]} */ ([]));
 
@@ -152,8 +153,35 @@
 	}
 
 	function exitGame() {
-		if (game && !game.endedAt && !confirm('Leave the current game? Progress is saved locally.')) return;
+		showExitModal = true;
+	}
+
+	async function doExitDiscard() {
+		showExitModal = false;
+		try { await clearCurrentGame(); } catch {}
 		goto(`${base}/`);
+	}
+
+	async function doExitSaveProgress() {
+		showExitModal = false;
+		if (game && !game.endedAt) {
+			try { await saveCurrentGame(game); } catch {}
+		}
+		goto(`${base}/`);
+	}
+
+	async function doExitSaveAndExit() {
+		showExitModal = false;
+		if (game && game.winner != null) {
+			const entry = gameHistoryEntryFromState(game);
+			try { await recordGameHistory(entry); } catch {}
+			try { await clearCurrentGame(); } catch {}
+		}
+		goto(`${base}/`);
+	}
+
+	function cancelExit() {
+		showExitModal = false;
 	}
 
 	async function finishGame() {
@@ -219,13 +247,37 @@
 		{#if showCommands}
 			<div class="command-sheet" role="dialog" aria-modal="true">
 				<button class="command-item" disabled={past.length === 0} onclick={() => moreCommand('undo')}>↶ Undo</button>
-					<button class="command-item" disabled={future.length === 0} onclick={() => moreCommand('redo')}>↷ Redo</button>
-					<button class="command-item" onclick={() => moreCommand('stats')}>Stats</button>
-					<button class="command-item" disabled={game.winner == null} onclick={() => moreCommand('finish')}>Finish game</button>
-					<button class="command-item danger" onclick={() => moreCommand('exit')}>Exit game</button>
-					<button class="command-item" onclick={() => (showCommands = false)}>Cancel</button>
+				<button class="command-item" disabled={future.length === 0} onclick={() => moreCommand('redo')}>↷ Redo</button>
+				<button class="command-item" onclick={() => moreCommand('stats')}>Stats</button>
+				<button class="command-item" disabled={game.winner == null} onclick={() => moreCommand('finish')}>Finish game</button>
+				<button class="command-item danger" onclick={() => moreCommand('exit')}>Exit game</button>
+				<button class="command-item" onclick={() => (showCommands = false)}>Cancel</button>
+			</div>
+			<div class="command-backdrop" onclick={() => (showCommands = false)} aria-hidden="true"></div>
+		{/if}
+
+		{#if showExitModal}
+			<div class="exit-modal" role="dialog" aria-modal="true">
+				<div class="exit-modal-box">
+					{#if game.winner != null}
+						<h3>Save game?</h3>
+						<p class="muted">Save the result to history.</p>
+						<div class="exit-actions">
+							<button class="btn danger" onclick={doExitDiscard}>Discard</button>
+							<button class="btn primary" onclick={doExitSaveAndExit}>Save & exit</button>
+						</div>
+					{:else}
+						<h3>Exit game?</h3>
+						<p class="muted">Your progress is saved every turn. Resume from the main menu later.</p>
+						<div class="exit-actions">
+							<button class="btn" onclick={cancelExit}>Cancel</button>
+							<button class="btn danger" onclick={doExitDiscard}>Discard progress</button>
+							<button class="btn primary" onclick={doExitSaveProgress}>Save progress & exit</button>
+						</div>
+					{/if}
 				</div>
-				<div class="command-backdrop" onclick={() => (showCommands = false)} aria-hidden="true"></div>
+			</div>
+			<div class="command-backdrop" onclick={cancelExit} aria-hidden="true"></div>
 		{/if}
 	</div>
 {:else}
@@ -405,6 +457,45 @@
 	.command-item.danger {
 		background: var(--danger);
 		color: #2a070c;
+	}
+	.command-backdrop {
+		position: fixed;
+		inset: 0;
+		background: rgba(0,0,0,0.6);
+		z-index: 100;
+	}
+	.exit-modal {
+		position: fixed;
+		left: 50%;
+		top: 50%;
+		transform: translate(-50%, -50%);
+		z-index: 110;
+		width: min(90vw, 22rem);
+	}
+	.exit-modal-box {
+		background: var(--surface);
+		border: 1px solid var(--line);
+		border-radius: var(--radius);
+		padding: var(--space-md);
+		text-align: center;
+	}
+	.exit-modal-box h3 {
+		margin: 0 0 var(--space-xs);
+		font-size: var(--text-lg);
+	}
+	.exit-modal-box .muted {
+		margin: 0 0 var(--space-md);
+		font-size: var(--text-sm);
+	}
+	.exit-actions {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: var(--space-sm);
+	}
+	.exit-actions .btn {
+		flex: 1 1 auto;
+		min-width: 6rem;
 	}
 	@keyframes shake {
 		0%, 100% { transform: translateX(0); }
