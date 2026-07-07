@@ -300,6 +300,7 @@
 		overflow: hidden;
 		container-type: size;
 		container-name: game-screen;
+		width: 100%;
 		max-width: 90rem;
 		margin-inline: auto;
 	}
