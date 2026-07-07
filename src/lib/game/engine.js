@@ -826,8 +826,8 @@ export function checkoutSuggestions(remaining, inOutOrVariation = 'doubleOut', b
       : outRule === 'double' ? TARGET_DOUBLES.map(d => ({ segment: d === 50 ? 25 : d / 2, multiplier: 2, value: d }))
       : [{ segment: 0, multiplier: 1, value: 0 }];
 
-    for (let t1 = 60; t1 >= 0; t1 -= 3) {
-      for (let t2 = t1; t2 >= 0; t2 -= 3) {
+    for (let t1 = 60; t1 >= 3; t1 -= 3) {
+      for (let t2 = t1; t2 >= 3; t2 -= 3) {
         const after = remaining - t1 - t2;
         if (after < 0) continue;
         for (const fd of finishDarts) {

@@ -87,7 +87,7 @@
 		display: flex;
 		gap: var(--space-md);
 		flex-wrap: nowrap;
-		font-size: var(--text-sm);
+		font-size: calc(var(--text-sm) * 1.25);
 		color: var(--muted);
 	}
 	.meta strong { color: var(--text); }
@@ -106,7 +106,7 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		font-size: var(--text-lg);
+		font-size: calc(var(--text-lg) * 1.25);
 		line-height: 1;
 		cursor: pointer;
 	}
@@ -131,10 +131,10 @@
 		background: rgba(239, 68, 68, 0.15);
 	}
 @container app (max-width: 22.5rem) {
-	.meta { font-size: var(--text-xs); gap: var(--space-sm); }
+	.meta { font-size: calc(var(--text-xs) * 1.25); gap: var(--space-sm); }
 }
 @media (min-width: 80rem) {
-	.meta { font-size: var(--text-md); gap: var(--space-lg); }
+	.meta { font-size: calc(var(--text-md) * 1.25); gap: var(--space-lg); }
 	.toolbar-actions { gap: var(--space-sm); }
 }
 @media (prefers-reduced-motion: reduce) {

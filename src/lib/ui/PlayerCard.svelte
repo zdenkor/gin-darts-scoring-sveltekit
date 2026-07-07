@@ -1,6 +1,13 @@
 <script>
 	import { checkoutSuggestions } from '$lib/game/engine.js';
 
+	// TODO(checkout): re-enable once the engine returns standard
+	// preference-ordered checkouts (e.g. 69 DO -> T11 + T18 + D6
+	// style hints). Current implementation just picks the first
+	// 3-dart combination that sums to the remaining score, which
+	// produces odd suggestions like T20 + T1 + D3 for 69.
+	const SHOW_CHECKOUTS = false;
+
 	/** @type {{name: string, score: number, start: number, legsWon?: number, setsWon?: number, dartsThrown?: number, isActive?: boolean, outRule?: string, checkoutDarts?: number, compact?: boolean}} */
 	let {
 		name,
@@ -29,7 +36,7 @@
 	{#if !compact}
 		<div class="footer">
 			<span class="avg">Avg: {avg}</span>
-			{#if checkouts.length > 0}
+			{#if SHOW_CHECKOUTS && checkouts.length > 0}
 				<span class="checkout">Out: {checkouts.slice(0, 3).map(c => c.description).join(', ')}</span>
 			{/if}
 		</div>

@@ -119,12 +119,33 @@
 		} finally {
 			isCommitting = false;
 		}
+		// Reset so the next bot turn (a different player, or the same
+		// player after a full round) is scheduled fresh. Without this
+		// the bot only throws the first time it becomes current.
+		lastBotIndex = -1;
 		scheduleBotIfNeeded();
 	}
 
 	function isCurrentBot() {
 		if (!game) return false;
 		return !!game.players[game.current]?.isBot;
+	}
+
+	// Allow picking the opening player by clicking their card in the
+	// scoreboard, but only before anyone has thrown. After the first
+	// turn the engine owns `current` and a manual change would skip a
+	// player's throws.
+	const canPickStarting = $derived(
+		!!game && game.winner == null &&
+		game.players.every(p => (p.history?.length ?? 0) === 0)
+	);
+
+	async function setStartingPlayer(idx) {
+		if (!canPickStarting) return;
+		if (idx < 0 || idx >= game.players.length) return;
+		game = { ...game, current: idx };
+		await persist();
+		scheduleBotIfNeeded();
 	}
 
 	function runBotTurn() {
@@ -311,18 +332,30 @@
 
 		<div class="scoreboard" class:compact={game.players.length > 2} style:--cols={game.players.length}>
 			{#each game.players as player, i}
-				<PlayerCard
-					name={player.name}
-					score={player.score}
-					start={start}
-					legsWon={player.legsWon}
-					setsWon={player.setsWon}
-					dartsThrown={player.dartsThrown || 0}
-					isActive={i === game.current}
-					outRule={game.opts?.out}
-					checkoutDarts={3}
-					compact={game.players.length > 2}
-				/>
+				<button
+					type="button"
+					class="player-slot"
+					class:active={i === game.current}
+					class:clickable={canPickStarting}
+					onclick={() => setStartingPlayer(i)}
+					disabled={!canPickStarting && i !== game.current}
+					aria-label={canPickStarting
+						? `Set ${player.name} as starting player`
+						: (i === game.current ? `${player.name}, current player` : `${player.name}`)}
+				>
+					<PlayerCard
+						name={player.name}
+						score={player.score}
+						start={start}
+						legsWon={player.legsWon}
+						setsWon={player.setsWon}
+						dartsThrown={player.dartsThrown || 0}
+						isActive={i === game.current}
+						outRule={game.opts?.out}
+						checkoutDarts={3}
+						compact={game.players.length > 2}
+					/>
+				</button>
 			{/each}
 		</div>
 
@@ -420,6 +453,8 @@
 		width: 100%;
 		max-width: 90rem;
 		margin-inline: auto;
+		user-select: none;
+		-webkit-user-select: none;
 	}
 	.game-screen > .scoreboard { margin-bottom: 0; }
 	@media (min-width: 120rem) {
@@ -442,6 +477,31 @@
 		min-height: 0;
 		overflow: hidden;
 	}
+	.player-slot {
+		display: block;
+		width: 100%;
+		min-height: 0;
+		padding: 0;
+		margin: 0;
+		background: none;
+		border: 0;
+		font: inherit;
+		color: inherit;
+		text-align: left;
+		cursor: default;
+	}
+	.player-slot.clickable {
+		cursor: pointer;
+	}
+	.player-slot:disabled {
+		cursor: default;
+	}
+	.player-slot.clickable:hover :global(.player-card) {
+		border-color: var(--accent);
+	}
+	.player-slot.active :global(.player-card) {
+		border-color: var(--accent);
+	}
 	.scoreboard.compact {
 		display: flex;
 		flex-direction: row;
@@ -462,11 +522,13 @@
 		background: var(--line);
 		border-radius: 3px;
 	}
-	.scoreboard.compact :global(.player-card) {
+	.scoreboard.compact :global(.player-slot) {
 		flex: 0 0 calc(50% - var(--space-xs) * 0.5);
+		scroll-snap-align: start;
+	}
+	.scoreboard.compact :global(.player-card) {
 		max-width: none;
 		width: auto;
-		scroll-snap-align: start;
 	}
 	@container game-screen (max-height: 560px) {
 		.scoreboard.compact { gap: 2px; }

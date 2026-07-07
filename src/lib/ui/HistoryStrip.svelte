@@ -100,7 +100,7 @@
 		background: var(--surface);
 		border: 1px solid var(--line);
 		border-radius: var(--radius);
-		font-size: var(--text-xs);
+		font-size: calc(var(--text-xs) * 1.25);
 		min-height: 2.5rem;
 		max-height: 100%;
 		overflow-y: auto;
@@ -109,7 +109,7 @@
 		height: 100%;
 	}
 	@container app (min-width: 30rem) {
-		.history-strip { font-size: var(--text-sm); }
+		.history-strip { font-size: calc(var(--text-sm) * 1.25); }
 	}
 	.history-header, .history-row {
 		display: grid;
@@ -165,7 +165,7 @@
 		height: 100%;
 	}
 	@container app (min-width: 30rem) {
-		.history-strip { font-size: var(--text-sm); }
+		.history-strip { font-size: calc(var(--text-sm) * 1.25); }
 		.history-empty { padding: var(--space-sm); }
 	}
 	@media (orientation: landscape) and (max-height: 520px) {

@@ -52,6 +52,11 @@
 		);
 	}
 	function toggleBot(index) {
+		// Anti-spam guard: never allow the last human player to flip to
+		// a bot, otherwise the match runs unattended on bot vs bot.
+		const nonBotCount = players.filter(p => !p.isBot).length;
+		const target = players[index];
+		if (target && !target.isBot && nonBotCount <= 1) return;
 		players = players.map((p, i) => {
 			if (i !== index) return p;
 			if (p.isBot) {
@@ -65,6 +70,9 @@
 			}
 		});
 	}
+
+	const allBots = $derived(players.length > 0 && players.every(p => p.isBot));
+	const nonBotCount = $derived(players.filter(p => !p.isBot).length);
 	function updateBotLevel(index, value) {
 		const lvl = Number(value);
 		players = players.map((p, i) => i === index
@@ -129,7 +137,10 @@
 						class:active={p.isBot}
 						onclick={() => toggleBot(i)}
 						aria-pressed={p.isBot}
-						title={p.isBot ? 'Switch to human' : 'Switch to bot'}
+						disabled={!p.isBot && nonBotCount <= 1}
+						title={!p.isBot && nonBotCount <= 1
+							? 'At least one human player is required'
+							: (p.isBot ? 'Switch to human' : 'Switch to bot')}
 					>
 						{p.isBot ? 'Bot ON' : 'Bot OFF'}
 					</button>
