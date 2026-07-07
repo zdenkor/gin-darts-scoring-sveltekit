@@ -325,7 +325,7 @@
 <style>
 	.game-screen {
 		display: grid;
-		grid-template-rows: auto auto 1fr minmax(8rem, 8rem) auto;
+		grid-template-rows: auto auto 1fr auto auto;
 		gap: 0;
 		height: 100%;
 		min-height: 0;
@@ -360,6 +360,8 @@
 		overflow: auto;
 		height: 100%;
 		align-self: stretch;
+		flex-shrink: 1;
+		min-height: 5rem;
 	}
 	.scoreboard.compact {
 		display: flex;
@@ -401,8 +403,10 @@
 	}
 	.calculator-slot {
 		min-height: 0;
+		height: clamp(13rem, 50dvh, 30rem);
 		max-height: 100%;
 		overflow: hidden;
+		flex-shrink: 0;
 	}
 	@media (orientation: landscape) and (max-height: 500px) {
 		:global(.game-screen) {
