@@ -38,7 +38,7 @@
 		background: var(--surface);
 		border: 2px solid var(--line);
 		border-radius: var(--radius);
-		padding: calc(var(--space-xs) * 0.75) var(--space-xs);
+		padding: var(--space-xs) var(--space-xs);
 		display: flex;
 		flex-direction: column;
 		gap: 0;
@@ -47,6 +47,7 @@
 		transition: border-color .15s ease;
 		min-height: 0;
 		overflow: hidden;
+		justify-content: space-between;
 	}
 	.player-card.active {
 		border-color: var(--accent);
@@ -70,18 +71,19 @@
 		font-size: var(--text-xs);
 	}
 	.score {
-		font-size: clamp(1.25rem, 8cqi, 2.5rem);
+		font-size: clamp(1.75rem, 10cqi, 3.5rem);
 		font-weight: 700;
 		text-align: center;
 		line-height: 1;
-		flex: 1 1 0;
+		flex: 0 0 auto;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		min-height: 0;
+		padding: var(--space-xs) 0;
 	}
 	.score.long {
-		font-size: clamp(1.125rem, 7cqi, 2rem);
+		font-size: clamp(1.5rem, 9cqi, 3rem);
 	}
 	.footer {
 		display: flex;
@@ -94,9 +96,9 @@
 		color: var(--accent);
 	}
 @container player (min-width: 20rem) {
-		.score { font-size: clamp(1.5rem, 9cqi, 3rem); }
+		.score { font-size: clamp(2rem, 12cqi, 4rem); }
 	}
 @container player (min-width: 35rem) {
-		.score { font-size: clamp(1.75rem, 7cqi, 3.5rem); }
+		.score { font-size: clamp(2.25rem, 10cqi, 4.5rem); }
 	}
 </style>
