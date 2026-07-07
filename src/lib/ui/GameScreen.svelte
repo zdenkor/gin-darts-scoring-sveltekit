@@ -403,7 +403,7 @@
 	}
 	.calculator-slot {
 		min-height: 0;
-		height: clamp(13rem, 50dvh, 30rem);
+		height: auto;
 		max-height: 100%;
 		overflow: hidden;
 		flex-shrink: 0;
