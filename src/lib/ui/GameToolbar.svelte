@@ -47,7 +47,7 @@
 		align-items: center;
 		justify-content: space-between;
 		gap: var(--space-sm);
-		padding: var(--space-sm) var(--space-md);
+		padding: var(--space-xs) var(--space-sm);
 		background: var(--surface);
 		border: 1px solid var(--line);
 		border-radius: var(--radius);

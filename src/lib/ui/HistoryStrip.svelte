@@ -41,7 +41,7 @@
 		border-radius: var(--radius);
 		overflow: hidden;
 		font-size: var(--text-xs);
-		max-height: min(25cqh, 13.75rem);
+		max-height: min(16cqh, 7rem);
 		overflow-y: auto;
 	}
 	.history-header, .history-row {
@@ -76,11 +76,13 @@
 	.muted { color: var(--muted); }
 	.history-empty {
 		text-align: center;
-		padding: var(--space-sm);
+		padding: var(--space-xs);
 		font-size: var(--text-xs);
+		min-height: 0;
 	}
 @container app (min-width: 30rem) {
-		.history-strip { font-size: var(--text-sm); max-height: min(28cqh, 16.25rem); }
+		.history-strip { font-size: var(--text-sm); max-height: min(18cqh, 8rem); }
+		.history-empty { padding: var(--space-sm); }
 		.history-header, .history-row {
 			grid-template-columns: 2em repeat(var(--cols, 2), 1fr);
 			gap: var(--space-sm);

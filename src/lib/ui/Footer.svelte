@@ -12,7 +12,7 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		padding: 12px 18px;
+		padding: var(--space-sm) var(--space-md);
 		border-top: 1px solid var(--line);
 		font-size: var(--text-sm);
 		color: var(--muted);

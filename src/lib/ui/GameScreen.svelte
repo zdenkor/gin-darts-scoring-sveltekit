@@ -203,15 +203,17 @@
 			<div class="winner-banner">{game.players[game.winner].name} wins!</div>
 		{/if}
 
-		<Calculator
-			onCommit={commitTurn}
-			onUndo={undo}
-			onRedo={redo}
-			canUndo={past.length > 0}
-			canRedo={future.length > 0}
-			onMore={() => (showCommands = true)}
-			disabled={game.winner != null || isCurrentBot()}
-		/>
+		<div class="calculator-slot">
+			<Calculator
+				onCommit={commitTurn}
+				onUndo={undo}
+				onRedo={redo}
+				canUndo={past.length > 0}
+				canRedo={future.length > 0}
+				onMore={() => (showCommands = true)}
+				disabled={game.winner != null || isCurrentBot()}
+			/>
+		</div>
 
 		{#if showCommands}
 			<div class="command-sheet" role="dialog" aria-modal="true">
@@ -236,40 +238,45 @@
 
 <style>
 	.game-screen {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-sm);
+		display: grid;
+		grid-template-rows: auto auto 1fr minmax(0, 45%);
+		gap: var(--space-xs);
 		height: 100%;
 		min-height: 0;
+		padding: var(--space-xs);
+		overflow: hidden;
 		container-type: size;
 		container-name: game-screen;
 	}
 	@container game-screen (min-height: 900px) {
-		.game-screen { gap: var(--space-md); }
+		.game-screen { gap: var(--space-sm); padding: var(--space-sm); }
+	}
+	:global(.game-screen > .history-strip),
+	:global(.game-screen > .history-empty) {
+		max-height: min(15cqh, 6rem);
+		min-height: 0;
+		overflow: hidden;
+	}
+	@container game-screen (min-height: 700px) {
+		:global(.game-screen > .history-strip),
+		:global(.game-screen > .history-empty) { max-height: min(18cqh, 8rem); }
 	}
 	.scoreboard {
 		display: grid;
 		grid-template-columns: 1fr;
-		gap: var(--space-sm);
-		flex: 0 1 auto;
+		gap: var(--space-xs);
 		min-height: 0;
-		max-height: min(50cqh, 24rem);
-	}
-	@container game-screen (min-height: 700px) {
-		.scoreboard { max-height: min(58cqh, 32rem); }
-	}
-	@container game-screen (min-height: 900px) {
-		.scoreboard { max-height: min(62cqh, 38rem); }
+		overflow: hidden;
 	}
 	@container game-screen (min-width: 35rem) {
-		.scoreboard {
-			grid-template-columns: repeat(2, 1fr);
-		}
+		.scoreboard { grid-template-columns: repeat(2, 1fr); }
 	}
 	@container game-screen (min-width: 62.5rem) {
-		.scoreboard {
-			grid-template-columns: repeat(var(--cols, 2), 1fr);
-		}
+		.scoreboard { grid-template-columns: repeat(var(--cols, 2), 1fr); }
+	}
+	.calculator-slot {
+		min-height: 0;
+		overflow: hidden;
 	}
 	.bust-banner {
 		background: var(--danger);
@@ -280,17 +287,15 @@
 		font-weight: 700;
 		font-size: var(--text-sm);
 		animation: shake .3s ease;
-		flex: 0 0 auto;
 	}
 	.winner-banner {
 		background: var(--accent);
 		color: #062018;
-		padding: var(--space-sm) var(--space-md);
+		padding: var(--space-xs) var(--space-md);
 		border-radius: var(--radius);
 		text-align: center;
 		font-weight: 700;
 		font-size: var(--text-md);
-		flex: 0 0 auto;
 	}
 	.command-sheet {
 		position: fixed;

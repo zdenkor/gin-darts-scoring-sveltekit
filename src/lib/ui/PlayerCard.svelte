@@ -38,14 +38,15 @@
 		background: var(--surface);
 		border: 2px solid var(--line);
 		border-radius: var(--radius);
-		padding: var(--space-sm) var(--space-md);
+		padding: calc(var(--space-xs) * 0.75) var(--space-xs);
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-xs);
+		gap: 0;
 		container-type: inline-size;
 		container-name: player;
 		transition: border-color .15s ease;
 		min-height: 0;
+		overflow: hidden;
 	}
 	.player-card.active {
 		border-color: var(--accent);
@@ -55,7 +56,8 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		font-size: var(--text-sm);
+		font-size: var(--text-xs);
+		min-height: 0;
 	}
 	.name {
 		font-weight: 600;
@@ -68,27 +70,33 @@
 		font-size: var(--text-xs);
 	}
 	.score {
-		font-size: clamp(1.75rem, 14cqi, 4rem);
+		font-size: clamp(1.25rem, 8cqi, 2.5rem);
 		font-weight: 700;
 		text-align: center;
 		line-height: 1;
+		flex: 1 1 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		min-height: 0;
 	}
 	.score.long {
-		font-size: clamp(1.5rem, 12cqi, 3rem);
+		font-size: clamp(1.125rem, 7cqi, 2rem);
 	}
 	.footer {
 		display: flex;
 		justify-content: space-between;
 		font-size: var(--text-xs);
 		color: var(--muted);
+		min-height: 0;
 	}
 	.checkout {
 		color: var(--accent);
 	}
-@container player (min-width: 320px) {
-		.score { font-size: clamp(2rem, 12cqi, 5rem); }
+@container player (min-width: 20rem) {
+		.score { font-size: clamp(1.5rem, 9cqi, 3rem); }
 	}
-@container player (min-width: 560px) {
-		.score { font-size: clamp(2.25rem, 10cqi, 6rem); }
+@container player (min-width: 35rem) {
+		.score { font-size: clamp(1.75rem, 7cqi, 3.5rem); }
 	}
 </style>

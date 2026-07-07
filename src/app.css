@@ -95,28 +95,32 @@ body {
 #app-sveltekit, #sveltekit-body {
   display: flex;
   flex-direction: column;
-  min-height: 100dvh;
+  height: 100dvh;
 }
 
 .app-shell {
-  display: flex;
-  flex-direction: column;
-  min-height: 100dvh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  height: 100dvh;
+  overflow: hidden;
 }
 
 main {
-  flex: 1;
-  padding: var(--space-md);
+  min-height: 0;
+  overflow: hidden;
+  padding: var(--space-xs);
   width: 100%;
-  container-type: inline-size;
+  container-type: size;
   container-name: app;
 }
 
 .game-layout {
   display: flex;
   flex-direction: column;
+  height: 100%;
   min-height: 0;
   overflow: hidden;
+  padding: 0;
 }
 
 button, a, input, select, textarea {
