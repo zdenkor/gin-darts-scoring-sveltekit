@@ -45,12 +45,12 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-xs);
-		container-type: size;
-		container-name: player;
 		transition: border-color .15s ease;
-		min-height: 0;
 		overflow: hidden;
 		justify-content: center;
+		height: 6rem;
+		min-height: 6rem;
+		max-height: 6rem;
 	}
 	.player-card.active {
 		border-color: var(--accent);
@@ -60,7 +60,7 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		font-size: clamp(1rem, 6cqi, 2rem);
+		font-size: var(--font-card-header);
 		min-height: 0;
 		flex: 0 0 auto;
 		flex-shrink: 0;
@@ -75,12 +75,12 @@
 	}
 	.sets {
 		color: var(--muted);
-		font-size: clamp(1rem, 6cqi, 2rem);
+		font-size: var(--font-card-header);
 		white-space: nowrap;
 		flex: 0 0 auto;
 	}
 	.score {
-		font-size: clamp(2rem, 10cqi, 3.5rem);
+		font-size: var(--font-card-score);
 		font-weight: 700;
 		text-align: center;
 		line-height: 1;
@@ -92,12 +92,12 @@
 		padding: 0;
 	}
 	.score.long {
-		font-size: clamp(1.75rem, 11cqi, 3.5rem);
+		font-size: clamp(1.75rem, 1.4rem + 1.5vw, 3rem);
 	}
 	.footer {
 		display: flex;
 		justify-content: space-between;
-		font-size: clamp(1rem, 6cqi, 2rem);
+		font-size: var(--font-card-header);
 		color: var(--muted);
 		min-height: 0;
 		flex: 0 0 auto;
@@ -107,19 +107,6 @@
 	.checkout {
 		color: var(--accent);
 	}
-	@container player (min-width: 20rem) {
-		.score { font-size: clamp(2.25rem, 12cqi, 3.5rem); }
-		.card-header, .footer { font-size: clamp(1.1rem, 6cqi, 2rem); }
-	}
-	@container player (min-width: 35rem) {
-		.score { font-size: clamp(2.5rem, 10cqi, 4rem); }
-		.card-header, .footer { font-size: clamp(1.25rem, 6cqi, 2.25rem); }
-	}
-	@container player (max-height: 8rem) {
-		.score { font-size: clamp(1.5rem, 8cqi, 2.5rem); }
-		.player-card { padding: 2px; }
-		.card-header, .footer { font-size: clamp(0.75rem, 4cqi, 1.25rem); }
-	}
 	.player-card.compact {
 		width: calc(50% - var(--space-xs) * 0.5);
 		min-width: 140px;
@@ -127,27 +114,12 @@
 		flex-shrink: 0;
 	}
 	.player-card.compact .score {
-		font-size: clamp(1.75rem, 14cqi, 3rem);
+		font-size: clamp(1.75rem, 1.4rem + 1.5vw, 3rem);
 	}
 	.player-card.compact .card-header,
 	.player-card.compact .footer {
-		font-size: clamp(0.875rem, 7cqi, 1.5rem);
-	}
-	@container player (max-height: 6rem) {
-		.player-card.compact { min-width: 120px; }
-		.player-card.compact .score { font-size: clamp(1.5rem, 12cqi, 2.5rem); }
-		.player-card.compact .card-header,
-		.player-card.compact .footer { font-size: clamp(0.75rem, 6cqi, 1.25rem); }
-	}
-	@container player (min-width: 12rem) {
-		.player-card.compact .score { font-size: clamp(2rem, 18cqi, 4rem); }
-		.player-card.compact .card-header,
-		.player-card.compact .footer { font-size: clamp(1rem, 9cqi, 2rem); }
-	}
-	@container player (min-width: 18rem) {
-		.player-card.compact .score { font-size: clamp(2.5rem, 16cqi, 5rem); }
-		.player-card.compact .card-header,
-		.player-card.compact .footer { font-size: clamp(1.25rem, 8cqi, 2.5rem); }
+		font-size: var(--font-card-header);
+		flex-shrink: 0;
 	}
 	@media (prefers-reduced-motion: reduce) {
 		.player-card { transition: none; }

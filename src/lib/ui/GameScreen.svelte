@@ -228,10 +228,38 @@
 		if (cmd === 'undo') undo();
 		else if (cmd === 'redo') redo();
 		else if (cmd === 'finish' && game.winner != null) finishGame();
-		else if (cmd === 'exit') exitGame();
-		showCommands = false;
-	}
-</script>
+			else if (cmd === 'exit') exitGame();
+			showCommands = false;
+		}
+
+		$effect(() => {
+			if (typeof window === 'undefined') return;
+			const log = () => {
+				const gs = document.querySelector('.game-screen');
+				const sb = document.querySelector('.scoreboard');
+				const slot = document.querySelector('.calculator-slot');
+				const calc = document.querySelector('.calculator');
+				const hs = document.querySelector('.history-strip, .history-empty');
+				const tb = document.querySelector('.game-toolbar');
+				const v = { w: window.innerWidth, h: window.innerHeight };
+				const sbH = sb?.getBoundingClientRect().height ?? 0;
+				const calcH = calc?.getBoundingClientRect().height ?? 0;
+				const ratio = calcH > 0 ? (sbH / calcH).toFixed(2) : 'n/a';
+				console.log('[layout]', v, {
+					gameScreen: gs?.getBoundingClientRect().height,
+					toolbar: tb?.getBoundingClientRect().height,
+					history: hs?.getBoundingClientRect().height,
+					scoreboard: sbH,
+					calculator: calcH,
+					ratio: `${sbH}:${calcH} = 1:${ratio}`,
+					goal12: `1:2 → sb ${Math.round(calcH/2)}px, 1.2:1 → sb ${Math.round(calcH*1.2)}px`
+				});
+			};
+			log();
+			const t = setTimeout(log, 500);
+			return () => clearTimeout(t);
+		});
+		</script>
 
 {#if game}
 	<div class="game-screen">
@@ -325,7 +353,7 @@
 <style>
 	.game-screen {
 		display: grid;
-		grid-template-rows: auto auto 1fr minmax(7rem, 8rem) auto;
+		grid-template-rows: auto 1fr 6rem auto;
 		gap: 0;
 		height: 100%;
 		min-height: 0;
@@ -354,12 +382,9 @@
 	.scoreboard {
 		display: grid;
 		grid-template-columns: 1fr;
-		grid-auto-rows: minmax(0, 1fr);
 		gap: var(--space-xs);
 		min-height: 0;
-		overflow: auto;
-		height: 100%;
-		align-self: stretch;
+		overflow: hidden;
 	}
 	.scoreboard.compact {
 		display: flex;
