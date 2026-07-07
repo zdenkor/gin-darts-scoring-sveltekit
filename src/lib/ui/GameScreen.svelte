@@ -339,6 +339,8 @@
 		min-height: 0;
 		overflow: hidden;
 		height: 100%;
+		min-height: 15rem;
+		align-self: stretch;
 	}
 	.scoreboard.compact {
 		display: flex;
