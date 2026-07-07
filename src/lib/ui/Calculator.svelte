@@ -163,7 +163,8 @@
 		flex-direction: column;
 		gap: var(--space-xs);
 		width: 100%;
-		height: 100%;
+		height: auto;
+		max-height: 100%;
 		max-width: 45rem;
 		margin-inline: auto;
 	}

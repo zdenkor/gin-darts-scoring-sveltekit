@@ -292,7 +292,7 @@
 <style>
 	.game-screen {
 		display: grid;
-		grid-template-rows: auto auto minmax(0, 55%) minmax(0, 45%);
+		grid-template-rows: auto auto 1fr auto auto;
 		gap: var(--space-xs);
 		height: 100%;
 		min-height: 0;
@@ -302,13 +302,10 @@
 		container-name: game-screen;
 	}
 	@container game-screen (min-height: 900px) {
-		.game-screen { gap: var(--space-sm); padding: var(--space-sm); grid-template-rows: auto auto minmax(0, 58%) minmax(0, 40%); }
-	}
-	@container game-screen (max-height: 620px) {
-		.game-screen { grid-template-rows: auto auto minmax(0, 50%) minmax(0, 50%); }
+		.game-screen { gap: var(--space-sm); padding: var(--space-sm); }
 	}
 	@container game-screen (max-height: 520px) {
-		.game-screen { gap: 2px; padding: 2px; grid-template-rows: auto auto minmax(0, 48%) minmax(0, 50%); }
+		.game-screen { gap: 2px; padding: 2px; }
 	}
 	:global(.game-screen > .history-strip),
 	:global(.game-screen > .history-empty) {
@@ -329,7 +326,6 @@
 		grid-template-columns: 1fr;
 		gap: var(--space-xs);
 		min-height: 0;
-		max-height: 40%;
 		overflow: hidden;
 	}
 	.scoreboard.compact {
@@ -359,7 +355,6 @@
 		scroll-snap-align: start;
 	}
 	@container game-screen (max-height: 560px) {
-		.scoreboard { gap: 2px; max-height: 35%; }
 		.scoreboard.compact { gap: 2px; }
 		.scoreboard.compact :global(.player-card) {
 			flex: 0 0 calc(50% - 1px);
