@@ -252,9 +252,13 @@ input:focus, select:focus {
 }
 
 /* ---------- Fullscreen: hide app chrome ---------- */
+.app-fullscreen .app-header,
+.app-fullscreen .app-footer {
+  display: none !important;
+}
 :fullscreen .app-header,
 :fullscreen .app-footer {
-  display: none;
+  display: none !important;
 }
 
 /* ---------- Accessibility: reduced motion ---------- */

@@ -44,13 +44,14 @@
 		padding: calc(var(--space-xs) * 0.5);
 		display: flex;
 		flex-direction: column;
-		gap: 0;
+		gap: var(--space-xs);
 		container-type: size;
 		container-name: player;
 		transition: border-color .15s ease;
 		min-height: 0;
 		overflow: hidden;
 		height: 100%;
+		justify-content: center;
 	}
 	.player-card.active {
 		border-color: var(--accent);
@@ -84,7 +85,7 @@
 		font-weight: 700;
 		text-align: center;
 		line-height: 1;
-		flex: 1 1 0;
+		flex: 0 0 auto;
 		min-height: 0;
 		display: flex;
 		align-items: center;

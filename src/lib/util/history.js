@@ -60,7 +60,10 @@ export async function clearGameHistory() {
 export function gameHistoryEntryFromState(state, opts = {}) {
 	const players = state.players.map(p => p.name);
 	const winner = state.winner != null ? players[state.winner] : null;
-	// Build rawDarts log from player histories for stats engine
+	// Build rawDarts log from player histories for stats engine.
+	// Engine stores { what, delta, scoreAfter }; we use delta for the
+	// thrown total (more reliable than parsing `what` for checkout /
+	// bull / triple formats) and detect busts from the `what` prefix.
 	const rawDarts = [];
 	let legStart = 0;
 	for (let legIdx = 0; legIdx < 100; legIdx++) {
@@ -70,9 +73,8 @@ export function gameHistoryEntryFromState(state, opts = {}) {
 			const entry = p.history?.[legIdx];
 			if (!entry) continue;
 			any = true;
-			const isBust = String(entry.what).startsWith('BUST');
-			const totalMatch = String(entry.what).match(/^(\d+)$/);
-			const total = isBust ? 0 : (totalMatch ? Number(totalMatch[1]) : 0);
+			const isBust = typeof entry.what === 'string' && entry.what.startsWith('BUST');
+			const total = isBust ? 0 : Math.abs(entry.delta ?? 0);
 			rawDarts.push({
 				by: p.name,
 				total,

@@ -101,6 +101,16 @@
 		past = [...past, before];
 		future = [];
 		await persist();
+		// Auto-record to history when the game ends.
+		if (game.winner != null && game.endedAt) {
+			try {
+				const entry = gameHistoryEntryFromState(game);
+				await recordGameHistory(entry);
+				await clearCurrentGame();
+			} catch (e) {
+				console.warn('auto-record game history failed', e);
+			}
+		}
 		scheduleBotIfNeeded();
 	}
 
@@ -292,7 +302,7 @@
 <style>
 	.game-screen {
 		display: grid;
-		grid-template-rows: auto auto minmax(15rem, 1fr) auto auto;
+		grid-template-rows: auto auto auto auto auto;
 		gap: var(--space-xs);
 		height: 100%;
 		min-height: 0;
@@ -325,7 +335,7 @@
 		min-height: 0;
 		overflow: hidden;
 		height: 100%;
-		min-height: 15rem;
+		min-height: 8rem;
 		align-self: stretch;
 	}
 	.scoreboard.compact {

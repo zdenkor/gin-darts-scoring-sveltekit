@@ -18,6 +18,7 @@
 
 	function syncFullscreen() {
 		isFullscreen = !!document.fullscreenElement;
+		document.documentElement.classList.toggle('app-fullscreen', isFullscreen);
 	}
 
 	async function toggleFullscreen() {
@@ -32,7 +33,10 @@
 	$effect(() => {
 		document.addEventListener('fullscreenchange', syncFullscreen);
 		syncFullscreen();
-		return () => document.removeEventListener('fullscreenchange', syncFullscreen);
+		return () => {
+			document.removeEventListener('fullscreenchange', syncFullscreen);
+			document.documentElement.classList.remove('app-fullscreen');
+		};
 	});
 </script>
 
