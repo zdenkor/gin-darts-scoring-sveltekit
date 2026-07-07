@@ -249,7 +249,7 @@
 	.calc-body {
 		display: grid;
 		grid-template-columns: 0.667fr 2fr 0.667fr;
-		grid-auto-rows: minmax(clamp(2.2rem, 5vh, 3.5rem), 1fr);
+		grid-auto-rows: minmax(clamp(1.8rem, 4vh, 2.6rem), 1fr);
 		gap: var(--space-xs);
 		min-height: 0;
 		overflow: hidden;
