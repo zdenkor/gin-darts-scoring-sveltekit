@@ -135,9 +135,9 @@
 		<div class="numpad">
 			{#each TILES as tile}
 				{#if tile === '↵'}
-					<button class="num-btn wide" type="submit" disabled={disabled}>{tile}</button>
+					<button class="num-btn" type="submit" disabled={disabled}>{tile}</button>
 				{:else}
-					<button class="num-btn" class:wide={tile === '⌫'} type="button" disabled={disabled} onclick={() => handleTile(tile)}>
+					<button class="num-btn" type="button" disabled={disabled} onclick={() => handleTile(tile)}>
 						{tile}
 					</button>
 				{/if}
@@ -222,24 +222,22 @@
 	}
 	.calc-body {
 		display: grid;
-		grid-template-columns: 1fr;
+		grid-template-columns: 1fr 2fr 1fr;
 		gap: var(--space-xs);
 		flex: 1 1 0;
 		min-height: 0;
 		overflow: hidden;
 	}
-	@container calculator (min-width: 26rem) {
-		.calc-body { grid-template-columns: auto 1fr auto; }
+	@container calculator (max-width: 26rem) {
+		.calc-body { grid-template-columns: 1fr; }
+		.fast-col { display: none; }
 	}
 	.fast-col {
-		display: none;
+		display: grid;
 		grid-template-columns: 1fr;
 		grid-template-rows: repeat(4, 1fr);
 		gap: var(--space-xs);
 		min-height: 0;
-	}
-	@container calculator (min-width: 26rem) {
-		.fast-col { display: grid; }
 	}
 	.fast-btn {
 		background: var(--surface);
@@ -250,16 +248,11 @@
 		font-size: var(--text-md);
 		cursor: pointer;
 		transition: background .1s ease;
-		min-width: 4.5rem;
+		min-width: 0;
+		width: 100%;
 		min-height: 0;
 		padding: var(--space-xs);
 		flex: 1;
-	}
-	@container calculator (min-width: 26rem) {
-		.fast-btn { min-width: 5.25rem; }
-	}
-	@container calculator (min-width: 35rem) {
-		.fast-btn { min-width: 6rem; }
 	}
 	.numpad {
 		display: grid;
