@@ -57,7 +57,9 @@ export async function recordGameResult(state) {
 		: score > prev;
 	if (isBetter) stats[type].best[name] = score;
 	try {
-		await put(STATS_STORE, { id: STATS_KEY, data: stats });
+		// JSON round-trip strips Svelte 5 $state proxies so IDB's
+		// structured clone doesn't trip on non-cloneable wrappers.
+		await put(STATS_STORE, { id: STATS_KEY, data: JSON.parse(JSON.stringify(stats)) });
 	} catch (e) {
 		console.warn('recordGameResult failed', e);
 	}
@@ -65,11 +67,14 @@ export async function recordGameResult(state) {
 
 export async function recordGameHistory(entry) {
 	try {
-		await put(STORE, {
+		// JSON round-trip strips Svelte 5 $state proxies so IDB's
+		// structured clone doesn't trip on non-cloneable wrappers.
+		const plain = JSON.parse(JSON.stringify({
 			id: entry.id || uuid(),
 			...entry,
 			recordedAt: Date.now()
-		});
+		}));
+		await put(STORE, plain);
 	} catch (e) {
 		console.warn('recordGameHistory failed', e);
 	}
