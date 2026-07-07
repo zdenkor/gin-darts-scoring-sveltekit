@@ -256,6 +256,10 @@ input:focus, select:focus {
 .app-fullscreen .app-footer {
   display: none !important;
 }
+.app-fullscreen .app-shell {
+  height: 100vh !important;
+  grid-template-rows: 1fr !important;
+}
 :fullscreen .app-header,
 :fullscreen .app-footer {
   display: none !important;

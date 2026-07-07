@@ -5,14 +5,26 @@
 	import fullScreenIcon from '$lib/assets/full-screen.svg?raw';
 	import fullScreenExitIcon from '$lib/assets/full-screen-exit.svg?raw';
 
-	/** @type {{setsToWin?: number, legsToWin?: number, gameMode?: string, onExit?: () => void, onFullscreen?: () => void}} */
+	/** @type {{setsToWin?: number, legsToWin?: number, gameMode?: string, inRule?: string, outRule?: string, onExit?: () => void, onFullscreen?: () => void}} */
 	let {
 		setsToWin = 1,
 		legsToWin = 1,
-		gameMode = 'X01',
+		gameMode = '501',
+		inRule = 'single',
+		outRule = 'single',
 		onExit = () => {},
 		onFullscreen = () => {}
 	} = $props();
+
+	// Rule labels shown only when not the default ("single" → hidden).
+	// In:  DI=double in, TI=triple in, MI=master in (double/bull)
+	// Out: DO=double out, TO=triple out, MO=master out (double/bull)
+	const IN_LABEL = { double: 'DI', triple: 'TI', master: 'MI' };
+	const OUT_LABEL = { double: 'DO', triple: 'TO', master: 'MO' };
+	const inTag = $derived(IN_LABEL[inRule] || '');
+	const outTag = $derived(OUT_LABEL[outRule] || '');
+	const gameLabel = $derived(`${gameMode}${outTag ? ' ' + outTag : ''}${inTag ? ' ' + inTag : ''}`);
+	const showSets = $derived(setsToWin > 1);
 
 	let isFullscreen = $state(false);
 
@@ -42,9 +54,11 @@
 
 <div class="game-toolbar">
 	<div class="meta">
-		<div><strong>Sets:</strong> {setsToWin}</div>
+		{#if showSets}
+			<div><strong>Sets:</strong> {setsToWin}</div>
+		{/if}
 		<div><strong>Legs:</strong> {legsToWin}</div>
-		<div><strong>Game:</strong> {gameMode}</div>
+		<div><strong>Game:</strong> {gameLabel}</div>
 	</div>
 	<div class="toolbar-actions">
 		<button class="icon-btn" type="button" title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'} aria-label={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'} onclick={toggleFullscreen}>

@@ -30,9 +30,6 @@
 	let past = $state(/** @type {any[]} */ ([]));
 	let future = $state(/** @type {any[]} */ ([]));
 
-	let botTimer = 0;
-	let lastBotIndex = -1;
-
 	async function init() {
 		let saved = null;
 		try {
@@ -89,27 +86,37 @@
 		game = deepClone(state);
 	}
 
+	let botTimer = null;
+	let lastBotIndex = -1;
+	let isCommitting = false;
+
 	async function commitTurn(total) {
 		if (!game || game.winner != null) return;
+		if (isCommitting) return; // prevent re-entry while a commit is in flight
+		isCommitting = true;
 		lastCommitError = '';
-		const before = snapshot();
-		const result = submitTurnTotal01(game, total);
-		if (result.events.some(e => e.type === 'bust')) {
-			lastCommitError = 'Bust!';
-		}
-		game = deepClone(result.state);
-		past = [...past, before];
-		future = [];
-		await persist();
-		// Auto-record to history when the game ends.
-		if (game.winner != null && game.endedAt) {
-			try {
-				const entry = gameHistoryEntryFromState(game);
-				await recordGameHistory(entry);
-				await clearCurrentGame();
-			} catch (e) {
-				console.warn('auto-record game history failed', e);
+		try {
+			const before = snapshot();
+			const result = submitTurnTotal01(game, total);
+			if (result.events.some(e => e.type === 'bust')) {
+				lastCommitError = 'Bust!';
 			}
+			game = deepClone(result.state);
+			past = [...past, before];
+			future = [];
+			await persist();
+			// Auto-record to history when the game ends.
+			if (game.winner != null && game.endedAt) {
+				try {
+					const entry = gameHistoryEntryFromState(game);
+					await recordGameHistory(entry);
+					await clearCurrentGame();
+				} catch (e) {
+					console.warn('auto-record game history failed', e);
+				}
+			}
+		} finally {
+			isCommitting = false;
 		}
 		scheduleBotIfNeeded();
 	}
@@ -121,8 +128,10 @@
 
 	function runBotTurn() {
 		if (!game || game.winner != null) return;
+		if (isCommitting) return;
 		const p = game.players[game.current];
 		if (!p?.isBot) return;
+		if (game.current === lastBotIndex) return; // already scheduled for this player
 		lastBotIndex = game.current;
 		const darts = playTurn(p.score, { in: game.opts?.in, out: game.opts?.out }, p.botLevel || 5);
 		const total = darts.reduce((s, d) => s + dartValue(d), 0);
@@ -130,7 +139,10 @@
 	}
 
 	function scheduleBotIfNeeded() {
-		if (botTimer) clearTimeout(botTimer);
+		if (botTimer) {
+			clearTimeout(botTimer);
+			botTimer = null;
+		}
 		if (!game || game.winner != null) return;
 		const idx = game.current;
 		if (game.players[idx]?.isBot && idx !== lastBotIndex) {
@@ -213,7 +225,7 @@
 
 {#if game}
 	<div class="game-screen">
-		<GameToolbar {setsToWin} {legsToWin} gameMode={`X01 ${start}`} onExit={exitGame} />
+		<GameToolbar {setsToWin} {legsToWin} {inRule} {outRule} gameMode={String(start)} onExit={exitGame} />
 
 		<HistoryStrip players={game.players} />
 
@@ -380,6 +392,7 @@
 		min-height: 0;
 		max-height: min(55cqh, 24rem);
 		overflow: hidden;
+		align-self: end;
 	}
 	@media (orientation: landscape) and (max-height: 500px) {
 		:global(.game-screen) {

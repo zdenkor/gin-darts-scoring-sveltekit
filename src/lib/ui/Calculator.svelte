@@ -118,31 +118,35 @@
 	</div>
 
 	<div class="actions">
-		<button class="action-btn" type="button" disabled={!canUndo || disabled} onclick={() => onUndo?.()}>↶</button>
-		<button class="action-btn" type="button" disabled={!canRedo || disabled} onclick={() => onRedo?.()}>↷</button>
-		<button class="action-btn primary" type="submit" disabled={disabled}>＝</button>
-		<button class="action-btn" type="button" disabled={disabled} onclick={reset}>00</button>
-		<button class="action-btn" type="button" onclick={() => onMore?.()} aria-label="More commands">⋯</button>
-	</div>
-
-	<div class="calc-body">
-		<div class="fast-col left">
-			{#each LEFT_FAST as score}
-				<button class="fast-btn" type="button" disabled={disabled} onclick={() => fastScore(score)}>{score}</button>
-			{/each}
+			<button class="action-btn" type="button" disabled={!canUndo || disabled} onclick={() => onUndo?.()}>↶</button>
+			<button class="action-btn" type="button" disabled={!canRedo || disabled} onclick={() => onRedo?.()}>↷</button>
+			<button class="action-btn" type="submit" disabled={disabled}>＝</button>
+			<button class="action-btn" type="button" disabled={disabled} onclick={reset}>00</button>
+			<button class="action-btn" type="button" onclick={() => onMore?.()} aria-label="More commands">⋯</button>
 		</div>
 
-		<div class="numpad">
-			{#each TILES as tile}
-				{#if tile === '↵'}
-					<button class="num-btn" type="submit" disabled={disabled}>{tile}</button>
-				{:else}
-					<button class="num-btn" type="button" disabled={disabled} onclick={() => handleTile(tile)}>
-						{tile}
-					</button>
-				{/if}
-			{/each}
-		</div>
+		<div class="calc-body">
+			<div class="fast-col left">
+				{#each LEFT_FAST as score}
+					<button class="fast-btn" type="button" disabled={disabled} onclick={() => fastScore(score)}>{score}</button>
+				{/each}
+			</div>
+
+			<div class="numpad">
+				{#each TILES as tile}
+					{#if tile === '↵'}
+						<button class="num-btn primary" type="submit" disabled={disabled}>{tile}</button>
+					{:else if tile === '⌫'}
+						<button class="num-btn danger" type="button" disabled={disabled} onclick={() => handleTile(tile)}>
+							{tile}
+						</button>
+					{:else}
+						<button class="num-btn" type="button" disabled={disabled} onclick={() => handleTile(tile)}>
+							{tile}
+						</button>
+					{/if}
+				{/each}
+			</div>
 
 		<div class="fast-col right">
 			{#each RIGHT_FAST as score}
@@ -165,7 +169,7 @@
 		width: 100%;
 		height: auto;
 		max-height: 100%;
-		min-height: clamp(15rem, 35vh, 24rem);
+		min-height: 0;
 		max-width: clamp(40rem, 60vw, 80rem);
 		margin-inline: auto;
 	}
@@ -211,12 +215,10 @@
 		flex: 1;
 	}
 	.action-btn.primary {
-		background: var(--accent);
-		border-color: var(--accent);
-		color: #062018;
+		/* Equals = tlačidlo nie je primárne akcia (primárne je Enter) */
 	}
 	.action-btn.primary:hover {
-		background: #2cd49a;
+		/* no-op */
 	}
 	.action-btn:disabled {
 		opacity: 0.35;
@@ -286,6 +288,22 @@
 	}
 	.num-btn:active, .fast-btn:active {
 		transform: translateY(1px);
+	}
+	.num-btn.primary {
+		background: var(--accent);
+		border-color: var(--accent);
+		color: #062018;
+	}
+	.num-btn.primary:hover {
+		background: #2cd49a;
+	}
+	.num-btn.danger {
+		background: var(--danger);
+		border-color: var(--danger);
+		color: #2a070c;
+	}
+	.num-btn.danger:hover {
+		background: #ff6b80;
 	}
 	.num-btn.wide {
 		grid-column: span 2;
