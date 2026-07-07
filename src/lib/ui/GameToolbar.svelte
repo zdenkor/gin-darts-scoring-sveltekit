@@ -2,6 +2,8 @@
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { page } from '$app/stores';
+	import fullScreenIcon from '$lib/assets/full-screen.svg?raw';
+	import fullScreenExitIcon from '$lib/assets/full-screen-exit.svg?raw';
 
 	/** @type {{setsToWin?: number, legsToWin?: number, gameMode?: string, onExit?: () => void, onFullscreen?: () => void}} */
 	let {
@@ -12,13 +14,26 @@
 		onFullscreen = () => {}
 	} = $props();
 
+	let isFullscreen = $state(false);
+
+	function syncFullscreen() {
+		isFullscreen = !!document.fullscreenElement;
+	}
+
 	async function toggleFullscreen() {
 		if (!document.fullscreenElement) {
 			try { await document.documentElement.requestFullscreen(); } catch {}
 		} else {
 			try { await document.exitFullscreen(); } catch {}
 		}
+		syncFullscreen();
 	}
+
+	$effect(() => {
+		document.addEventListener('fullscreenchange', syncFullscreen);
+		syncFullscreen();
+		return () => document.removeEventListener('fullscreenchange', syncFullscreen);
+	});
 </script>
 
 <div class="game-toolbar">
@@ -28,10 +43,8 @@
 		<div><strong>Game:</strong> {gameMode}</div>
 	</div>
 	<div class="toolbar-actions">
-		<button class="icon-btn" type="button" title="Fullscreen" aria-label="Fullscreen" onclick={toggleFullscreen}>
-			<svg viewBox="0 0 24 24" aria-hidden="true">
-				<path fill="currentColor" d="M5 5h6v2H7v4H5V5zm8 0h6v6h-2V7h-4V5zM5 13h2v4h4v2H5v-6zm12 0h6v6h-6v-2h4v-4h-4z"/>
-			</svg>
+		<button class="icon-btn" type="button" title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'} aria-label={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'} onclick={toggleFullscreen}>
+			<span class="icon-svg">{@html isFullscreen ? fullScreenExitIcon : fullScreenIcon}</span>
 		</button>
 		<button class="icon-btn danger" type="button" title="Turn off / Exit game" aria-label="Turn off / Exit game" onclick={onExit}>
 			<svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
@@ -85,6 +98,8 @@
 		height: 80%;
 		display: block;
 	}
+	.icon-svg { display: inline-flex; align-items: center; justify-content: center; width: 80%; height: 80%; color: inherit; }
+	.icon-svg :global(svg) { width: 100%; height: 100%; display: block; color: inherit; }
 	.icon-btn.danger {
 		color: var(--danger);
 		background: transparent;
