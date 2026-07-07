@@ -21,6 +21,15 @@
 		Math.max(0, ...players.map(p => p.history?.length || 0))
 	);
 	const rounds = $derived(Array.from({ length: maxRounds }, (_, i) => i + 1));
+	let stripRef = $state(/** @type {HTMLDivElement|null} */ (null));
+
+	// Auto-scroll to the bottom so the most recent throws are
+	// visible without the user having to scroll manually.
+	$effect(() => {
+		if (stripRef && rounds.length) {
+			stripRef.scrollTop = stripRef.scrollHeight;
+		}
+	});
 
 	function normalize(entry) {
 		if (!entry) return null;
@@ -57,7 +66,7 @@
 </script>
 
 {#if maxRounds > 0}
-	<div class="history-strip">
+	<div class="history-strip" bind:this={stripRef}>
 		<div class="history-header">
 			<span class="thrown">Scored</span>
 			<span class="remain">To go</span>
@@ -71,21 +80,21 @@
 			<div class="history-row" class:active={round === maxRounds}>
 				{#if players.length >= 1}
 					{@const e1 = entryFor(0, round)}
-					<span class="thrown" class:empty={!e1?.threw} class:bust={e1?.bust}>
+					<span class="thrown" class:empty={!e1?.threw}>
 						{e1 && e1.threw ? e1.thrown : ''}
 					</span>
-					<span class="remain" class:empty={!e1?.threw} class:bust={e1?.bust}>
-						{e1 ? (e1.bust && e1.threw ? 'BUST' : e1.remain) : ''}
+					<span class="remain" class:empty={!e1?.threw}>
+						{e1 ? e1.remain : ''}
 					</span>
 				{/if}
 				<span class="dart">{round * 3}</span>
 				{#if players.length >= 2}
 					{@const e2 = entryFor(1, round)}
-					<span class="thrown" class:empty={!e2?.threw} class:bust={e2?.bust}>
+					<span class="thrown" class:empty={!e2?.threw}>
 						{e2 && e2.threw ? e2.thrown : ''}
 					</span>
-					<span class="remain" class:empty={!e2?.threw} class:bust={e2?.bust}>
-						{e2 ? (e2.bust && e2.threw ? 'BUST' : e2.remain) : ''}
+					<span class="remain" class:empty={!e2?.threw}>
+						{e2 ? e2.remain : ''}
 					</span>
 				{/if}
 			</div>

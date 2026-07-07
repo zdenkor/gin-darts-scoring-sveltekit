@@ -15,6 +15,18 @@
 	let selectedScope = $state('all-time');
 	let stats = $state(null);
 
+	// Busts aren't returned by computeStats — derive them from the
+	// rawDarts event log so the UI can show the count per player.
+	const busts = $derived.by(() => {
+		const out = {};
+		for (const g of history) {
+			for (const ev of g.rawDarts || []) {
+				if (ev.bust && ev.by) out[ev.by] = (out[ev.by] || 0) + 1;
+			}
+		}
+		return out;
+	});
+
 	const scopes = [
 		{ id: 'all-time', label: 'All time' },
 		{ id: 'standalone', label: 'Standalone matches' },
@@ -44,6 +56,14 @@
 
 	function formatAvg(n) {
 		return fmt(n, { decimals: 2 });
+	}
+
+	function pct(n) {
+		return n != null ? `${fmt(n, { decimals: 1 })}%` : '—';
+	}
+
+	function intOrDash(n) {
+		return n ? fmt(n, { integer: true }) : '–';
 	}
 
 	function scopeList() {
@@ -104,7 +124,7 @@
 
 			{#if stats}
 				<div class="stats-grid">
-					<div class="stat">
+					<div class="stat highlight">
 						<span class="stat-value">{stats.games}</span>
 						<span class="stat-label">Games</span>
 					</div>
@@ -112,59 +132,71 @@
 						<span class="stat-value">{stats.matchesWon}</span>
 						<span class="stat-label">Matches won</span>
 					</div>
-					<div class="stat highlight">
-						<span class="stat-value">{formatAvg(stats.average)}</span>
-						<span class="stat-label">Average</span>
+				</div>
+
+				<div class="stat-section">
+					<h3>Averages</h3>
+					<div class="stats-grid">
+						<div class="stat"><span class="stat-value">{formatAvg(stats.average)}</span><span class="stat-label">Average</span></div>
+						<div class="stat"><span class="stat-value">{formatAvg(stats.first3Average)}</span><span class="stat-label">First 3</span></div>
+						<div class="stat"><span class="stat-value">{formatAvg(stats.first9Average)}</span><span class="stat-label">First 9</span></div>
+						<div class="stat"><span class="stat-value">{formatAvg(stats.withThrowAverage)}</span><span class="stat-label">With throw</span></div>
+						<div class="stat"><span class="stat-value">{formatAvg(stats.againstThrowAverage)}</span><span class="stat-label">Against throw</span></div>
+						<div class="stat"><span class="stat-value">{formatAvg(stats.maxAverage)}</span><span class="stat-label">Max average</span></div>
 					</div>
-					<div class="stat">
-						<span class="stat-value">{formatAvg(stats.first9Average)}</span>
-						<span class="stat-label">First 9</span>
+				</div>
+
+				<div class="stat-section">
+					<h3>High turns</h3>
+					<div class="stats-grid">
+						<div class="stat"><span class="stat-value">{fmt(stats.count180, { integer: true })}</span><span class="stat-label">180s</span></div>
+						<div class="stat"><span class="stat-value">{fmt(stats.count171, { integer: true })}</span><span class="stat-label">171s</span></div>
+						<div class="stat"><span class="stat-value">{fmt(stats.count170Plus, { integer: true })}</span><span class="stat-label">170+</span></div>
+						<div class="stat"><span class="stat-value">{fmt(stats.count140Plus, { integer: true })}</span><span class="stat-label">140+</span></div>
+						<div class="stat"><span class="stat-value">{fmt(stats.count100Plus, { integer: true })}</span><span class="stat-label">100+</span></div>
 					</div>
-					<div class="stat">
-						<span class="stat-value">{stats.count100Plus}</span>
-						<span class="stat-label">100+</span>
+				</div>
+
+				<div class="stat-section">
+					<h3>Checkouts</h3>
+					<div class="stats-grid">
+						<div class="stat highlight"><span class="stat-value">{intOrDash(stats.highestCheckout)}</span><span class="stat-label">Highest checkout</span></div>
+						<div class="stat"><span class="stat-value">{fmt(stats.checkout100Plus, { integer: true })}</span><span class="stat-label">Checkout 100+</span></div>
+						<div class="stat"><span class="stat-value">{pct(stats.legsWonCheckoutPcnt)}</span><span class="stat-label">Checkout %</span></div>
 					</div>
-					<div class="stat">
-						<span class="stat-value">{stats.count140Plus}</span>
-						<span class="stat-label">140+</span>
-					</div>
-					<div class="stat">
-						<span class="stat-value">{stats.count180}</span>
-						<span class="stat-label">180s</span>
-					</div>
-					<div class="stat">
-						<span class="stat-value">{stats.highestCheckout}</span>
-						<span class="stat-label">Highest checkout</span>
-					</div>
-					<div class="stat">
-						<span class="stat-value">{stats.legsWon}/{stats.legsPlayed}</span>
-						<span class="stat-label">Legs won/played</span>
-					</div>
-					<div class="stat">
-						<span class="stat-value">{stats.bestLegDarts || '–'}</span>
-						<span class="stat-label">Best leg (darts)</span>
+				</div>
+
+				<div class="stat-section">
+					<h3>Legs</h3>
+					<div class="stats-grid">
+						<div class="stat"><span class="stat-value">{fmt(stats.legsWon, { integer: true })}</span><span class="stat-label">Legs won</span></div>
+						<div class="stat"><span class="stat-value">{fmt(stats.legsPlayed, { integer: true })}</span><span class="stat-label">Legs played</span></div>
+						<div class="stat"><span class="stat-value">{pct(stats.legsWonPcnt)}</span><span class="stat-label">Legs won %</span></div>
+						<div class="stat"><span class="stat-value">{intOrDash(stats.bestLegDarts)}</span><span class="stat-label">Best leg (darts)</span></div>
+						<div class="stat"><span class="stat-value">{fmt(stats.legsTo9, { integer: true })}</span><span class="stat-label">Legs to 9</span></div>
+						<div class="stat"><span class="stat-value">{fmt(stats.legsTo12, { integer: true })}</span><span class="stat-label">Legs to 12</span></div>
+						<div class="stat"><span class="stat-value">{fmt(stats.legsTo15, { integer: true })}</span><span class="stat-label">Legs to 15</span></div>
+						<div class="stat"><span class="stat-value">{fmt(stats.legsTo18, { integer: true })}</span><span class="stat-label">Legs to 18</span></div>
+						<div class="stat"><span class="stat-value">{fmt(stats.legsTo21, { integer: true })}</span><span class="stat-label">Legs to 21</span></div>
 					</div>
 				</div>
 
 				<div class="stat-section">
 					<h3>Throwing order</h3>
-					<div class="stats-grid small">
-						<div class="stat">
-							<span class="stat-value">{formatAvg(stats.withThrowAverage)}</span>
-							<span class="stat-label">With throw</span>
-						</div>
-						<div class="stat">
-							<span class="stat-value">{formatAvg(stats.againstThrowAverage)}</span>
-							<span class="stat-label">Against throw</span>
-						</div>
-						<div class="stat">
-							<span class="stat-value">{fmt(stats.legsWonFirstPcnt, { decimals: 1 })}%</span>
-							<span class="stat-label">Won throwing first</span>
-						</div>
-						<div class="stat">
-							<span class="stat-value">{fmt(stats.legsWonSecondPcnt, { decimals: 1 })}%</span>
-							<span class="stat-label">Won throwing second</span>
-						</div>
+					<div class="stats-grid">
+						<div class="stat"><span class="stat-value">{fmt(stats.legsThrowingFirst, { integer: true })}</span><span class="stat-label">Legs throwing first</span></div>
+						<div class="stat"><span class="stat-value">{fmt(stats.legsThrowingSecond, { integer: true })}</span><span class="stat-label">Legs throwing second</span></div>
+						<div class="stat"><span class="stat-value">{pct(stats.legsWonFirstPcnt)}</span><span class="stat-label">% Won throwing first</span></div>
+						<div class="stat"><span class="stat-value">{pct(stats.legsWonSecondPcnt)}</span><span class="stat-label">% Won throwing second</span></div>
+					</div>
+				</div>
+
+				<div class="stat-section">
+					<h3>Totals</h3>
+					<div class="stats-grid">
+						<div class="stat"><span class="stat-value">{fmt(stats.numberOfDarts, { integer: true })}</span><span class="stat-label">Number of darts</span></div>
+						<div class="stat"><span class="stat-value">{fmt(stats.totalPoints, { integer: true })}</span><span class="stat-label">Total points</span></div>
+						<div class="stat"><span class="stat-value">{fmt(busts[selectedPlayer] || 0, { integer: true })}</span><span class="stat-label">Busts</span></div>
 					</div>
 				</div>
 			{/if}
