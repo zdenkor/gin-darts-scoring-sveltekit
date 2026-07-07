@@ -159,7 +159,7 @@
 	async function doExitDiscard() {
 		showExitModal = false;
 		try { await clearCurrentGame(); } catch {}
-		window.location.href = `${base}/`;
+		goto(`${base}/`);
 	}
 
 	async function doExitSaveProgress() {
@@ -167,7 +167,7 @@
 		if (game && !game.endedAt) {
 			try { await saveCurrentGame(game); } catch {}
 		}
-		window.location.href = `${base}/`;
+		goto(`${base}/`);
 	}
 
 	async function doExitSaveAndExit() {
@@ -177,7 +177,7 @@
 			try { await recordGameHistory(entry); } catch {}
 			try { await clearCurrentGame(); } catch {}
 		}
-		window.location.href = `${base}/`;
+		goto(`${base}/`);
 	}
 
 	function cancelExit() {
