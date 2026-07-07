@@ -401,7 +401,7 @@
 	}
 	.calculator-slot {
 		min-height: 0;
-		max-height: min(70cqh, 30rem);
+		max-height: 100%;
 		overflow: hidden;
 	}
 	@media (orientation: landscape) and (max-height: 500px) {
