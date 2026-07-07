@@ -325,7 +325,7 @@
 <style>
 	.game-screen {
 		display: grid;
-		grid-template-rows: auto auto 1fr auto auto;
+		grid-template-rows: auto auto 1fr minmax(7rem, 8rem) auto;
 		gap: 0;
 		height: 100%;
 		min-height: 0;
@@ -354,14 +354,12 @@
 	.scoreboard {
 		display: grid;
 		grid-template-columns: 1fr;
-		grid-auto-rows: 1fr;
+		grid-auto-rows: minmax(0, 1fr);
 		gap: var(--space-xs);
 		min-height: 0;
 		overflow: auto;
 		height: 100%;
 		align-self: stretch;
-		flex-shrink: 1;
-		min-height: 5rem;
 	}
 	.scoreboard.compact {
 		display: flex;

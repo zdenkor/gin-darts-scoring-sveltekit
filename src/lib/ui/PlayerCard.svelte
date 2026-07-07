@@ -50,7 +50,6 @@
 		transition: border-color .15s ease;
 		min-height: 0;
 		overflow: hidden;
-		height: 100%;
 		justify-content: center;
 	}
 	.player-card.active {
@@ -81,7 +80,7 @@
 		flex: 0 0 auto;
 	}
 	.score {
-		font-size: clamp(2rem, 12cqi, 4rem);
+		font-size: clamp(2rem, 10cqi, 3.5rem);
 		font-weight: 700;
 		text-align: center;
 		line-height: 1;
@@ -109,12 +108,12 @@
 		color: var(--accent);
 	}
 	@container player (min-width: 20rem) {
-		.score { font-size: clamp(2.5rem, 14cqi, 5rem); }
-		.card-header, .footer { font-size: clamp(1.25rem, 7cqi, 2.5rem); }
+		.score { font-size: clamp(2.25rem, 12cqi, 3.5rem); }
+		.card-header, .footer { font-size: clamp(1.1rem, 6cqi, 2rem); }
 	}
 	@container player (min-width: 35rem) {
-		.score { font-size: clamp(3rem, 12cqi, 6rem); }
-		.card-header, .footer { font-size: clamp(1.5rem, 6cqi, 3rem); }
+		.score { font-size: clamp(2.5rem, 10cqi, 4rem); }
+		.card-header, .footer { font-size: clamp(1.25rem, 6cqi, 2.25rem); }
 	}
 	@container player (max-height: 8rem) {
 		.score { font-size: clamp(1.5rem, 8cqi, 2.5rem); }
@@ -149,14 +148,6 @@
 		.player-card.compact .score { font-size: clamp(2.5rem, 16cqi, 5rem); }
 		.player-card.compact .card-header,
 		.player-card.compact .footer { font-size: clamp(1.25rem, 8cqi, 2.5rem); }
-	}
-	@container player (min-height: 14rem) {
-		.score { font-size: clamp(2.5rem, 14cqi, 5.5rem); }
-		.card-header, .footer { font-size: clamp(1.25rem, 7cqi, 2.75rem); }
-	}
-	@container player (min-height: 20rem) {
-		.score { font-size: clamp(3rem, 16cqi, 7rem); }
-		.card-header, .footer { font-size: clamp(1.5rem, 8cqi, 3.5rem); }
 	}
 	@media (prefers-reduced-motion: reduce) {
 		.player-card { transition: none; }

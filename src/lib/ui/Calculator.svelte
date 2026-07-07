@@ -138,10 +138,11 @@
 
 <svelte:window onkeydown={onKeyDown} />
 
-<form bind:this={formRef} class="calculator" role="group" aria-label="Score entry" onclick={handleClick} onsubmit={(e) => { e.preventDefault(); commitEquals(); }}>
-	<div class="calc-display">
-		<span class="calc-entered">{buffer}</span>
-	</div>
+<div class="calculator-wrap" onclick={handleClick}>
+	<form bind:this={formRef} class="calculator" role="group" aria-label="Score entry" onsubmit={(e) => { e.preventDefault(); commitEquals(); }}>
+		<div class="calc-display">
+			<span class="calc-entered">{buffer}</span>
+		</div>
 
 	<div class="actions">
 		<button class="action-btn" type="button" disabled={!canUndo || disabled}>↶</button>
@@ -177,8 +178,14 @@
 		</div>
 	</div>
 </form>
+</div>
 
 <style>
+	.calculator-wrap {
+		width: 100%;
+		max-width: clamp(40rem, 60vw, 80rem);
+		margin-inline: auto;
+	}
 	.calculator {
 		container-type: inline-size;
 		container-name: calculator;
@@ -192,8 +199,6 @@
 		height: auto;
 		max-height: 100%;
 		min-height: 0;
-		max-width: clamp(40rem, 60vw, 80rem);
-		margin-inline: auto;
 	}
 	.calc-display {
 		background: var(--bg);
@@ -235,12 +240,6 @@
 		min-height: clamp(2.6rem, 5vh, 3.5rem);
 		min-width: 0;
 		flex: 1;
-	}
-	.action-btn.primary {
-		/* Equals = tlačidlo nie je primárne akcia (primárne je Enter) */
-	}
-	.action-btn.primary:hover {
-		/* no-op */
 	}
 	.action-btn:disabled {
 		opacity: 0.35;
@@ -322,9 +321,6 @@
 	}
 	.num-btn.danger:hover {
 		background: #ff6b80;
-	}
-	.num-btn.wide {
-		grid-column: span 2;
 	}
 	.num-btn:disabled, .fast-btn:disabled {
 		opacity: 0.35;
