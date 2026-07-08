@@ -215,94 +215,111 @@
 	</div>
 </div>
 <style>
-	.setup-screen h1 {
-		margin: 0 0 var(--space-md);
-		font-size: var(--text-xl);
-	}
 	.setup-screen {
-		padding: clamp(1rem, 4cqi, 2rem);
+		container-type: inline-size;
+		container-name: setup;
+		padding: clamp(0.75rem, 4cqi, 2rem);
 		padding-bottom: clamp(2rem, 8cqi, 4rem);
 		box-sizing: border-box;
 		width: 100%;
 		max-width: 100%;
 	}
+	.setup-screen h1 {
+		margin: 0 0 var(--space-md);
+		font-size: clamp(1.5rem, 4cqi, 4rem);
+	}
 	.setup-screen :global(.card) {
-		padding: var(--space-lg);
+		padding: clamp(0.75rem, 3cqi, 2rem);
 		padding-bottom: clamp(2rem, 6cqi, 3rem);
 	}
 	.setup-screen h2 {
 		margin: 0 0 var(--space-sm);
-		font-size: var(--text-lg);
+		font-size: clamp(1rem, 2.5cqi, 2rem);
 		color: var(--muted);
 	}
 	.section {
-		margin-bottom: var(--space-lg);
+		margin-bottom: clamp(0.75rem, 3cqi, 2rem);
 	}
 	.player-row {
 		display: flex;
 		align-items: center;
-		gap: var(--space-sm);
-		margin-bottom: var(--space-sm);
+		gap: clamp(0.4rem, 1.5cqi, 1rem);
+		margin-bottom: clamp(0.4rem, 1.5cqi, 1rem);
+		flex-wrap: wrap;
 	}
 	.player-row.bot-row {
 		background: color-mix(in srgb, var(--accent) 10%, transparent);
 		border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
 		border-radius: var(--radius);
-		padding: var(--space-xs);
+		padding: clamp(0.3rem, 1cqi, 0.6rem);
 	}
 	.player-num {
 		font-weight: 700;
 		color: var(--accent);
 		min-width: 2em;
+		font-size: clamp(1rem, 2cqi, 1.5rem);
 	}
 	.player-row input {
-		flex: 1;
+		flex: 1 1 8em;
+		min-width: 0;
+		font-size: clamp(0.9rem, 1.8cqi, 1.4rem);
+		padding: clamp(0.4rem, 1.2cqi, 0.8rem);
 	}
 	.bot-level-select {
-		flex: 1;
+		flex: 1 1 8em;
+		min-width: 0;
+		font-size: clamp(0.9rem, 1.8cqi, 1.4rem);
+		padding: clamp(0.4rem, 1.2cqi, 0.8rem);
 	}
 	.add-btn {
 		width: 100%;
+		font-size: clamp(0.9rem, 1.8cqi, 1.4rem);
 	}
 	.option-row {
 		display: flex;
 		flex-wrap: wrap;
-		gap: var(--space-sm);
+		gap: clamp(0.4rem, 1.5cqi, 1rem);
 	}
 	.kind-option {
 		flex: 1 1 80px;
+		font-size: clamp(0.95rem, 2cqi, 1.6rem);
+		padding: clamp(0.5rem, 1.5cqi, 1rem);
 	}
 	.field-row {
 		display: grid;
 		grid-template-columns: 1fr 1fr;
-		gap: var(--space-md);
+		gap: clamp(0.5rem, 2cqi, 1.5rem);
+	}
+	.field label {
+		font-size: clamp(0.85rem, 1.6cqi, 1.2rem);
+	}
+	.field select,
+	.field input {
+		font-size: clamp(0.95rem, 1.8cqi, 1.4rem);
+		padding: clamp(0.4rem, 1.2cqi, 0.8rem);
 	}
 	.actions {
 		display: flex;
 		justify-content: flex-end;
-		gap: var(--space-md);
-		margin-top: var(--space-lg);
+		gap: clamp(0.5rem, 2cqi, 1.5rem);
+		margin-top: clamp(1rem, 4cqi, 2.5rem);
 	}
-	.actions a { text-decoration: none; }
-@container app (max-width: 400px) {
-	.field-row { grid-template-columns: 1fr; }
-	.actions { flex-direction: column; }
-}
-@media (min-width: 80rem) {
-	.setup-screen h1 { font-size: clamp(2rem, 3vw, 3rem); }
-	.setup-screen h2 { font-size: var(--text-xl); }
-	.player-row { gap: var(--space-md); }
-	.option-row { gap: var(--space-md); }
-	.actions { gap: var(--space-lg); }
-}
-@media (min-width: 120rem) {
-	.setup-screen h1 { font-size: clamp(2.5rem, 3.5vw, 4rem); }
-}
-@media (orientation: landscape) and (max-height: 500px) {
-	.setup-screen h1 { font-size: var(--text-lg); margin-bottom: var(--space-sm); }
-	.section { margin-bottom: var(--space-md); }
-	.player-row { margin-bottom: var(--space-xs); }
-}
+	.actions a, .actions .btn {
+		font-size: clamp(0.95rem, 2cqi, 1.6rem);
+		padding: clamp(0.6rem, 1.8cqi, 1.2rem);
+		text-decoration: none;
+	}
+	@container setup (max-width: 28rem) {
+		.field-row { grid-template-columns: 1fr; }
+		.actions { flex-direction: column; }
+		.player-row { flex-direction: column; align-items: stretch; }
+		.player-row input,
+		.bot-level-select { width: 100%; }
+		.bot-toggle-btn { width: 100%; }
+	}
+	@container setup (min-width: 60rem) {
+		.field-row { grid-template-columns: 1fr 1fr 1fr; }
+	}
 
 /* Dartbot on/off toggle. aria-pressed carries the binary state
    to assistive tech; the visible colour flips via .active.
