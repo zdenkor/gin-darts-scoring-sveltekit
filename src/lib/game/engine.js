@@ -512,6 +512,23 @@ export function submitTurnTotal01(state, total) {
   if (wouldBust) {
     events.push({ type: 'bust', total: pts, scoreAfter: startScore });
     player.history.push({ what: `BUST (${pts})`, delta: 0, scoreAfter: startScore });
+    // If the original target was closable, the player COULD have
+    // aimed at the close-out before busting. Emit a
+    // checkout-attempt event so the UI asks how many of the 3
+    // darts were aimed there (0..max). The helper returns max=0
+    // for unclosable targets, so the modal stays hidden there.
+    const bustMax = maxCheckoutAttemptsForX01(startScore, pts, inOut, false);
+    if (bustMax > 0) {
+      events.push({
+        type: 'checkout-attempt',
+        playerIndex: state.current,
+        max: bustMax,
+        target: startScore,
+        total: pts,
+        isLegWin: false,
+        isBot: !!player.isBot,
+      });
+    }
     state.turnDarts = [];
     state.current = advanceTurn(state);
     return { state, events, applied: 0, bust: true, darts: 3 };
@@ -983,15 +1000,20 @@ export function maxCheckoutAttemptsForX01(target, total, inOut, isLegWin = false
       if (C2 <= 100 && !UNCLOSABLE_2_3_DO.has(C2)) return 2;
       return 1;
     }
-    if (B2 > 170 || UNCLOSABLE_DO_3DART.has(B2) || B2 === 1 || D2 < 0 || D2 === 1) return 0;
+    // Non-leg-win. max = how many darts the player could have
+    // aimed at the close-out this turn. For 1-dart targets (50,
+    // 40, ...) the player had all 3 darts available to throw at
+    // the close (max=3). For 2-dart targets (60, 100, ...) only 2
+    // of the 3 darts can be aimed at the close (the first dart
+    // must be setup) — so max=2. For 3-dart targets (170, 160,
+    // ...) only the last dart can be aimed at the close (the
+    // first two must be setup) — so max=1. Unclosable targets
+    // (1, 159, 162, 163, 165, 166, 168, 169, anything > 170,
+    // D2=1) return 0.
+    if (B2 > 170 || UNCLOSABLE_DO_3DART.has(B2) || B2 === 1) return 0;
     if (isOneDartDO(B2)) return 3;
-    if (B2 <= 100 && !UNCLOSABLE_2_3_DO.has(B2)) {
-      if (C2 >= (B2 - 40)) return 2;
-      if (C2 >= (B2 - 50)) return 1;
-      return 0;
-    }
-    if (C2 >= (B2 - 40)) return 1;
-    return 0;
+    if (B2 <= 100 && !UNCLOSABLE_2_3_DO.has(B2)) return 2;
+    return 1; // 3-dart DO closer (B2 in 101..170 minus the unclosable set)
   }
 
   if (out === 'master') {
@@ -1000,14 +1022,10 @@ export function maxCheckoutAttemptsForX01(target, total, inOut, isLegWin = false
       if (C2 <= 120) return 2;
       return 1;
     }
-    if (B2 > 180 || D2 < 0 || D2 === 1) return 0;
+    if (B2 > 180 || B2 === 1) return 0;
     if (isOneDartMO(B2)) return 3;
-    if (B2 <= 120) {
-      if (C2 >= (B2 - 60)) return 2;
-      return 0;
-    }
-    if (C2 >= (B2 - 60)) return 1;
-    return 0;
+    if (B2 <= 120) return 2;
+    return 1; // 3-dart MO closer (B2 in 121..180)
   }
 
   if (out === 'single') {
@@ -1016,14 +1034,10 @@ export function maxCheckoutAttemptsForX01(target, total, inOut, isLegWin = false
       if (C2 <= 120) return 2;
       return 1;
     }
-    if (B2 > 180 || D2 < 0) return 0;
+    if (B2 > 180) return 0;
     if (B2 <= 60) return 3;
-    if (B2 <= 120) {
-      if (C2 >= (B2 - 60)) return 2;
-      return 0;
-    }
-    if (C2 >= (B2 - 60)) return 1;
-    return 0;
+    if (B2 <= 120) return 2;
+    return 1; // 3-dart SO closer (B2 in 121..180)
   }
 
   // out=triple (TO) — 1-dart finisher = T1..T20 (3, 6, ..., 60)
@@ -1036,30 +1050,10 @@ export function maxCheckoutAttemptsForX01(target, total, inOut, isLegWin = false
       if (C2 <= 120) return 2;
       return 1;
     }
-    // Non-leg-win guards: target out of range, bust, or remaining
-    // too small for any TO finish (1 and 2 can't be closed even
-    // with a T).
-    if (B2 > 180 || D2 < 0 || D2 === 1 || D2 === 2) return 0;
-    // 1-dart TO target: B2<=60 and divisible by 3, OR B2=50.
-    // (If B2<=60 but NOT a 1-dart finisher — e.g. 25, 40 — the
-    // target is unclosable on a single dart and we need 2+ darts
-    // even with a 3-dart turn. The Excel formula has no
-    // intermediate max=2 for these; we return 0 here and rely on
-    // gate 2 of shouldAskCheckout to skip the modal for
-    // non-3-dart-closable targets.)
-    if (B2 <= 60) {
-      if (B2 % 3 === 0 || B2 === 50) return 3;
-      return 0;
-    }
-    if (B2 <= 120) {
-      // 2-dart TO target — needs C2 >= B2-60 for a 1-dart close
-      // to be available on the remaining
-      if (C2 >= (B2 - 60)) return 2;
-      return 0;
-    }
-    // 3-dart TO target — needs C2 >= B2-60 for a 1-dart close
-    if (C2 >= (B2 - 60)) return 1;
-    return 0;
+    if (B2 > 180 || B2 === 1 || B2 === 2) return 0;
+    if (B2 <= 60 && (B2 % 3 === 0 || B2 === 50)) return 3;
+    if (B2 <= 120) return 2;
+    return 1; // 3-dart TO closer (B2 in 121..180)
   }
 
   return 0;

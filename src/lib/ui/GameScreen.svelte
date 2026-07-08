@@ -481,7 +481,7 @@
 						{#if pendingCheckout.isLegWin}(including the finishing dart){/if}?
 					</p>
 					<div class="exit-actions">
-						{#each Array.from({ length: pendingCheckout.max }, (_, i) => i + 1) as n}
+						{#each Array.from({ length: pendingCheckout.max + 1 }, (_, i) => i) as n}
 							<button class="btn primary" onclick={() => recordCheckoutAttempts(n)}>{n}</button>
 						{/each}
 					</div>
