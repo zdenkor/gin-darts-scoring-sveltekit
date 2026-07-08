@@ -25,10 +25,19 @@
 
 	// Auto-scroll to the bottom so the most recent throws are
 	// visible without the user having to scroll manually.
+	// Keep the most recent row in view as the round count grows.
+	// The history is laid out oldest-at-top → newest-at-bottom, so
+	// scrolling to scrollHeight pins the latest throw to the bottom
+	// edge where the user is looking. Uses requestAnimationFrame
+	// because the DOM scrollHeight isn't reliable until after the
+	// browser has laid out the new rows.
 	$effect(() => {
-		if (stripRef && rounds.length) {
-			stripRef.scrollTop = stripRef.scrollHeight;
-		}
+		if (!stripRef || !rounds.length) return;
+		rounds; // track
+		const el = stripRef;
+		requestAnimationFrame(() => {
+			el.scrollTop = el.scrollHeight;
+		});
 	});
 
 	function normalize(entry) {
