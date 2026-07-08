@@ -13,6 +13,9 @@
 		justify-content: space-between;
 		align-items: center;
 		padding: var(--space-sm) var(--space-md);
+		padding-left: calc(var(--space-md) + env(safe-area-inset-left, 0px));
+		padding-right: calc(var(--space-md) + env(safe-area-inset-right, 0px));
+		padding-bottom: calc(var(--space-sm) + env(safe-area-inset-bottom, 0px));
 		border-top: 1px solid var(--line);
 		font-size: var(--text-sm);
 		color: var(--muted);

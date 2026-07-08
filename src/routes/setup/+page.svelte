@@ -2,6 +2,7 @@
 	import { base } from '$app/paths';
 	import { X01_IN_OPTIONS, X01_OUT_OPTIONS } from '$lib/game/engine.js';
 	import HelpIcon from '$lib/ui/HelpIcon.svelte';
+	import Select from '$lib/ui/Select.svelte';
 
 	const START_OPTIONS = [301, 401, 501, 701, 1001];
 	const BOT_NAME_FOR = (lvl) => `DartBot Level ${lvl}`;
@@ -111,16 +112,13 @@
 				<div class="player-row" class:bot-row={p.isBot}>
 					<span class="player-num">P{i + 1}</span>
 					{#if p.isBot}
-						<select
-							value={p.botLevel}
-							onchange={(e) => updateBotLevel(i, e.currentTarget.value)}
-							class="bot-level-select"
-							aria-label="Bot level"
-						>
-							{#each BOT_LEVELS as lvl}
-								<option value={lvl}>{BOT_NAME_FOR(lvl)}</option>
-							{/each}
-						</select>
+							<Select
+								bind:value={p.botLevel}
+								options={BOT_LEVELS.map(l => ({ value: l, label: BOT_NAME_FOR(l) }))}
+								placeholder={BOT_NAME_FOR(p.botLevel || 5)}
+								ariaLabel="Bot level"
+								className="bot-level-select"
+							/>
 					{:else}
 						<input
 							type="text"
@@ -175,20 +173,12 @@
 
 			<div class="field">
 				<label>In rule<HelpIcon topic="In rule" body="SI (Single In) is the default if nothing is selected — any dart opens scoring.\n\n• DI = Double In — a double opens scoring.\n• MI = Master In — a double or bull opens scoring.\n• TI = Triple In — a triple opens scoring.\n\nSI is hidden from the picker; legacy saved games still work." /></label>
-				<select bind:value={inRule}>
-					{#each Object.entries(X01_IN_OPTIONS) as [key, opt]}
-						<option value={key}>{opt.label} — {opt.desc}</option>
-					{/each}
-				</select>
+				<Select bind:value={inRule} options={X01_IN_OPTIONS} ariaLabel="In rule" />
 			</div>
 
 			<div class="field">
 				<label>Out rule<HelpIcon topic="Out rule" body="SO (Single Out) is the default if nothing is selected — any dart can finish.\n\n• DO = Double Out — finish on a double (D1..D20 or D-Bull). Standard x01.\n• MO = Master Out — finish on a double, triple, or D-Bull.\n• TO = Triple Out — finish on a triple or D-Bull.\n\nSO is hidden from the picker; DO is pre-selected as the standard x01 default." /></label>
-				<select bind:value={outRule}>
-					{#each Object.entries(X01_OUT_OPTIONS) as [key, opt]}
-						<option value={key}>{opt.label} — {opt.desc}</option>
-					{/each}
-				</select>
+				<Select bind:value={outRule} options={X01_OUT_OPTIONS} ariaLabel="Out rule" />
 			</div>
 
 			<div class="field-row">

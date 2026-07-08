@@ -48,7 +48,9 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		padding: var(--space-sm) var(--space-md);
+		padding: calc(var(--space-sm) + env(safe-area-inset-top, 0px)) var(--space-md) var(--space-sm);
+		padding-left: calc(var(--space-md) + env(safe-area-inset-left, 0px));
+		padding-right: calc(var(--space-md) + env(safe-area-inset-right, 0px));
 		gap: var(--space-sm);
 		background: var(--surface);
 		border-bottom: 1px solid var(--line);
