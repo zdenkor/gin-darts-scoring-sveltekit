@@ -14,6 +14,37 @@
 	let selectedPlayer = $state('');
 	let selectedScope = $state('all-time');
 	let stats = $state(null);
+	let expandedMatchId = $state(/** @type {string|null} */ (null));
+
+	// Group rawDarts into per-leg rows for the match-history view.
+	// rawDarts is a flat log of { by, total, darts, isLegWin,
+	// isCheckout, bust } events; we group consecutive non-endLeg
+	// events until an endLeg marker.
+	function legsOf(entry) {
+		const raw = entry.rawDarts || [];
+		const legs = [];
+		let cur = [];
+		for (const ev of raw) {
+			if (ev.endLeg) {
+				legs.push(cur);
+				cur = [];
+			} else if (ev.total != null || ev.segments != null) {
+				cur.push(ev);
+			}
+		}
+		if (cur.length) legs.push(cur);
+		return legs;
+	}
+
+	function playerName(entry, idx) {
+		return (entry.players && entry.players[idx]) || `Player ${idx + 1}`;
+	}
+
+	function turnLabel(ev) {
+		if (ev.bust) return 'BUST';
+		if (ev.isLegWin) return `LEG WIN ${ev.total}`;
+		return `${ev.total}`;
+	}
 
 	// Busts aren't returned by computeStats — derive them from the
 	// rawDarts event log so the UI can show the count per player.
@@ -201,7 +232,61 @@
 						<div class="stat"><span class="stat-value">{fmt(busts[selectedPlayer] || 0, { integer: true })}</span><span class="stat-label">Busts</span></div>
 					</div>
 				</div>
-			{/if}
+
+				<div class="stat-section">
+					<h3>Match history</h3>
+					<p class="muted small">Click a match to see how each leg progressed.</p>
+					{#if history.length === 0}
+						<p class="muted">No matches recorded yet.</p>
+					{:else}
+						<div class="match-list">
+							{#each history as m (m.id)}
+								{@const isOpen = expandedMatchId === m.id}
+								{@const ms = legsOf(m)}
+								<div class="match-row" class:open={isOpen}>
+									<button
+										type="button"
+										class="match-summary"
+										onclick={() => (expandedMatchId = isOpen ? null : m.id)}
+										aria-expanded={isOpen}
+									>
+										<span class="match-name">{m.players?.join(' vs ') || 'Match'}</span>
+										<span class="match-meta">
+											{#if m.startScore}<span class="badge">{m.startScore}</span>{/if}
+											{#if m.outRule}<span class="badge">{m.outRule}</span>{/if}
+											{#if m.winner != null}<span class="badge win">Winner: {playerName(m, m.winner)}</span>{/if}
+											<span class="match-when">{m.endedAt ? new Date(m.endedAt).toLocaleString() : ''}</span>
+										</span>
+										<span class="chev">{isOpen ? '▾' : '▸'}</span>
+									</button>
+									{#if isOpen}
+										<div class="match-detail">
+											{#if ms.length === 0}
+												<p class="muted small">No turn log for this match.</p>
+											{:else}
+												{#each ms as turns, li}
+													<div class="leg">
+														<div class="leg-head">Leg {li + 1}</div>
+														<ol class="turn-list">
+															{#each turns as t, ti}
+																<li>
+																	<span class="turn-idx">{ti + 1}.</span>
+																	<span class="turn-player">{playerName(m, t.by)}</span>
+																	<span class="turn-total">{turnLabel(t)}</span>
+																</li>
+															{/each}
+														</ol>
+													</div>
+												{/each}
+											{/if}
+										</div>
+									{/if}
+								</div>
+							{/each}
+						</div>
+					{/if}
+				</div>
+				{/if}
 		{/if}
 	</div>
 </div>
@@ -300,4 +385,82 @@
 	}
 	.welcome p { margin: 0; }
 	.muted { color: var(--muted); }
+
+	.match-list {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-xs);
+	}
+	.match-row {
+		background: var(--surface);
+		border: 1px solid var(--line);
+		border-radius: var(--radius);
+		overflow: hidden;
+	}
+	.match-row.open { border-color: var(--accent); }
+	.match-summary {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--space-sm);
+		width: 100%;
+		padding: var(--space-sm) var(--space-md);
+		background: none;
+		border: 0;
+		color: var(--text);
+		font: inherit;
+		cursor: pointer;
+		text-align: left;
+	}
+	.match-summary:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+	.match-name { font-weight: 700; flex: 1; }
+	.match-meta {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-xs);
+		align-items: center;
+		font-size: var(--text-xs);
+	}
+	.match-when { color: var(--muted); }
+	.badge {
+		background: color-mix(in srgb, var(--accent) 14%, transparent);
+		color: var(--text);
+		padding: 2px 6px;
+		border-radius: 6px;
+		font-size: var(--text-xs);
+	}
+	.badge.win { background: color-mix(in srgb, var(--accent) 30%, transparent); font-weight: 700; }
+	.chev { color: var(--muted); font-size: var(--text-md); }
+	.match-detail {
+		padding: var(--space-sm) var(--space-md) var(--space-md);
+		border-top: 1px solid var(--line);
+		background: color-mix(in srgb, var(--bg) 60%, var(--surface));
+	}
+	.leg { margin-top: var(--space-sm); }
+	.leg-head {
+		font-size: var(--text-xs);
+		color: var(--muted);
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		margin-bottom: var(--space-xs);
+	}
+	.turn-list {
+		list-style: none;
+		padding: 0;
+		margin: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+	.turn-list li {
+		display: grid;
+		grid-template-columns: 2em 1fr auto;
+		gap: var(--space-sm);
+		padding: 2px 4px;
+		font-size: var(--text-sm);
+	}
+	.turn-idx { color: var(--muted); }
+	.turn-player { color: var(--text); }
+	.turn-total { color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums; }
+	.muted.small { font-size: var(--text-xs); }
 </style>
