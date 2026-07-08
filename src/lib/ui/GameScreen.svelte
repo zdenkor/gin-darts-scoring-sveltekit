@@ -9,7 +9,7 @@
 	import HistoryStrip from '$lib/ui/HistoryStrip.svelte';
 	import GameToolbar from '$lib/ui/GameToolbar.svelte';
 	import { saveCurrentGame, loadCurrentGame, clearCurrentGame } from '$lib/util/currentGame.js';
-	import { recordGameHistory, recordGameResult, gameHistoryEntryFromState } from '$lib/util/history.js';
+	import { recordGameHistory, recordGameResult, deleteGameHistory, gameHistoryEntryFromState } from '$lib/util/history.js';
 	import { deepClone } from '$lib/util/deepClone.js';
 	import { loadSetting } from '$lib/util/settings.js';
 
@@ -132,14 +132,40 @@
 				}
 			}
 			game = deepClone(result.state);
-			past = [...past, before];
+			// Capture whether this commit was a leg-finishing throw so
+			// that undo can roll back the auto-record and the saved
+			// game deletion below. If the player mis-clicks on the
+			// finishing dart they can undo the last throw and try
+			// again — the stats record is removed and the saved
+			// currentGame is restored in IDB.
+			const isLegFinishingThrow = before.winner == null && game.winner != null && game.endedAt;
+			let legWinUndoEntry = null;
+			if (isLegFinishingThrow) {
+				// Keep the pre-finish state in memory so the modal
+				// / saved game / history entry can all be reversed on
+				// undo.
+				legWinUndoEntry = {
+					isLegWin: true,
+					preFinishState: deepClone(before),
+					legWinEntryId: null,
+				};
+			}
+			past = legWinUndoEntry
+				? [...past, legWinUndoEntry]
+				: [...past, before];
 			future = [];
 			await persist();
 			// Auto-record to history when the game ends.
+			let legWinEntryId = null;
 			if (game.winner != null && game.endedAt) {
 				try {
 					const entry = gameHistoryEntryFromState(game);
-					await recordGameHistory(entry);
+					legWinEntryId = await recordGameHistory(entry);
+					// Tag the past entry with the recorded id so undo
+					// can delete it from the history store.
+					if (legWinEntryId && legWinUndoEntry) {
+						legWinUndoEntry.legWinEntryId = legWinEntryId;
+					}
 					await clearCurrentGame();
 				} catch (e) {
 					console.warn('auto-record game history failed', e);
@@ -219,7 +245,24 @@
 		const previous = past[past.length - 1];
 		future = [snapshot(), ...future];
 		past = past.slice(0, -1);
-		restore(previous);
+		// A leg-finishing throw saves a special marker entry that
+		// records the pre-finish state plus the id of the stats
+		// entry that was auto-recorded. Undoing such a throw
+		// needs to (a) delete the stats entry, (b) restore the
+		// pre-finish state in IDB, and (c) restore the in-memory
+		// game to the pre-finish state.
+		if (previous && previous.isLegWin && previous.preFinishState) {
+			if (previous.legWinEntryId) {
+				try {
+					await deleteGameHistory(previous.legWinEntryId);
+				} catch (e) {
+					console.warn('undo: deleteGameHistory failed', e);
+				}
+			}
+			restore(previous.preFinishState);
+		} else {
+			restore(previous);
+		}
 		lastCommitError = '';
 		lastBotIndex = -1;
 		await persist();
@@ -232,6 +275,18 @@
 		past = [...past, snapshot()];
 		future = future.slice(1);
 		restore(next);
+		// If the redo target is a leg-finishing state (game over
+		// + endedAt), re-record the stats entry. The history id
+		// will differ from the original, but the player can undo
+		// to remove it.
+		if (game && game.winner != null && game.endedAt) {
+			try {
+				const entry = gameHistoryEntryFromState(game);
+				await recordGameHistory(entry);
+			} catch (e) {
+				console.warn('redo: recordGameHistory failed', e);
+			}
+		}
 		lastCommitError = '';
 		lastBotIndex = -1;
 		await persist();

@@ -69,14 +69,17 @@ export async function recordGameHistory(entry) {
 	try {
 		// JSON round-trip strips Svelte 5 $state proxies so IDB's
 		// structured clone doesn't trip on non-cloneable wrappers.
+		const id = entry.id || uuid();
 		const plain = JSON.parse(JSON.stringify({
-			id: entry.id || uuid(),
+			id,
 			...entry,
 			recordedAt: Date.now()
 		}));
 		await put(STORE, plain);
+		return id;
 	} catch (e) {
 		console.warn('recordGameHistory failed', e);
+		return null;
 	}
 }
 

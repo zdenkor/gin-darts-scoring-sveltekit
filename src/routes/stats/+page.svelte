@@ -196,6 +196,8 @@
 					<div class="stats-grid">
 						<div class="stat"><span class="stat-value">{fmt(stats.numberOfDarts, { integer: true })}</span><span class="stat-label">Number of darts</span></div>
 						<div class="stat"><span class="stat-value">{fmt(stats.totalPoints, { integer: true })}</span><span class="stat-label">Total points</span></div>
+						<div class="stat"><span class="stat-value">{fmt(stats.matchesWon, { integer: true })}</span><span class="stat-label">Nights won</span></div>
+						<div class="stat"><span class="stat-value">{formatAvg(stats.maxAverage)}</span><span class="stat-label">Max average of matches</span></div>
 						<div class="stat"><span class="stat-value">{fmt(busts[selectedPlayer] || 0, { integer: true })}</span><span class="stat-label">Busts</span></div>
 					</div>
 				</div>
