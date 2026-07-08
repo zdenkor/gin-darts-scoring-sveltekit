@@ -1,6 +1,7 @@
 <script>
 	import { base } from '$app/paths';
 	import { X01_IN_OPTIONS, X01_OUT_OPTIONS } from '$lib/game/engine.js';
+	import HelpIcon from '$lib/ui/HelpIcon.svelte';
 
 	const START_OPTIONS = [301, 401, 501, 701, 1001];
 	const BOT_NAME_FOR = (lvl) => `DartBot Level ${lvl}`;
@@ -157,7 +158,7 @@
 		<div class="section">
 			<h2>Game options</h2>
 			<div class="field">
-				<label>Start score</label>
+				<label>Start score<HelpIcon topic="Start score" body="The score each player begins with. Lower numbers make games faster; 501 is the classic start. 170 is a single-dart training preset (one max-dart throw to check out). 1001 is a long format." /></label>
 				<div class="option-row">
 					{#each START_OPTIONS as opt}
 						<button
@@ -173,7 +174,7 @@
 			</div>
 
 			<div class="field">
-				<label>In rule</label>
+				<label>In rule<HelpIcon topic="In rule" body="SI (Single In) is the default if nothing is selected — any dart opens scoring.\n\n• DI = Double In — a double opens scoring.\n• MI = Master In — a double or bull opens scoring.\n• TI = Triple In — a triple opens scoring.\n\nSI is hidden from the picker; legacy saved games still work." /></label>
 				<select bind:value={inRule}>
 					{#each Object.entries(X01_IN_OPTIONS) as [key, opt]}
 						<option value={key}>{opt.label} — {opt.desc}</option>
@@ -182,7 +183,7 @@
 			</div>
 
 			<div class="field">
-				<label>Out rule</label>
+				<label>Out rule<HelpIcon topic="Out rule" body="SO (Single Out) is the default if nothing is selected — any dart can finish.\n\n• DO = Double Out — finish on a double (D1..D20 or D-Bull). Standard x01.\n• MO = Master Out — finish on a double, triple, or D-Bull.\n• TO = Triple Out — finish on a triple or D-Bull.\n\nSO is hidden from the picker; DO is pre-selected as the standard x01 default." /></label>
 				<select bind:value={outRule}>
 					{#each Object.entries(X01_OUT_OPTIONS) as [key, opt]}
 						<option value={key}>{opt.label} — {opt.desc}</option>
@@ -192,12 +193,12 @@
 
 			<div class="field-row">
 				<div class="field">
-					<label>Legs to win</label>
+					<label>Legs to win<HelpIcon topic="Legs to win" body="How many legs a player must win to take the set. The first to reach this count wins." /></label>
 					<input type="number" min="1" max="99" bind:value={legsToWin} />
 				</div>
 
 				<div class="field">
-					<label>Sets to win</label>
+					<label>Sets to win<HelpIcon topic="Sets to win" body="How many sets a player must win to take the match. The first to reach this count wins." /></label>
 					<input type="number" min="1" max="99" bind:value={setsToWin} />
 				</div>
 			</div>

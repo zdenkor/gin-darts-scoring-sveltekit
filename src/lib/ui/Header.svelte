@@ -36,9 +36,9 @@
 				<a class="icon-btn" href="{base}/admin" title="Admin" aria-label="Admin"><span class="icon">🔒</span></a>
 			{/if}
 			<span class="user-pill">{displayName}</span>
-			<button class="icon-btn" type="button" onclick={signOut} title="Sign out" aria-label="Sign out"><span class="icon">↪</span></button>
+			<button class="icon-btn" type="button" onclick={signOut} title="Sign out" aria-label="Sign out"><img src="{base}/assets/logout.svg" alt="" class="icon icon-img" /></button>
 		{:else}
-			<a class="btn primary" href="{base}/login">Sign in</a>
+			<a class="icon-btn" href="{base}/login" title="Sign in" aria-label="Sign in"><img src="{base}/assets/login.svg" alt="" class="icon icon-img" /></a>
 		{/if}
 	</nav>
 </header>
@@ -68,6 +68,7 @@
 .icon { line-height: 1; }
 .icon-svg { display: inline-flex; align-items: center; justify-content: center; }
 .icon-svg :global(svg) { width: 1.1em; height: 1.1em; display: block; color: inherit; }
+.icon-img { width: 1.1em; height: 1.1em; display: block; }
 	.brand-text h1 {
 		font-size: var(--text-md);
 		margin: 0;

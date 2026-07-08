@@ -13,6 +13,7 @@ const DEFAULTS = Object.freeze({
   superadminEmails: '',
   statsCheckout: true,
   askCheckout: true,   // ask player how many darts were aimed at checkout
+  showHelp: true,      // show ⓘ help icons next to labels (vanilla parity)
 });
 
 function get(key, fallback) {
@@ -38,6 +39,7 @@ export function loadAllSettings() {
     superadminEmails: get('superadminEmails', DEFAULTS.superadminEmails),
     statsCheckout: get('statsCheckout', DEFAULTS.statsCheckout),
     askCheckout: get('askCheckout', DEFAULTS.askCheckout),
+    showHelp: get('showHelp', DEFAULTS.showHelp),
   };
 }
 

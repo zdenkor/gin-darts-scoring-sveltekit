@@ -4,6 +4,7 @@
 // =================================================================
 import { GOOGLE_SCOPES, GOOGLE_TOKEN_KEY } from '../config.js';
 import { put, get, del } from '../db/idb.js';
+import { loadSetting } from '../util/settings.js';
 
 const CLIENT_ID_STORAGE_KEY = 'gindarts:google-client-id';
 
@@ -16,6 +17,13 @@ export function getClientId() {
   if (typeof window !== 'undefined' && window.GOOGLE_CLIENT_ID && !window.GOOGLE_CLIENT_ID.startsWith('REPLACE_ME')) {
     return window.GOOGLE_CLIENT_ID;
   }
+  // Fallback: the Settings page stores a runtime override under
+  // `gindarts:googleClientId` (loadSetting → localStorage). Without
+  // this, the value entered in Settings would never reach
+  // googleAuth.signIn() and the Google popup would fail with
+  // "Google sign-in not configured".
+  const fromSettings = loadSetting('googleClientId');
+  if (fromSettings && !fromSettings.startsWith('REPLACE_ME')) return fromSettings;
   return '';
 }
 export function setClientId(id) {

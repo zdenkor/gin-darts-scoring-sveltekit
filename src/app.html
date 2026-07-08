@@ -7,6 +7,11 @@
 		<meta name="description" content="Gin's Online Dart's Scoring System — PWA darts scorer" />
 		<link rel="manifest" href="%sveltekit.assets%/manifest.webmanifest" />
 		<link rel="icon" type="image/svg+xml" href="%sveltekit.assets%/dart.svg" />
+		<!-- Google OAuth Client ID for sign-in (same as the legacy vanilla build).
+		     OAuth client IDs are PUBLIC identifiers, not secrets — see
+		     https://developers.google.com/identity/oauth2/web/guides/use-origin-domain.
+		     Leave empty to require admin to paste their own ID via Settings. -->
+		<script>window.GOOGLE_CLIENT_ID = '843204989604-lsddu2umjh3e4erkco8sh0vr5om39bbd.apps.googleusercontent.com';</script>
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">

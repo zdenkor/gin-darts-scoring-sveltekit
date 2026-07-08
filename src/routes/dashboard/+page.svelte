@@ -4,6 +4,7 @@
 	import { onMount } from 'svelte';
 	import { auth } from '$lib/state/auth.svelte.js';
 	import { hasCurrentGame } from '$lib/util/currentGame.js';
+	import HelpIcon from '$lib/ui/HelpIcon.svelte';
 
 	let canContinue = $state(false);
 	let loading = $state(true);
@@ -18,13 +19,20 @@
 	}
 
 	const tiles = [
-		{ label: 'New x01', desc: '301 / 401 / 501 / 701 / 1001', icon: '🎯', route: '/setup', primary: true },
-		{ label: 'Continue', desc: 'Resume saved game', icon: '▶', route: '/game', disabled: () => !canContinue },
-		{ label: 'Statistics', desc: 'Per-player stats', icon: '📊', route: '/stats' },
-		{ label: 'Competitions', desc: 'Leagues & tournaments', icon: '🏆', route: '/competitions' },
-		{ label: 'Online', desc: 'P2P match room', icon: '🌐', route: '/online' },
-		{ label: 'Settings', desc: 'Theme, sound, sync', icon: '⚙', route: '/settings' },
-		{ label: 'Admin', desc: 'Users & data', icon: '🔒', route: '/admin', hidden: () => !auth.isAdmin },
+		{ label: 'New x01', desc: '301 / 401 / 501 / 701 / 1001', icon: '🎯', route: '/setup', primary: true,
+		  help: 'Start a fresh x01 game. Pick the start score, in/out rules, and number of legs/sets, then add human or bot players.' },
+		{ label: 'Continue', desc: 'Resume saved game', icon: '▶', route: '/game', disabled: () => !canContinue,
+		  help: 'Resume the in-progress x01 game that was saved automatically. Disabled when there is no saved game.' },
+		{ label: 'Statistics', desc: 'Per-player stats', icon: '📊', route: '/stats',
+		  help: 'Lifetime stats per player: legs won, checkout %, average, highest finish, 1/2/3-dart close distribution, and more. Data is read from the local history store.' },
+		{ label: 'Competitions', desc: 'Leagues & tournaments', icon: '🏆', route: '/competitions',
+		  help: 'Multi-match formats: round-robin leagues and single-elimination brackets. Syncs to Google Drive when signed in.' },
+		{ label: 'Online', desc: 'P2P match room', icon: '🌐', route: '/online',
+		  help: 'Two-player local network match. Share the room code, both players score the same throws, no central server.' },
+		{ label: 'Settings', desc: 'Theme, sound, sync', icon: '⚙', route: '/settings',
+		  help: 'Theme, language, sound, vibration, help icons, Google Client ID, superadmin emails, and sign-in.' },
+		{ label: 'Admin', desc: 'Users & data', icon: '🔒', route: '/admin', hidden: () => !auth.isAdmin,
+		  help: 'Manage local user accounts and clear all local game data. Visible only to signed-in admins.' },
 	];
 </script>
 
@@ -42,6 +50,7 @@
 						<span class="icon">{t.icon}</span>
 						<h2>{t.label}</h2>
 						<p>{t.desc}</p>
+						{#if t.help}<HelpIcon topic={t.label} body={t.help} />{/if}
 					</div>
 				{:else}
 					<button
@@ -53,6 +62,7 @@
 						<span class="icon">{t.icon}</span>
 						<h2>{t.label}</h2>
 						<p>{t.desc}</p>
+						{#if t.help}<HelpIcon topic={t.label} body={t.help} />{/if}
 					</button>
 				{/if}
 			{/if}
