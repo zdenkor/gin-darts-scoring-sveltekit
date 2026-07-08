@@ -521,6 +521,27 @@ export function submitTurnTotal01(state, total) {
   events.push({ type: 'turn', total: pts, delta: -pts, scoreAfter: player.score, darts: dartsThisTurn });
   player.history.push({ what: `${pts}`, delta: -pts, scoreAfter: player.score });
   state.turnDarts = [{ total: pts, darts: dartsThisTurn }];
+  // If the player COULD have aimed at a checkout this turn, emit a
+  // 'checkout-attempt' event with the maximum number of darts they
+  // had available (1, 2 or 3). The UI (GameScreen) reads this and
+  // shows a modal asking the player how many of their 3 darts were
+  // actually aimed at the close-out. Bots skip the modal — the
+  // engine auto-records `max` for them. If the leg was won, max
+  // also tells us whether the win was a 1-, 2- or 3-dart finish.
+  if (!wouldBust) {
+    const max = maxCheckoutAttemptsForX01(startScore, pts, inOut, isFinish);
+    if (max > 0) {
+      events.push({
+        type: 'checkout-attempt',
+        playerIndex: state.current,
+        max,
+        target: startScore,
+        total: pts,
+        isLegWin: isFinish,
+        isBot: !!player.isBot,
+      });
+    }
+  }
   if (isFinish) {
     player.legsWon += 1;
     events.push({ type: 'leg-won', playerIndex: state.current, legsWon: player.legsWon, legsToWin: state.opts.legsToWin, isCheckout: true });

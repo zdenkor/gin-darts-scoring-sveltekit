@@ -92,6 +92,7 @@
 		if (text === '↶') onUndo?.();
 		else if (text === '↷') onRedo?.();
 		else if (text === '00') commitValue(0); // quick 0 / BUST
+		else if (text === '＝') commitEquals();
 		else if (text === '⋯') onMore?.();
 	}
 
@@ -113,7 +114,7 @@
 		if (e.key >= '0' && e.key <= '9') pressDigit(e.key);
 		else if (e.key === 'Backspace') backspace();
 		else if (e.key === 'Enter') {
-			e.preventDefault();
+			e.preventDefault(); // suppress form submit so we don't commit twice
 			commit();
 		}
 	}
@@ -142,7 +143,7 @@
 <svelte:window onkeydown={onKeyDown} />
 
 <div class="calculator-wrap" onclick={handleClick}>
-	<form bind:this={formRef} class="calculator" role="group" aria-label="Score entry" onsubmit={(e) => { e.preventDefault(); commitEquals(); }}>
+	<form bind:this={formRef} class="calculator" role="group" aria-label="Score entry" onsubmit={(e) => { e.preventDefault(); commit(); }}>
 		<div class="calc-display">
 			<span class="calc-entered">{buffer}</span>
 		</div>
@@ -150,7 +151,7 @@
 	<div class="actions">
 		<button class="action-btn" type="button" disabled={!canUndo || disabled}>↶</button>
 		<button class="action-btn" type="button" disabled={!canRedo || disabled}>↷</button>
-		<button class="action-btn" type="submit" disabled={disabled}>＝</button>
+		<button class="action-btn" type="button" disabled={disabled}>＝</button>
 		<button class="action-btn" type="button" disabled={disabled}>00</button>
 		<button class="action-btn" type="button" aria-label="More commands">⋯</button>
 	</div>

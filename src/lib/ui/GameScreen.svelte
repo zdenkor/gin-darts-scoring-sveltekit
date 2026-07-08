@@ -11,6 +11,7 @@
 	import { saveCurrentGame, loadCurrentGame, clearCurrentGame } from '$lib/util/currentGame.js';
 	import { recordGameHistory, recordGameResult, gameHistoryEntryFromState } from '$lib/util/history.js';
 	import { deepClone } from '$lib/util/deepClone.js';
+	import { loadSetting } from '$lib/util/settings.js';
 
 	/** @type {{names?: string[] | null, bots?: string[], start?: number, inRule?: string, outRule?: string, legsToWin?: number, setsToWin?: number}} */
 	let {
@@ -28,6 +29,12 @@
 	let showCommands = $state(false);
 	let showExitModal = $state(false);
 	let showEndEarlyModal = $state(false);
+	// Pending checkout-attempts question. Set when a human player
+	// just had a turn where the out-rule / target / score combo
+	// could have aimed at a close-out. The modal asks 1/2/3 and
+	// writes the answer back to player.history[historyIdx].
+	// Shape: { historyIdx, max, isLegWin, playerIndex }.
+	let pendingCheckout = $state(/** @type {any} */ (null));
 	let past = $state(/** @type {any[]} */ ([]));
 	let future = $state(/** @type {any[]} */ ([]));
 
@@ -102,6 +109,28 @@
 			if (result.events.some(e => e.type === 'bust')) {
 				lastCommitError = 'Bust!';
 			}
+			// Checkout-attempts question: if the engine reports the
+			// player COULD have aimed at the close-out this turn, ask
+			// the human how many darts they actually used. Bots skip
+			// the modal — we auto-record the max for them. If the
+			// user has disabled "Ask checkout attempts" in settings,
+			// also auto-record the max (the setting only hides the
+			// modal, not the event itself).
+			const askCheckout = loadSetting('askCheckout') !== false;
+			const caEvt = /** @type {any} */ (result.events.find(e => e.type === 'checkout-attempt'));
+			if (caEvt) {
+				const histIdx = game.players[caEvt.playerIndex].history.length - 1;
+				if (caEvt.isBot || !askCheckout) {
+					game.players[caEvt.playerIndex].history[histIdx].checkoutAttempts = caEvt.max;
+				} else {
+					pendingCheckout = {
+						historyIdx: histIdx,
+						max: caEvt.max,
+						isLegWin: caEvt.isLegWin,
+						playerIndex: caEvt.playerIndex,
+					};
+				}
+			}
 			game = deepClone(result.state);
 			past = [...past, before];
 			future = [];
@@ -124,6 +153,19 @@
 		// the bot only throws the first time it becomes current.
 		lastBotIndex = -1;
 		scheduleBotIfNeeded();
+	}
+
+	// Persist the player's answer to the checkout-attempts question
+	// and clear the modal. Called from the modal's 1/2/3 buttons.
+	async function recordCheckoutAttempts(n) {
+		if (!pendingCheckout || !game) return;
+		const { historyIdx, playerIndex } = pendingCheckout;
+		if (game.players[playerIndex]?.history?.[historyIdx]) {
+			game.players[playerIndex].history[historyIdx].checkoutAttempts = n;
+		}
+		pendingCheckout = null;
+		game = deepClone(game);
+		await persist();
 	}
 
 	function isCurrentBot() {
@@ -428,6 +470,24 @@
 				</div>
 			</div>
 			<div class="command-backdrop" onclick={cancelEndEarly} aria-hidden="true"></div>
+		{/if}
+
+		{#if pendingCheckout}
+			<div class="exit-modal" role="dialog" aria-modal="true">
+				<div class="exit-modal-box">
+					<h3>Checkout attempts</h3>
+					<p class="muted">
+						How many of your 3 darts were aimed at the close-out
+						{#if pendingCheckout.isLegWin}(including the finishing dart){/if}?
+					</p>
+					<div class="exit-actions">
+						{#each Array.from({ length: pendingCheckout.max }, (_, i) => i + 1) as n}
+							<button class="btn primary" onclick={() => recordCheckoutAttempts(n)}>{n}</button>
+						{/each}
+					</div>
+				</div>
+			</div>
+			<div class="command-backdrop" aria-hidden="true"></div>
 		{/if}
 	</div>
 {:else}

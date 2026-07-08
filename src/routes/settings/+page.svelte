@@ -89,6 +89,10 @@
 				<input type="checkbox" bind:checked={s.statsCheckout} />
 				<span>Show checkout stats</span>
 			</label>
+			<label class="checkbox">
+				<input type="checkbox" bind:checked={s.askCheckout} />
+				<span>Ask checkout attempts</span>
+			</label>
 		</section>
 
 		<section class="settings-section">

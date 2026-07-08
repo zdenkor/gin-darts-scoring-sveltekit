@@ -12,6 +12,7 @@ const DEFAULTS = Object.freeze({
   googleClientId: '',  // runtime override; also supported via window.GOOGLE_CLIENT_ID
   superadminEmails: '',
   statsCheckout: true,
+  askCheckout: true,   // ask player how many darts were aimed at checkout
 });
 
 function get(key, fallback) {
@@ -36,6 +37,7 @@ export function loadAllSettings() {
     googleClientId: get('googleClientId', DEFAULTS.googleClientId),
     superadminEmails: get('superadminEmails', DEFAULTS.superadminEmails),
     statsCheckout: get('statsCheckout', DEFAULTS.statsCheckout),
+    askCheckout: get('askCheckout', DEFAULTS.askCheckout),
   };
 }
 
