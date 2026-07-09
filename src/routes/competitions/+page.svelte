@@ -11,6 +11,7 @@
 	} from '$lib/db/competitions.js';
 	import { isSignedIn } from '$lib/auth/google.js';
 	import { pushCompetition, markDirty } from '$lib/auth/sync.js';
+	import { searchSVKCache } from '$lib/auth/svk.js';
 	import {
 		buildSingleMatch,
 		buildTournament,
@@ -71,6 +72,13 @@
 	let formNotes = $state('');
 	let formPlayers = $state([{ id: 0, name: 'Gin' }, { id: 1, name: 'Alex' }]);
 	let formError = $state('');
+	// SVK search state. The picker shows a search input that hits
+	// the local svk_players IDB cache; clicking a result appends
+	// a new player row to formPlayers. 250ms debounce keeps the
+	// UI snappy while typing.
+	let svkPickerQuery = $state('');
+	let svkPickerResults = $state(/** @type {any[]} */ ([]));
+	let svkPickerTimer = null;
 
 	async function refresh() {
 		loading = true;
@@ -101,6 +109,38 @@
 	function removePlayer(/** @type {number} */ idx) {
 		if (formPlayers.length <= 2) return;
 		formPlayers = formPlayers.filter((_, i) => i !== idx);
+	}
+
+	function onSVKPickerInput() {
+		if (svkPickerTimer) clearTimeout(svkPickerTimer);
+		const q = svkPickerQuery.trim();
+		if (!q) {
+			svkPickerResults = [];
+			return;
+		}
+		svkPickerTimer = setTimeout(async () => {
+			const parts = q.split(/\s+/);
+			const surname = parts[0] || '';
+			const firstName = parts.slice(1).join(' ');
+			const results = await searchSVKCache({ surname, firstName });
+			// Hide rows that the user has already added, so the
+			// picker doesn't keep offering the same person twice.
+			const taken = new Set(formPlayers.map(p => p.name.toLowerCase()));
+			svkPickerResults = results.filter(r => {
+				const fullName = `${r.surname} ${r.firstName}`.trim().toLowerCase();
+				return fullName && !taken.has(fullName);
+			}).slice(0, 8);
+		}, 250);
+	}
+
+	function addSVKPlayer(r) {
+		if (formPlayers.length >= 16) return;
+		const name = `${r.surname} ${r.firstName}`.trim();
+		formPlayers = [...formPlayers, { id: Date.now() + Math.random(), name }];
+		// Clear the query + results so the picker collapses and
+		// the user sees the new row in the list.
+		svkPickerQuery = '';
+		svkPickerResults = [];
 	}
 
 	function updatePlayerName(/** @type {number} */ idx, /** @type {string} */ value) {
@@ -377,6 +417,41 @@
 					{#if formPlayers.length < 16}
 						<button class="btn ghost add-btn" type="button" onclick={addPlayer}>+ Add player</button>
 					{/if}
+
+					<div class="svk-picker">
+						<label class="svk-picker-label" for="svk-picker-input">
+							🔍 Search SVK cache
+						</label>
+						<input
+							id="svk-picker-input"
+							type="text"
+							class="svk-picker-input"
+							bind:value={svkPickerQuery}
+							oninput={onSVKPickerInput}
+							placeholder="Type a name, e.g. 'Novák' or 'Ján Nov'"
+							autocomplete="off"
+						/>
+						{#if svkPickerResults.length > 0}
+							<ul class="svk-picker-list">
+								{#each svkPickerResults as r (r.svkId || `${r.surname}-${r.firstName}`)}
+									<li>
+										<button
+											type="button"
+											class="svk-picker-item"
+											onclick={() => addSVKPlayer(r)}
+											aria-label="Add {r.surname} {r.firstName} to competition"
+										>
+											<strong>{r.surname} {r.firstName}</strong>
+											{#if r.town}<span class="muted"> · {r.town}</span>{/if}
+											{#if r.club}<span class="muted"> · {r.club}</span>{/if}
+										</button>
+									</li>
+								{/each}
+							</ul>
+						{:else if svkPickerQuery.trim()}
+							<p class="hint svk-picker-empty">No SVK matches. Add the player manually above.</p>
+						{/if}
+					</div>
 				</div>
 
 				<label class="field">
@@ -527,6 +602,65 @@
 	}
 	.add-btn {
 		width: 100%;
+	}
+
+	/* SVK picker — search input + dropdown of matches below
+	   the player list. Same shape as the settings preview so
+	   the user recognises it. */
+	.svk-picker {
+		margin-top: var(--space-sm);
+		padding-top: var(--space-sm);
+		border-top: 1px dashed var(--line);
+	}
+	.svk-picker-label {
+		display: block;
+		font-size: var(--text-sm);
+		color: var(--muted);
+		margin-bottom: 4px;
+	}
+	.svk-picker-input {
+		width: 100%;
+		background: var(--bg);
+		border: 1px solid var(--line);
+		border-radius: 10px;
+		padding: var(--space-sm);
+		color: var(--text);
+		font: inherit;
+	}
+	.svk-picker-list {
+		list-style: none;
+		padding: 0;
+		margin: var(--space-sm) 0 0;
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+	.svk-picker-item {
+		width: 100%;
+		text-align: left;
+		background: var(--surface);
+		border: 1px solid var(--line);
+		border-radius: 8px;
+		padding: 8px 12px;
+		color: var(--text);
+		font: inherit;
+		cursor: pointer;
+	}
+	.svk-picker-item:hover,
+	.svk-picker-item:focus-visible {
+		border-color: var(--accent);
+		outline: none;
+	}
+	.svk-picker-empty {
+		margin: var(--space-sm) 0 0;
+		color: var(--muted);
+	}
+	@container app (min-width: 60rem) {
+		.svk-picker-input,
+		.svk-picker-item {
+			font-size: var(--text-md);
+			padding: 12px 16px;
+		}
 	}
 	.form-actions {
 		display: flex;

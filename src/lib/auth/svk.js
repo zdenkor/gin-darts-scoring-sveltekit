@@ -147,7 +147,7 @@ export async function searchSVKCache({ surname, firstName } = {}) {
  */
 export async function findInSVKCache(svkId) {
   if (!svkId) return null;
-  const { get } = await import('../db/index.js');
+  const { get } = await import('../db/idb.js');
   return await get('svk_players', svkId.toUpperCase());
 }
 
@@ -169,7 +169,7 @@ export async function getSVKCacheStats() {
  * Clear the local SVK cache.
  */
 export async function clearSVKCache() {
-  const { clear } = await import('../db/index.js');
+  const { clear } = await import('../db/idb.js');
   await clear('svk_players');
   return { cleared: true };
 }

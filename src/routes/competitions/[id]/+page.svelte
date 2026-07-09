@@ -122,7 +122,7 @@
 	}
 </script>
 
-<div class="screen">
+<div class="screen scrollable">
 	<div class="card">
 		<div class="card-header">
 			<h1>{competition?.name || 'Competition'}</h1>
@@ -229,6 +229,19 @@
 </div>
 
 <style>
+	/* Override the global .screen / .screen.scrollable defaults so
+	   the page scrolls inside the page rather than getting clipped
+	   by the game-layout container in app.css. Same fix as the
+	   create-competition form (see the sibling +page.svelte). */
+	.screen {
+		min-height: 0;
+	}
+	.screen.scrollable {
+		overflow-y: auto;
+		overflow-x: hidden;
+		-webkit-overflow-scrolling: touch;
+		padding-bottom: clamp(2rem, 8cqi, 4rem);
+	}
 	.card-header {
 		display: flex;
 		justify-content: space-between;

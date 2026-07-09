@@ -11,9 +11,23 @@
 		getEffectiveGoogleClientId, getEffectiveSuperadminEmails
 	} from '$lib/util/settings.js';
 	import { setHelpVisible } from '$lib/util/help.js';
+	import {
+		parseSVKListText, importSVKList, getSVKCacheStats,
+		clearSVKCache, searchSVKCache
+	} from '$lib/auth/svk.js';
 
 	let s = $state(loadAllSettings());
 	let saved = $state(false);
+	// SVK import state.
+	let svkPaste = $state('');
+	let svkStats = $state(/** @type {{count:number,lastImportedAt:number|null}} */ ({ count: 0, lastImportedAt: null }));
+	let svkImporting = $state(false);
+	let svkMessage = $state(/** @type {string} */ (''));
+	// SVK search state (used by both the import preview and the
+	// player picker in /competitions — the picker uses its own
+	// local state, this is just the settings-panel preview).
+	let svkPreviewQuery = $state('');
+	let svkPreviewResults = $state(/** @type {any[]} */ ([]));
 
 	const themes = [
 		{ value: 'auto', label: 'Auto' },
@@ -48,7 +62,62 @@
 
 	onMount(() => {
 		applyTheme(s.theme);
+		refreshSVKStats();
 	});
+
+	async function refreshSVKStats() {
+		svkStats = await getSVKCacheStats();
+	}
+
+	async function doImportSVK() {
+		if (svkImporting) return;
+		svkMessage = '';
+		const rows = parseSVKListText(svkPaste);
+		if (rows.length === 0) {
+			svkMessage = 'No rows parsed. Copy rows from the SVK portal table (Ctrl+A inside the table, Ctrl+C, paste here).';
+			return;
+		}
+		svkImporting = true;
+		try {
+			const res = await importSVKList(rows);
+			svkMessage = `Imported ${res.imported} of ${res.total} players.`;
+			svkPaste = '';
+			await refreshSVKStats();
+		} catch (e) {
+			svkMessage = 'Import failed: ' + (e?.message || e);
+		} finally {
+			svkImporting = false;
+		}
+	}
+
+	async function doClearSVK() {
+		if (!confirm('Clear the SVK cache? Imported players will be removed from this device.')) return;
+		await clearSVKCache();
+		svkMessage = 'SVK cache cleared.';
+		svkPreviewResults = [];
+		await refreshSVKStats();
+	}
+
+	let svkPreviewTimer = null;
+	function onSVKPreviewInput() {
+		if (svkPreviewTimer) clearTimeout(svkPreviewTimer);
+		const q = svkPreviewQuery.trim();
+		if (!q) {
+			svkPreviewResults = [];
+			return;
+		}
+		// Debounce: 200 ms is enough for a local IndexedDB scan and
+		// keeps the UI snappy while typing.
+		svkPreviewTimer = setTimeout(async () => {
+			// Try surname+firstName split; fall back to a single-
+			// string substring match so a user typing "Nov" or
+			// "Ján No" both find the right rows.
+			const parts = q.split(/\s+/);
+			const surname = parts[0] || '';
+			const firstName = parts.slice(1).join(' ');
+			svkPreviewResults = await searchSVKCache({ surname, firstName });
+		}, 200);
+	}
 </script>
 
 <div class="screen">
@@ -134,6 +203,62 @@
 			{/if}
 		</section>
 
+		<section class="settings-section">
+			<h2>SVK license list<HelpIcon topic="SVK import" body="The Slovak darts federation (SVK) portal has no CORS headers, so the app can't fetch it directly. Instead, you copy the licence table once from the portal and paste it here. The import is stored in the local svk_players IndexedDB store. After import, the player picker in /competitions can search this cache by name." /></h2>
+			<p class="hint">Import the SVK licence list once. Steps: open the portal, Ctrl+A inside the table, Ctrl+C, then paste below and click Import.</p>
+			<textarea
+				class="svk-paste"
+				bind:value={svkPaste}
+				placeholder="Paste rows from https://portal.slovaksteeldarts.sk/licencie here…"
+				rows="6"
+				aria-label="SVK licence list paste area"
+			></textarea>
+			<div class="row">
+				<button type="button" class="btn primary" disabled={svkImporting || !svkPaste} onclick={doImportSVK}>
+					{svkImporting ? 'Importing…' : 'Import'}
+				</button>
+				<button type="button" class="btn ghost" disabled={!svkStats.count} onclick={doClearSVK}>
+					Clear cache
+				</button>
+				<span class="muted svk-stats">
+					{svkStats.count} player{svkStats.count === 1 ? '' : 's'} in cache
+					{#if svkStats.lastImportedAt}
+						· last import {new Date(svkStats.lastImportedAt).toLocaleString()}
+					{/if}
+				</span>
+			</div>
+			{#if svkMessage}
+				<p class="hint svk-msg">{svkMessage}</p>
+			{/if}
+
+			{#if svkStats.count > 0}
+				<details class="svk-preview">
+					<summary>Test search ({svkStats.count} cached)</summary>
+					<input
+						type="text"
+						bind:value={svkPreviewQuery}
+						oninput={onSVKPreviewInput}
+						placeholder="Type a name, e.g. 'Novák' or 'Ján Nov'"
+						aria-label="SVK cache search preview"
+					/>
+					{#if svkPreviewResults.length > 0}
+						<ul class="svk-list">
+							{#each svkPreviewResults as r (r.svkId || `${r.surname}-${r.firstName}`)}
+								<li>
+									<strong>{r.surname} {r.firstName}</strong>
+									{#if r.town}<span class="muted"> · {r.town}</span>{/if}
+									{#if r.club}<span class="muted"> · {r.club}</span>{/if}
+									{#if r.svkId}<span class="muted svk-id"> · #{r.svkId}</span>{/if}
+								</li>
+							{/each}
+						</ul>
+					{:else if svkPreviewQuery.trim()}
+						<p class="hint">No matches for "{svkPreviewQuery}".</p>
+					{/if}
+				</details>
+			{/if}
+		</section>
+
 		<section class="settings-section danger-zone">
 			<h2>Data</h2>
 			<button class="btn danger" onclick={clearLocalData}>Clear all local data</button>
@@ -209,5 +334,74 @@
 	.danger-zone .btn.danger { width: 100%; }
 @container app (min-width: 480px) {
 		.danger-zone .btn.danger { width: auto; }
+	}
+
+	/* SVK import section */
+	.svk-paste {
+		width: 100%;
+		min-height: 8rem;
+		background: var(--bg);
+		border: 1px solid var(--line);
+		border-radius: 10px;
+		padding: var(--space-sm);
+		color: var(--text);
+		font: inherit;
+		font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+		font-size: var(--text-sm);
+		resize: vertical;
+	}
+	.row {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-sm);
+		align-items: center;
+		margin: var(--space-sm) 0;
+	}
+	.svk-stats { font-size: var(--text-sm); }
+	.svk-msg { color: var(--accent); }
+	.svk-preview { margin-top: var(--space-sm); }
+	.svk-preview summary { cursor: pointer; color: var(--muted); }
+	.svk-preview input {
+		width: 100%;
+		margin: var(--space-sm) 0;
+		background: var(--bg);
+		border: 1px solid var(--line);
+		border-radius: 10px;
+		padding: var(--space-sm);
+		color: var(--text);
+		font: inherit;
+	}
+	.svk-list {
+		list-style: none;
+		padding: 0;
+		margin: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+	.svk-list li {
+		background: var(--surface);
+		border: 1px solid var(--line);
+		border-radius: 8px;
+		padding: 6px 10px;
+	}
+	.svk-id { font-size: var(--text-xs); }
+
+	/* TV / large viewports (60rem+). Bump up paste area, hit
+	   targets, and list padding so the form is comfortable to
+	   read from across the room. */
+	@container app (min-width: 60rem) {
+		.svk-paste {
+			min-height: 14rem;
+			font-size: var(--text-md);
+		}
+		.svk-list li {
+			padding: 14px 18px;
+			font-size: var(--text-md);
+		}
+		.svk-preview input {
+			min-height: 3rem;
+			font-size: var(--text-md);
+		}
 	}
 </style>
