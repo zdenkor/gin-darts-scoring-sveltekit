@@ -48,8 +48,15 @@
 					markDirty(`comp:${created.competition.id}`);
 				}
 			}
-			formOpen = false;
+			// The submit button reads 'Create and next phase' /
+			// 'Generate and next phase' — so after a successful
+			// create we jump straight to the detail page so
+			// the user can start the next phase (play matches,
+			// edit on the fly, etc.). refresh() is still
+			// called so the list view behind us stays current
+			// if the user navigates back.
 			await refresh();
+			await goto(`${base}/competitions/${created.competition.id}`);
 		} catch (e) {
 			formError = String(e?.message || e);
 		} finally {

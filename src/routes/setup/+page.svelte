@@ -235,7 +235,14 @@
 		align-items: center;
 		gap: clamp(0.4rem, 1.5cqi, 1rem);
 		margin-bottom: clamp(0.4rem, 1.5cqi, 1rem);
-		flex-wrap: wrap;
+		/* Players row: P label | name input | Bot ON/OFF | ✕
+		   (and the level <select> when bot is on, between
+		   the input and the toggle). The input is the only
+		   thing that grows; the toggle and the remove button
+		   stay compact on the right edge. We disabled
+		   flex-wrap so a long row never breaks the toggle
+		   away from its player. */
+		flex-wrap: nowrap;
 	}
 	.player-row.bot-row {
 		background: color-mix(in srgb, var(--accent) 10%, transparent);
@@ -248,6 +255,7 @@
 		color: var(--accent);
 		min-width: 2em;
 		font-size: clamp(1rem, 2cqi, 1.5rem);
+		flex: 0 0 auto;
 	}
 	.player-row input {
 		flex: 1 1 8em;
@@ -256,10 +264,25 @@
 		padding: clamp(0.4rem, 1.2cqi, 0.8rem);
 	}
 	.bot-level-select {
-		flex: 1 1 8em;
-		min-width: 0;
+		/* Compact, fixed-size select for the bot level
+		   picker. Sits between the name input and the
+		   Bot ON/OFF toggle. Background is opaque so the
+		   dropdown options are readable on dark theme. */
+		flex: 0 1 12em;
+		min-width: 8em;
+		max-width: 14em;
 		font-size: clamp(0.9rem, 1.8cqi, 1.4rem);
 		padding: clamp(0.4rem, 1.2cqi, 0.8rem);
+		background: var(--bg, #1a1f2b);
+		color: var(--text, #e6ebf2);
+		border: 1px solid var(--line, #2c3343);
+		border-radius: var(--radius, 8px);
+	}
+	.bot-toggle-btn {
+		/* Stay on the right edge, never shrink, never
+		   wrap onto a second line. */
+		flex: 0 0 auto;
+		white-space: nowrap;
 	}
 	.add-btn {
 		width: 100%;

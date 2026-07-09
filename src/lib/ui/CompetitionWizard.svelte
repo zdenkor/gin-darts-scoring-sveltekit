@@ -36,12 +36,26 @@
 	// Two-way navigation: the tab nav at the top AND
 	// next/previous buttons under the panel both move
 	// activeTab. The disabled state is derived so the
-	// buttons can't run off either end.
+	// buttons can't run off either end. We also scroll the
+	// wizard to the top on each tab change so the user
+	// lands on the section header, not wherever the
+	// previous tab left their scroll position.
 	function next() {
-		if (activeTab < visibleTabs.length - 1) activeTab++;
+		if (activeTab < visibleTabs.length - 1) {
+			activeTab++;
+			scrollToTop();
+		}
 	}
 	function prev() {
-		if (activeTab > 0) activeTab--;
+		if (activeTab > 0) {
+			activeTab--;
+			scrollToTop();
+		}
+	}
+	function scrollToTop() {
+		const el = document.querySelector('.wizard-card') || document.querySelector('.wizard');
+		if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+		else window.scrollTo({ top: 0, behavior: 'smooth' });
 	}
 
 	// Which tabs to render. Watch only shows 4+5; league only on
@@ -82,7 +96,7 @@
 				class:active={activeTab === i}
 				class:disabled={mode === 'watch' && (tab.key === 'live' || tab.key === 'finalization') ? false : false}
 				type="button"
-				onclick={() => (activeTab = i)}
+				onclick={() => { activeTab = i; scrollToTop(); }}
 			>
 				<span class="wizard-tab-num">{i + 1}</span>
 				<span class="wizard-tab-label">{tab.label}</span>
@@ -108,27 +122,29 @@
 	</div>
 
 	<div class="wizard-nav">
-		<button
-			type="button"
-			class="btn ghost"
-			onclick={prev}
-			disabled={activeTab === 0}
-			aria-label="Previous section"
-		>
-			← Previous
-		</button>
+		{#if activeTab > 0}
+			<button
+				type="button"
+				class="btn ghost"
+				onclick={prev}
+				aria-label="Previous section"
+			>
+				← Previous
+			</button>
+		{/if}
 		<span class="wizard-position muted small">
 			{activeTab + 1} / {visibleTabs.length}
 		</span>
-		<button
-			type="button"
-			class="btn ghost"
-			onclick={next}
-			disabled={activeTab >= visibleTabs.length - 1}
-			aria-label="Next section"
-		>
-			Next →
-		</button>
+		{#if activeTab < visibleTabs.length - 1}
+			<button
+				type="button"
+				class="btn ghost"
+				onclick={next}
+				aria-label="Next section"
+			>
+				Next →
+			</button>
+		{/if}
 	</div>
 </div>
 

@@ -495,15 +495,15 @@
 							<thead>
 								<tr>
 									<th></th>
-									{#each previewGroupAssignments[previewGroupTab] as _s, j (j)}
-										<th class="col-head">P{j + 1}</th>
+									{#each previewGroupAssignments[previewGroupTab] as name, j (j)}
+										<th class="col-head">{name || `P${j + 1}`}</th>
 									{/each}
 								</tr>
 							</thead>
 							<tbody>
-								{#each previewGroupAssignments[previewGroupTab] as _row, i (i)}
+								{#each previewGroupAssignments[previewGroupTab] as rowName, i (i)}
 									<tr>
-										<th class="row-head">P{i + 1}</th>
+										<th class="row-head">{rowName || `P${i + 1}`}</th>
 										{#each previewGroupAssignments[previewGroupTab] as _col, j (j)}
 											<td class:diag={i === j}>
 												{#if i === j}—{:else}{previewMatchMap[`${i}-${j}`] ?? '·'}{/if}
@@ -529,7 +529,7 @@
 
 			<div class="form-actions">
 				<button class="btn primary" type="submit" disabled={saving}>
-					{saving ? 'Saving…' : (submitLabel || (mode === 'edit' ? (canGenerateBracket ? 'Save & rebuild bracket' : 'Save changes') : (canGenerateBracket ? 'Generate bracket' : 'Create competition')))}
+					{saving ? 'Saving…' : (submitLabel || (mode === 'edit' ? (canGenerateBracket ? 'Save & rebuild bracket' : 'Save changes') : (canGenerateBracket ? 'Generate and next phase' : 'Create and next phase')))}
 				</button>
 				<button class="btn ghost" type="button" onclick={onCancel} disabled={saving}>
 					Cancel
