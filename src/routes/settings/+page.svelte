@@ -120,7 +120,7 @@
 	}
 </script>
 
-<div class="screen">
+<div class="screen scrollable">
 	<form class="card" onsubmit={(e) => { e.preventDefault(); save(); }}>
 		<div class="card-header">
 			<h1>Settings</h1>

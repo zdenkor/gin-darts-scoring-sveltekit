@@ -63,6 +63,13 @@
 		await refresh();
 	}
 
+	function back() {
+		// The list view sits one level up; navigate home so
+		// the user lands on the main menu (or wherever the
+		// user came from).
+		goto(`${base}/`);
+	}
+
 	function badgeColor(status) {
 		if (status === 'active') return 'var(--accent)';
 		if (status === 'upcoming') return 'var(--warn, #e8b923)';

@@ -114,7 +114,7 @@
 	const showWelcome = $derived(newGame && !loading && history.length === 0);
 </script>
 
-<div class="screen">
+<div class="screen scrollable">
 	<div class="card">
 		<div class="card-header">
 			<h1>Statistics</h1>
