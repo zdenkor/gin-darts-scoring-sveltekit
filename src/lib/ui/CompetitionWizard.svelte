@@ -25,13 +25,24 @@
 	let { mode = 'create', competition = $bindable(/** @type {any} */ (null)), matches = $bindable(/** @type {any[]} */ ([])), standings = $bindable(/** @type {any[]} */ ([])), activeTab = $bindable(0) } = $props();
 
 	const TABS = [
-		{ key: 'setup', label: 'Tournament Setup', en: 'Tournament_Setup' },
+		{ key: 'setup', label: 'Competition Setup', en: 'Competition_Setup' },
 		{ key: 'registration', label: 'Registration', en: 'Registration' },
 		{ key: 'seeding', label: 'Seeding & Draw', en: 'Seeding_And_Draw' },
 		{ key: 'live', label: 'Live Tournament', en: 'Live_Tournament' },
 		{ key: 'finalization', label: 'Finalization', en: 'Tournament_Finalization' },
 		{ key: 'league', label: 'League Update', en: 'League_Update' }
 	];
+
+	// Two-way navigation: the tab nav at the top AND
+	// next/previous buttons under the panel both move
+	// activeTab. The disabled state is derived so the
+	// buttons can't run off either end.
+	function next() {
+		if (activeTab < visibleTabs.length - 1) activeTab++;
+	}
+	function prev() {
+		if (activeTab > 0) activeTab--;
+	}
 
 	// Which tabs to render. Watch only shows 4+5; league only on
 	// competitions of type 'league'.
@@ -95,6 +106,30 @@
 			<slot name="league" />
 		{/if}
 	</div>
+
+	<div class="wizard-nav">
+		<button
+			type="button"
+			class="btn ghost"
+			onclick={prev}
+			disabled={activeTab === 0}
+			aria-label="Previous section"
+		>
+			← Previous
+		</button>
+		<span class="wizard-position muted small">
+			{activeTab + 1} / {visibleTabs.length}
+		</span>
+		<button
+			type="button"
+			class="btn ghost"
+			onclick={next}
+			disabled={activeTab >= visibleTabs.length - 1}
+			aria-label="Next section"
+		>
+			Next →
+		</button>
+	</div>
 </div>
 
 <style>
@@ -150,6 +185,17 @@
 	}
 	.wizard-panel {
 		min-height: 12rem;
+	}
+	.wizard-nav {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--space-md);
+		padding-top: var(--space-sm);
+		border-top: 1px solid var(--line);
+	}
+	.wizard-nav .wizard-position {
+		flex: 0 0 auto;
 	}
 	@container app (min-width: 60rem) {
 		.wizard-tab {
