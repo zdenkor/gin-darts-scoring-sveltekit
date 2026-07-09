@@ -12,6 +12,7 @@
 	import { isSignedIn } from '$lib/auth/google.js';
 	import { pushCompetition, markDirty } from '$lib/auth/sync.js';
 	import { searchSVKCache } from '$lib/auth/svk.js';
+	import CompetitionWizard from '$lib/ui/CompetitionWizard.svelte';
 	import {
 		buildSingleMatch,
 		buildTournament,
@@ -72,6 +73,11 @@
 	let formNotes = $state('');
 	let formPlayers = $state([{ id: 0, name: 'Gin' }, { id: 1, name: 'Alex' }]);
 	let formError = $state('');
+	// Wizard plumbing. activeTab is 0..5; matches is empty in
+	// create mode (the bracket gets generated on submit, then
+	// the matches list is loaded by the list view).
+	let formTab = $state(0);
+	let formMatches = $state(/** @type {any[]} */ ([]));
 	// SVK search state. The picker shows a search input that hits
 	// the local svk_players IDB cache; clicking a result appends
 	// a new player row to formPlayers. 250ms debounce keeps the
@@ -369,168 +375,180 @@
 
 		{#if formOpen}
 			<form class="form" onsubmit={(e) => { e.preventDefault(); submitForm(); }}>
-				<h2>New competition</h2>
-				{#if formError}
-					<p class="error">{formError}</p>
-				{/if}
-
-				<div class="grid-2">
-					<label class="field">
-						<span>Name</span>
-						<input type="text" bind:value={formName} placeholder="League or tournament name" required />
-					</label>
-					<label class="field">
-						<span>Season</span>
-						<input type="text" bind:value={formSeason} placeholder="2026" />
-					</label>
-				</div>
-
-				<div class="grid-3">
-					<label class="field">
-						<span>Type</span>
-						<select bind:value={formType}>
-							{#each COMP_TYPES as opt}<option value={opt.value}>{opt.label}</option>{/each}
-						</select>
-					</label>
-					<label class="field">
-						<span>Participants</span>
-						<select bind:value={formParticipantFormat}>
-							{#each PARTICIPANT_FORMATS as opt}<option value={opt.value}>{opt.label}</option>{/each}
-						</select>
-					</label>
-					<label class="field">
-						<span>Format</span>
-						<select bind:value={formEliminationFormat}>
-							{#each ELIMINATION_FORMATS as opt}<option value={opt.value}>{opt.label}</option>{/each}
-						</select>
-					</label>
-				</div>
-
-				{#if formEliminationFormat === 'round robin' || formEliminationFormat === 'round robin knockout' || formEliminationFormat === 'double round robin'}
-					<div class="grid-2">
-						<label class="field">
-							<span>Groups</span>
-							<input type="number" min="1" max="8" bind:value={formGroups} />
-						</label>
-						<label class="field">
-							<span>Advance per group</span>
-							<input type="number" min="1" max="4" bind:value={formAdvancePerGroup} />
-						</label>
-					</div>
-				{:else}
-					<label class="field">
-						<span>Seeding</span>
-						<select bind:value={formSeeding}>
-							{#each SEEDINGS as opt}<option value={opt.value}>{opt.label}</option>{/each}
-						</select>
-					</label>
-				{/if}
-
-				<h3>Game rules</h3>
-				<div class="grid-3">
-					<label class="field">
-						<span>Game mode</span>
-						<select bind:value={formGameMode}>
-							<option value="x01">x01</option>
-						</select>
-					</label>
-					<label class="field">
-						<span>Start score</span>
-						<select bind:value={formStart}>
-							{#each START_OPTIONS as opt}<option value={opt}>{opt}</option>{/each}
-						</select>
-					</label>
-					<label class="field">
-						<span>Out rule</span>
-						<select bind:value={formOutRule}>
-							{#each Object.entries(X01_OUT_OPTIONS) as [key, opt]}<option value={key}>{opt.label}</option>{/each}
-						</select>
-					</label>
-				</div>
-				<div class="grid-2">
-					<label class="field">
-						<span>Legs to win</span>
-						<input type="number" min="1" max="99" bind:value={formLegsToWin} />
-					</label>
-					<label class="field">
-						<span>Sets to win</span>
-						<input type="number" min="1" max="99" bind:value={formSetsToWin} />
-					</label>
-				</div>
-
-				<h3>Players</h3>
-				<div class="players">
-					{#each formPlayers as p, i (p.id)}
-						<div class="player-row">
-							<span class="player-num">P{i + 1}</span>
-							<input
-								type="text"
-								value={p.name}
-								oninput={(e) => updatePlayerName(i, e.currentTarget.value)}
-								placeholder={`Player ${i + 1}`}
-							/>
-							{#if formPlayers.length > 2}
-								<button class="btn ghost" type="button" onclick={() => removePlayer(i)} aria-label="Remove player">✕</button>
-							{/if}
-						</div>
-					{/each}
-					{#if formPlayers.length < 16}
-						<button class="btn ghost add-btn" type="button" onclick={addPlayer}>+ Add player</button>
-					{/if}
-
-					<div class="svk-picker">
-						<label class="svk-picker-label" for="svk-picker-input">
-							🔍 Search SVK cache
-						</label>
-						<input
-							id="svk-picker-input"
-							type="text"
-							class="svk-picker-input"
-							bind:value={svkPickerQuery}
-							oninput={onSVKPickerInput}
-							placeholder="Type a name, e.g. 'Novák' or 'Ján Nov'"
-							autocomplete="off"
-						/>
-						{#if svkPickerResults.length > 0}
-							<ul class="svk-picker-list">
-								{#each svkPickerResults as r (r.svkId || `${r.surname}-${r.firstName}`)}
-									<li>
-										<button
-											type="button"
-											class="svk-picker-item"
-											onclick={() => addSVKPlayer(r)}
-											aria-label="Add {r.surname} {r.firstName} to competition"
-										>
-											<span class="svk-picker-main">
-												<strong>{r.surname} {r.firstName}</strong>
-												{#if r.svkId}<span class="muted svk-id"> · #{r.svkId}</span>{/if}
-											</span>
-											{#if r.town || r.club}
-												<span class="muted svk-picker-sub">
-													{#if r.town}{r.town}{/if}
-													{#if r.town && r.club} · {/if}
-													{#if r.club}{r.club}{/if}
-												</span>
-											{/if}
-										</button>
-									</li>
-								{/each}
-								</ul>
-								{:else if svkPickerQuery.trim()}
-							<p class="hint svk-picker-empty">No SVK matches. Add the player manually above.</p>
+				<CompetitionWizard mode="create" bind:competition={formType} bind:matches={formMatches} bind:activeTab={formTab}>
+					<svelte:fragment slot="setup">
+						{#if formError}
+							<p class="error">{formError}</p>
 						{/if}
-					</div>
-				</div>
+						<div class="grid-2">
+							<label class="field">
+								<span>Name</span>
+								<input type="text" bind:value={formName} placeholder="League or tournament name" required />
+							</label>
+							<label class="field">
+								<span>Season</span>
+								<input type="text" bind:value={formSeason} placeholder="2026" />
+							</label>
+						</div>
 
-				<label class="field">
-					<span>Notes (optional)</span>
-					<textarea rows="2" bind:value={formNotes} placeholder="Anything to remember about this competition"></textarea>
-				</label>
+						<div class="grid-3">
+							<label class="field">
+								<span>Type</span>
+								<select bind:value={formType}>
+									{#each COMP_TYPES as opt}<option value={opt.value}>{opt.label}</option>{/each}
+								</select>
+							</label>
+							<label class="field">
+								<span>Participants</span>
+								<select bind:value={formParticipantFormat}>
+									{#each PARTICIPANT_FORMATS as opt}<option value={opt.value}>{opt.label}</option>{/each}
+								</select>
+							</label>
+							<label class="field">
+								<span>Format</span>
+								<select bind:value={formEliminationFormat}>
+									{#each ELIMINATION_FORMATS as opt}<option value={opt.value}>{opt.label}</option>{/each}
+								</select>
+							</label>
+						</div>
 
-				<div class="form-actions">
-					<button class="btn primary" type="submit">Create</button>
-					<button class="btn ghost" type="button" onclick={() => { formOpen = false; formError = ''; }}>Cancel</button>
-				</div>
+						<h3>Game rules</h3>
+						<div class="grid-3">
+							<label class="field">
+								<span>Game mode</span>
+								<select bind:value={formGameMode}>
+									<option value="x01">x01</option>
+								</select>
+							</label>
+							<label class="field">
+								<span>Start score</span>
+								<select bind:value={formStart}>
+									{#each START_OPTIONS as opt}<option value={opt}>{opt}</option>{/each}
+								</select>
+							</label>
+							<label class="field">
+								<span>Out rule</span>
+								<select bind:value={formOutRule}>
+									{#each Object.entries(X01_OUT_OPTIONS) as [key, opt]}<option value={key}>{opt.label}</option>{/each}
+								</select>
+							</label>
+						</div>
+						<div class="grid-2">
+							<label class="field">
+								<span>Legs to win</span>
+								<input type="number" min="1" max="99" bind:value={formLegsToWin} />
+							</label>
+							<label class="field">
+								<span>Sets to win</span>
+								<input type="number" min="1" max="99" bind:value={formSetsToWin} />
+							</label>
+						</div>
+
+						<label class="field">
+							<span>Notes (optional)</span>
+							<textarea rows="2" bind:value={formNotes} placeholder="Anything to remember about this competition"></textarea>
+						</label>
+					</svelte:fragment>
+
+					<svelte:fragment slot="registration">
+						<h3>Players</h3>
+						<div class="players">
+							{#each formPlayers as p, i (p.id)}
+								<div class="player-row">
+									<span class="player-num">P{i + 1}</span>
+									<input
+										type="text"
+										value={p.name}
+										oninput={(e) => updatePlayerName(i, e.currentTarget.value)}
+										placeholder={`Player ${i + 1}`}
+									/>
+									{#if formPlayers.length > 2}
+										<button class="btn ghost" type="button" onclick={() => removePlayer(i)} aria-label="Remove player">✕</button>
+									{/if}
+								</div>
+							{/each}
+							{#if formPlayers.length < 16}
+								<button class="btn ghost add-btn" type="button" onclick={addPlayer}>+ Add player</button>
+							{/if}
+
+							<div class="svk-picker">
+								<label class="svk-picker-label" for="svk-picker-input">
+									🔍 Search SVK cache
+								</label>
+								<input
+									id="svk-picker-input"
+									type="text"
+									class="svk-picker-input"
+									bind:value={svkPickerQuery}
+									oninput={onSVKPickerInput}
+									placeholder="Type a name, e.g. 'Novák' or 'Ján Nov'"
+									autocomplete="off"
+								/>
+								{#if svkPickerResults.length > 0}
+									<ul class="svk-picker-list">
+										{#each svkPickerResults as r (r.svkId || `${r.surname}-${r.firstName}`)}
+											<li>
+												<button
+													type="button"
+													class="svk-picker-item"
+													onclick={() => addSVKPlayer(r)}
+													aria-label="Add {r.surname} {r.firstName} to competition"
+												>
+													<span class="svk-picker-main">
+														<strong>{r.surname} {r.firstName}</strong>
+														{#if r.svkId}<span class="muted svk-id"> · #{r.svkId}</span>{/if}
+													</span>
+													{#if r.town || r.club}
+														<span class="muted svk-picker-sub">
+															{#if r.town}{r.town}{/if}
+															{#if r.town && r.club} · {/if}
+															{#if r.club}{r.club}{/if}
+														</span>
+													{/if}
+												</button>
+											</li>
+										{/each}
+									</ul>
+								{:else if svkPickerQuery.trim()}
+									<p class="hint svk-picker-empty">No SVK matches. Add the player manually above.</p>
+								{/if}
+							</div>
+						</div>
+					</svelte:fragment>
+
+					<svelte:fragment slot="seeding">
+						{#if formEliminationFormat === 'round robin' || formEliminationFormat === 'round robin knockout' || formEliminationFormat === 'double round robin'}
+							<h3>Group seeding</h3>
+							<div class="grid-2">
+								<label class="field">
+									<span>Groups</span>
+									<input type="number" min="1" max="8" bind:value={formGroups} />
+								</label>
+								<label class="field">
+									<span>Advance per group</span>
+									<input type="number" min="1" max="4" bind:value={formAdvancePerGroup} />
+								</label>
+							</div>
+							<p class="hint">
+								With <strong>advance = 1</strong> the engine generates a pure round-robin (no knockouts).
+								With higher values a knockout stage is added after the group stage.
+							</p>
+						{:else}
+							<h3>Tournament seeding</h3>
+							<label class="field">
+								<span>Seeding</span>
+								<select bind:value={formSeeding}>
+									{#each SEEDINGS as opt}<option value={opt.value}>{opt.label}</option>{/each}
+								</select>
+							</label>
+						{/if}
+
+						<div class="form-actions">
+							<button class="btn primary" type="submit">Generate bracket</button>
+							<button class="btn ghost" type="button" onclick={() => { formOpen = false; formError = ''; }}>Cancel</button>
+						</div>
+					</svelte:fragment>
+				</CompetitionWizard>
 			</form>
 		{/if}
 	</div>
