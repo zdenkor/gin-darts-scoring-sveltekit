@@ -151,6 +151,40 @@
 	let previewKOMatches = $derived(previewAdvanceCount >= 2 ? Math.max(0, previewKOSize - 1) : 0);
 	let previewTotalMatches = $derived(previewTotalGroupPairs + previewKOMatches);
 
+	// Match sequence map for the preview matrix. Engine
+	// generates matches in the standard round-robin order
+	// (i=0..n, j=i+1..n), so pair (i, j) in the matrix gets
+	// the cumulative index from that loop. We compute the
+	// same ordering here so the cell number matches the
+	// actual match number the engine will assign. The
+	// matrix is symmetric — cell (i, j) and (j, i) show the
+	// same number.
+	let previewMatchMap = $derived.by(() => {
+		const g = previewGroupAssignments[previewGroupTab] || [];
+		const map = {};
+		let seq = 0;
+		for (let i = 0; i < g.length; i++) {
+			for (let j = i + 1; j < g.length; j++) {
+				seq++;
+				map[`${i}-${j}`] = seq;
+				map[`${j}-${i}`] = seq;
+			}
+		}
+		return map;
+	});
+
+	// True when the chosen format includes a knockout
+	// stage that the user is generating up-front. Pure
+	// round-robin (advance = 1) and double round-robin
+	// without KO have no bracket to build — the matches
+	// list is the whole schedule. Single/double elim and
+	// round-robin + KO do have a bracket.
+	let canGenerateBracket = $derived(
+		formAdvancePerGroup > 1 ||
+		formEliminationFormat === 'single elimination' ||
+		formEliminationFormat === 'double elimination'
+	);
+
 	// ---- Player + SVK picker helpers (same as 0.3.6 create page) ----
 	let svkPickerQuery = $state('');
 	let svkPickerResults = $state(/** @type {any[]} */ ([]));
@@ -472,7 +506,7 @@
 										<th class="row-head">P{i + 1}</th>
 										{#each previewGroupAssignments[previewGroupTab] as _col, j (j)}
 											<td class:diag={i === j}>
-												{#if i === j}—{:else}{previewGroupAssignments[previewGroupTab][i] || '?'} vs {previewGroupAssignments[previewGroupTab][j] || '?'}{/if}
+												{#if i === j}—{:else}{previewMatchMap[`${i}-${j}`] ?? '·'}{/if}
 											</td>
 										{/each}
 									</tr>
@@ -495,7 +529,7 @@
 
 			<div class="form-actions">
 				<button class="btn primary" type="submit" disabled={saving}>
-					{saving ? 'Saving…' : (submitLabel || (mode === 'edit' ? 'Save changes' : 'Generate bracket'))}
+					{saving ? 'Saving…' : (submitLabel || (mode === 'edit' ? (canGenerateBracket ? 'Save & rebuild bracket' : 'Save changes') : (canGenerateBracket ? 'Generate bracket' : 'Create competition')))}
 				</button>
 				<button class="btn ghost" type="button" onclick={onCancel} disabled={saving}>
 					Cancel
