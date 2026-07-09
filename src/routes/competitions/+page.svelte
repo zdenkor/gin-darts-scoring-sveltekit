@@ -55,9 +55,9 @@
 	// Form state. Defaults are picked so the form is immediately
 	// useful for the most common case (x01, single elim, doubles).
 	let formName = $state('');
-	let formType = $state('tournament');
+	let formType = $state('league');
 	let formParticipantFormat = $state('singles');
-	let formEliminationFormat = $state('single elimination');
+	let formEliminationFormat = $state('round robin');
 	let formSeeding = $state('ordered');
 	let formGroups = $state(1);
 	let formAdvancePerGroup = $state(1);
@@ -163,9 +163,9 @@
 
 	function resetForm() {
 		formName = '';
-		formType = 'tournament';
+		formType = 'league';
 		formParticipantFormat = 'singles';
-		formEliminationFormat = 'single elimination';
+		formEliminationFormat = 'round robin';
 		formSeeding = 'ordered';
 		formGroups = 1;
 		formAdvancePerGroup = 1;
