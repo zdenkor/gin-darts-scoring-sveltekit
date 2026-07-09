@@ -5,9 +5,22 @@
 	import { onMount } from 'svelte';
 	import { getCompetition, listMatches, updateMatch } from '$lib/db/competitions.js';
 	import { completeMatch } from '$lib/competition/engine.js';
+	import Bracket from '$lib/ui/Bracket.svelte';
 
 	let competition = $state(/** @type {any} */ (null));
 	let matches = $state(/** @type {any[]} */ ([]));
+	// Match display mode. 'list' is the default (rows with
+	// Play / P1 wins / P2 wins buttons). 'bracket' is the
+	// graphical horizontal view from Bracket.svelte. We
+	// only show the toggle for elimination formats; for
+	// round-robin the bracket is meaningless so we keep
+	// 'list' only.
+	let matchViewMode = $state('list');
+	let canUseBracket = $derived(
+		competition &&
+			(competition.format === 'single elimination' ||
+				competition.format === 'double elimination')
+	);
 	let loading = $state(true);
 	let error = $state('');
 
@@ -193,9 +206,32 @@
 			{/if}
 
 			<section class="rule">
-				<h2>Matches ({matches.length})</h2>
+				<div class="matches-header">
+					<h2>Matches ({matches.length})</h2>
+					{#if canUseBracket}
+						<div class="view-toggle" role="tablist" aria-label="Match view">
+							<button
+								type="button"
+								role="tab"
+								aria-selected={matchViewMode === 'list'}
+								class:active={matchViewMode === 'list'}
+								onclick={() => (matchViewMode = 'list')}
+							>List</button>
+							<button
+								type="button"
+								role="tab"
+								aria-selected={matchViewMode === 'bracket'}
+								class:active={matchViewMode === 'bracket'}
+								onclick={() => (matchViewMode = 'bracket')}
+							>Bracket</button>
+						</div>
+					{/if}
+				</div>
+
 				{#if matches.length === 0}
 					<p class="muted">No matches in this competition yet.</p>
+				{:else if matchViewMode === 'bracket' && canUseBracket}
+					<Bracket {matches} {competition} />
 				{:else}
 					{#each groupedMatches() as group (group.key)}
 						{#if group.label !== 'Matches'}
@@ -326,6 +362,38 @@
 		padding: var(--space-sm) var(--space-md);
 	}
 	.group-head { margin: var(--space-sm) 0 4px; }
+	.matches-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--space-md);
+		margin-bottom: var(--space-sm);
+	}
+	.matches-header h2 { margin: 0; }
+	.view-toggle {
+		display: inline-flex;
+		border: 1px solid var(--line);
+		border-radius: 999px;
+		padding: 2px;
+		gap: 2px;
+	}
+	.view-toggle button {
+		background: transparent;
+		border: none;
+		border-radius: 999px;
+		padding: 4px 12px;
+		color: var(--muted);
+		font: inherit;
+		cursor: pointer;
+	}
+	.view-toggle button.active {
+		background: var(--surface);
+		color: var(--text);
+	}
+	.view-toggle button:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
+	}
 	.match-list {
 		display: flex;
 		flex-direction: column;

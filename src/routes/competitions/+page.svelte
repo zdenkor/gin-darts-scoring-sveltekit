@@ -78,6 +78,50 @@
 	// the matches list is loaded by the list view).
 	let formTab = $state(0);
 	let formMatches = $state(/** @type {any[]} */ ([]));
+	let previewGroupTab = $state(0);
+
+	// Round-robin distribution of formPlayers into formGroups
+	// buckets, mirroring the engine's snake-free distribution
+	// (player i goes to bucket i % groups). Used by the live
+	// preview matrix in the Seeding tab.
+	let previewGroupAssignments = $derived.by(() => {
+		const g = Math.max(1, Number(formGroups) || 1);
+		const names = formPlayers.map(p => p.name.trim()).filter(Boolean);
+		const buckets = Array.from({ length: g }, () => []);
+		names.forEach((p, i) => buckets[i % g].push(p));
+		return buckets;
+	});
+
+	let previewAdvanceCount = $derived(
+		Math.max(1, Number(formAdvancePerGroup) || 1) * Math.max(1, Number(formGroups) || 1)
+	);
+
+	let previewKOSize = $derived.by(() => {
+		let p = 1;
+		while (p < previewAdvanceCount) p *= 2;
+		return p;
+	});
+
+	let previewGroupPairs = $derived.by(() => {
+		const group = previewGroupAssignments[previewGroupTab] || [];
+		const out = [];
+		for (let i = 0; i < group.length; i++) {
+			for (let j = i + 1; j < group.length; j++) {
+				out.push([group[i], group[j]]);
+			}
+		}
+		return out;
+	});
+
+	// Total matches preview = sum of round-robin pairs across
+	// all groups + knockout matches from the KO stage.
+	let previewTotalGroupPairs = $derived(
+		previewGroupAssignments.reduce((acc, g) => acc + Math.max(0, g.length * (g.length - 1) / 2), 0)
+	);
+	let previewKOMatches = $derived(
+		previewAdvanceCount >= 2 ? Math.max(0, previewKOSize - 1) : 0
+	);
+	let previewTotalMatches = $derived(previewTotalGroupPairs + previewKOMatches);
 	// SVK search state. The picker shows a search input that hits
 	// the local svk_players IDB cache; clicking a result appends
 	// a new player row to formPlayers. 250ms debounce keeps the
@@ -533,6 +577,63 @@
 								With <strong>advance = 1</strong> the engine generates a pure round-robin (no knockouts).
 								With higher values a knockout stage is added after the group stage.
 							</p>
+
+							<h3>Live preview</h3>
+							<p class="hint">
+								Players distribute round-robin into the groups (player {1} → Group 1, player {2} → Group 2, …).
+								Below: <strong>{previewTotalGroupPairs}</strong> group match{previewTotalGroupPairs === 1 ? '' : 'es'}
+								{#if previewKOMatches > 0}
+									+ <strong>{previewKOMatches}</strong> knockout match{previewKOMatches === 1 ? '' : 'es'}
+								{/if}
+								= <strong>{previewTotalMatches}</strong> total.
+							</p>
+
+							{#if previewGroupAssignments.length > 1}
+								<nav class="preview-group-tabs" role="tablist" aria-label="Group preview">
+									{#each previewGroupAssignments as _g, gi (gi)}
+										<button
+											type="button"
+											role="tab"
+											aria-selected={previewGroupTab === gi}
+											class="preview-group-tab"
+											class:active={previewGroupTab === gi}
+											onclick={() => (previewGroupTab = gi)}
+										>
+											Group {gi + 1}
+											<span class="muted small">({previewGroupAssignments[gi].length})</span>
+										</button>
+									{/each}
+								</nav>
+							{/if}
+
+							{#if previewGroupAssignments[previewGroupTab]?.length >= 2}
+								<div class="matrix-wrap">
+									<table class="matrix">
+										<thead>
+											<tr>
+												<th></th>
+												{#each previewGroupAssignments[previewGroupTab] as _s, j (j)}
+													<th class="col-head">P{j + 1}</th>
+												{/each}
+											</tr>
+										</thead>
+										<tbody>
+											{#each previewGroupAssignments[previewGroupTab] as _row, i (i)}
+												<tr>
+													<th class="row-head">P{i + 1}</th>
+													{#each previewGroupAssignments[previewGroupTab] as _col, j (j)}
+														<td class:diag={i === j}>
+															{#if i === j}—{:else}{previewGroupAssignments[previewGroupTab][i] || '?'} vs {previewGroupAssignments[previewGroupTab][j] || '?'}{/if}
+														</td>
+													{/each}
+												</tr>
+											{/each}
+										</tbody>
+									</table>
+								</div>
+							{:else}
+								<p class="hint">Add at least 2 players in the Registration tab to see the matrix.</p>
+							{/if}
 						{:else}
 							<h3>Tournament seeding</h3>
 							<label class="field">
@@ -716,6 +817,64 @@
 	}
 	.add-btn {
 		width: 100%;
+	}
+
+	/* Live preview matrix in the Create wizard. Read-only —
+	   shows the round-robin pairs that the engine will
+	   produce for the current groups / players state. The
+	   .matrix / .matrix-wrap rules are the same as the
+	   Edit page so the look matches. */
+	.preview-group-tabs {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-xs);
+		margin: var(--space-sm) 0;
+	}
+	.preview-group-tab {
+		background: transparent;
+		border: 1px solid var(--line);
+		border-radius: 999px;
+		padding: 4px 12px;
+		color: var(--muted);
+		font: inherit;
+		cursor: pointer;
+	}
+	.preview-group-tab.active {
+		background: var(--surface);
+		border-color: var(--accent);
+		color: var(--text);
+	}
+	.preview-group-tab:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
+	}
+	.matrix-wrap {
+		overflow-x: auto;
+		margin: var(--space-sm) 0 var(--space-md);
+	}
+	table.matrix {
+		border-collapse: separate;
+		border-spacing: 0;
+		font-size: var(--text-sm);
+	}
+	table.matrix th,
+	table.matrix td {
+		padding: 6px 10px;
+		border: 1px solid var(--line);
+		text-align: left;
+		white-space: nowrap;
+	}
+	table.matrix thead th { background: var(--surface); }
+	table.matrix .row-head,
+	table.matrix .col-head {
+		background: var(--surface);
+		color: var(--muted);
+		text-align: center;
+	}
+	table.matrix td.diag {
+		background: var(--surface-2, #2a2f3e);
+		color: var(--muted);
+		text-align: center;
 	}
 
 	/* SVK picker — search input + dropdown of matches below
