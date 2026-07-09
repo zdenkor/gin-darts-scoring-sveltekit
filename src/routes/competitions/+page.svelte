@@ -9,6 +9,8 @@
 		seedCompetitionsIfEmpty,
 		listMatches
 	} from '$lib/db/competitions.js';
+	import { isSignedIn } from '$lib/auth/google.js';
+	import { pushCompetition, markDirty } from '$lib/auth/sync.js';
 	import {
 		buildSingleMatch,
 		buildTournament,
@@ -193,7 +195,18 @@
 		formError = '';
 		const result = buildBracket();
 		if (!result) return;
-		await createCompetitionWithMatches(result.competition, result.matches);
+		const created = await createCompetitionWithMatches(result.competition, result.matches);
+		// Push to Drive if signed in. If push fails (offline,
+		// network error, signed out) we mark the competition
+		// dirty so a future sync sweep can retry.
+		if (await isSignedIn()) {
+			try {
+				await pushCompetition(created.competition, created.matches, []);
+			} catch (e) {
+				console.warn('Drive push on create failed', e);
+				markDirty(`comp:${created.competition.id}`);
+			}
+		}
 		formOpen = false;
 		resetForm();
 		await refresh();
