@@ -119,18 +119,32 @@
 			return;
 		}
 		svkPickerTimer = setTimeout(async () => {
-			const parts = q.split(/\s+/);
-			const surname = parts[0] || '';
-			const firstName = parts.slice(1).join(' ');
-			const results = await searchSVKCache({ surname, firstName });
-			// Hide rows that the user has already added, so the
-			// picker doesn't keep offering the same person twice.
+			// Mirror the vanilla picker: search every field, not
+			// just surname. The user can type "Brat", "Novák",
+			// "Topoľčianky" (club) or "12345" (svkId) and the
+			// matching rows show up.
+			const all = await (await import('$lib/db/idb.js')).getAll('svk_players');
+			const qL = q.toLowerCase();
+			let matches = all.filter(p =>
+				(p.surname || '').toLowerCase().includes(qL) ||
+				(p.firstName || '').toLowerCase().includes(qL) ||
+				(p.name || '').toLowerCase().includes(qL) ||
+				(p.town || '').toLowerCase().includes(qL) ||
+				(p.club || '').toLowerCase().includes(qL) ||
+				(p.svkId || '').toLowerCase().includes(qL)
+			);
+			matches.sort((a, b) =>
+				(a.surname || '').localeCompare(b.surname || '') ||
+				(a.firstName || '').localeCompare(b.firstName || '')
+			);
+			// Hide rows the user has already added so the picker
+			// doesn't keep offering the same person twice.
 			const taken = new Set(formPlayers.map(p => p.name.toLowerCase()));
-			svkPickerResults = results.filter(r => {
+			svkPickerResults = matches.filter(r => {
 				const fullName = `${r.surname} ${r.firstName}`.trim().toLowerCase();
 				return fullName && !taken.has(fullName);
-			}).slice(0, 8);
-		}, 250);
+			});
+		}, 200);
 	}
 
 	function addSVKPlayer(r) {
@@ -297,8 +311,56 @@
 							</span>
 						</div>
 						<div class="row-actions">
-							<a class="btn ghost" href="{base}/competitions/{c.id}">Open</a>
-							<button class="btn ghost danger" onclick={() => remove(c.id, c.name)}>Delete</button>
+							<a
+								class="icon-action"
+								href="{base}/competitions/{c.id}"
+								title="Open"
+								aria-label="Open {c.name}"
+							>
+								<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+									<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+									<circle cx="12" cy="12" r="3" />
+								</svg>
+							</a>
+							<button
+								type="button"
+								class="icon-action"
+								title="Edit"
+								aria-label="Edit {c.name}"
+								onclick={() => alert('Edit is not implemented yet.')}
+							>
+								<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+									<path d="M12 20h9" />
+									<path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+								</svg>
+							</button>
+							<button
+								type="button"
+								class="icon-action"
+								title="Watch"
+								aria-label="Watch {c.name}"
+								onclick={() => alert('Watch (live multiplayer) is not implemented yet.')}
+							>
+								<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+									<circle cx="12" cy="12" r="10" />
+									<circle cx="12" cy="12" r="3" fill="currentColor" />
+								</svg>
+							</button>
+							<button
+								type="button"
+								class="icon-action danger"
+								title="Delete"
+								aria-label="Delete {c.name}"
+								onclick={() => remove(c.id, c.name)}
+							>
+								<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+									<polyline points="3 6 5 6 21 6" />
+									<path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+									<path d="M10 11v6" />
+									<path d="M14 11v6" />
+									<path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+								</svg>
+							</button>
 						</div>
 					</div>
 				{/each}
@@ -441,14 +503,22 @@
 											onclick={() => addSVKPlayer(r)}
 											aria-label="Add {r.surname} {r.firstName} to competition"
 										>
-											<strong>{r.surname} {r.firstName}</strong>
-											{#if r.town}<span class="muted"> · {r.town}</span>{/if}
-											{#if r.club}<span class="muted"> · {r.club}</span>{/if}
+											<span class="svk-picker-main">
+												<strong>{r.surname} {r.firstName}</strong>
+												{#if r.svkId}<span class="muted svk-id"> · #{r.svkId}</span>{/if}
+											</span>
+											{#if r.town || r.club}
+												<span class="muted svk-picker-sub">
+													{#if r.town}{r.town}{/if}
+													{#if r.town && r.club} · {/if}
+													{#if r.club}{r.club}{/if}
+												</span>
+											{/if}
 										</button>
 									</li>
 								{/each}
-							</ul>
-						{:else if svkPickerQuery.trim()}
+								</ul>
+								{:else if svkPickerQuery.trim()}
 							<p class="hint svk-picker-empty">No SVK matches. Add the player manually above.</p>
 						{/if}
 					</div>
@@ -531,6 +601,34 @@
 		display: flex;
 		gap: var(--space-sm);
 		align-items: center;
+	}
+	.icon-action {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 2.4em;
+		height: 2.4em;
+		padding: 0;
+		background: transparent;
+		border: 1px solid var(--line);
+		border-radius: 10px;
+		color: var(--text);
+		cursor: pointer;
+		text-decoration: none;
+		transition: background 120ms ease, border-color 120ms ease;
+	}
+	.icon-action:hover {
+		background: var(--surface);
+		border-color: var(--accent);
+		color: var(--accent);
+	}
+	.icon-action:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
+	}
+	.icon-action.danger:hover {
+		border-color: var(--danger, #ff6b6b);
+		color: var(--danger, #ff6b6b);
 	}
 	.form {
 		margin-top: var(--space-md);
@@ -645,12 +743,17 @@
 		color: var(--text);
 		font: inherit;
 		cursor: pointer;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
 	}
 	.svk-picker-item:hover,
 	.svk-picker-item:focus-visible {
 		border-color: var(--accent);
 		outline: none;
 	}
+	.svk-picker-main { font-size: var(--text-md); }
+	.svk-picker-sub { font-size: var(--text-xs); }
 	.svk-picker-empty {
 		margin: var(--space-sm) 0 0;
 		color: var(--muted);

@@ -89,37 +89,13 @@ export async function updateMatch(match) {
 	return match;
 }
 
+// Previously this seeded two demo competitions ('Summer League
+// 2026' and 'Weekend Cup') when the store was empty. The user
+// found them confusing — they could not delete them because the
+// seed re-created them on every visit. The list now starts
+// empty; users create their own competitions via the form.
+// Kept as a no-op so the import in /competitions still works
+// (the call site still invokes it after every refresh).
 export async function seedCompetitionsIfEmpty() {
-	const existing = await listCompetitions();
-	if (existing.length > 0) return;
-	await createCompetition({
-		name: 'Summer League 2026',
-		type: 'league',
-		format: 'round robin',
-		eliminationFormat: 'round robin',
-		seeding: 'ordered',
-		status: 'active',
-		players: ['Gin', 'Alex', 'Bob'],
-		gameOpts: { start: 501, in: 'single', out: 'double' },
-		legsToWin: 1,
-		setsToWin: 1,
-		groups: 1,
-		advancePerGroup: 2,
-		season: 2026,
-		meta: { rounds: 10 }
-	});
-	await createCompetition({
-		name: 'Weekend Cup',
-		type: 'tournament',
-		format: 'single elimination',
-		eliminationFormat: 'single elimination',
-		seeding: 'ordered',
-		status: 'upcoming',
-		players: ['Gin', 'Alex'],
-		gameOpts: { start: 501, in: 'single', out: 'double' },
-		legsToWin: 1,
-		setsToWin: 1,
-		season: 2026,
-		meta: { bracketSize: 8 }
-	});
+	// intentionally empty
 }

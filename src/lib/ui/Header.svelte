@@ -67,22 +67,50 @@
 		text-align: left;
 	}
 	.brand img { width: 2em; height: 2em; }
-.icon { line-height: 1; }
-.icon-svg { display: inline-flex; align-items: center; justify-content: center; }
-.icon-svg :global(svg) { width: 1.1em; height: 1.1em; display: block; color: inherit; }
-.icon-img { width: 1.1em; height: 1.1em; display: block; }
-/* Tint the login / logout icons without editing the source SVGs
-   (they live in static/assets/ and are not committed from the
-   assistant side — see AGENTS.md). The base stroke in those
-   SVGs is #1C274C (dark navy). hue-rotate() rotates the hue
-   wheel so login ends up green (~120deg) and logout red
-   (~330deg). Brightness bumps the washed-out result back up. */
-.icon-img.icon-login {
-	filter: hue-rotate(110deg) saturate(1.4) brightness(1.15);
-}
-.icon-img.icon-logout {
-	filter: hue-rotate(320deg) saturate(1.6) brightness(1.1);
-}
+
+	/* Shared icon-button look (settings, admin, sign-in,
+	   sign-out). Without this the <a>/<button> fall back to
+	   the browser default which makes them look squashed next
+	   to the brand text and the user-pill. Mirrors
+	   GameToolbar.svelte's .icon-btn so the look is the same
+	   in the header and in the in-game toolbar. */
+	.icon-btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 2.4em;
+		height: 2.4em;
+		padding: 0;
+		background: transparent;
+		border: 1px solid transparent;
+		border-radius: 10px;
+		color: var(--text);
+		text-decoration: none;
+		cursor: pointer;
+		transition: background 120ms ease, border-color 120ms ease;
+	}
+	.icon-btn:hover { background: var(--surface); border-color: var(--line); }
+	.icon-btn:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
+	}
+
+	.icon { line-height: 1; }
+	.icon-svg { display: inline-flex; align-items: center; justify-content: center; }
+	.icon-svg :global(svg) { width: 1.4em; height: 1.4em; display: block; color: inherit; }
+	.icon-img { width: 1.4em; height: 1.4em; display: block; }
+	/* Tint the login / logout icons without editing the source SVGs
+	   (they live in static/assets/ and are not committed from the
+	   assistant side — see AGENTS.md). The base stroke in those
+	   SVGs is #1C274C (dark navy). hue-rotate() rotates the hue
+	   wheel so login ends up green (~120deg) and logout red
+	   (~330deg). Brightness bumps the washed-out result back up. */
+	.icon-img.icon-login {
+		filter: hue-rotate(110deg) saturate(1.4) brightness(1.15);
+	}
+	.icon-img.icon-logout {
+		filter: hue-rotate(320deg) saturate(1.6) brightness(1.1);
+	}
 	.brand-text h1 {
 		font-size: var(--text-md);
 		margin: 0;
