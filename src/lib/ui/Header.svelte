@@ -36,9 +36,9 @@
 				<a class="icon-btn" href="{base}/admin" title="Admin" aria-label="Admin"><span class="icon">🔒</span></a>
 			{/if}
 			<span class="user-pill">{displayName}</span>
-			<button class="icon-btn" type="button" onclick={signOut} title="Sign out" aria-label="Sign out"><img src="{base}/assets/logout.svg" alt="" class="icon icon-img" /></button>
+			<button class="icon-btn" type="button" onclick={signOut} title="Sign out" aria-label="Sign out"><img src="{base}/assets/logout.svg" alt="" class="icon icon-img icon-logout" /></button>
 		{:else}
-			<a class="icon-btn" href="{base}/login" title="Sign in" aria-label="Sign in"><img src="{base}/assets/login.svg" alt="" class="icon icon-img" /></a>
+			<a class="icon-btn" href="{base}/login" title="Sign in" aria-label="Sign in"><img src="{base}/assets/login.svg" alt="" class="icon icon-img icon-login" /></a>
 		{/if}
 	</nav>
 </header>
@@ -71,6 +71,18 @@
 .icon-svg { display: inline-flex; align-items: center; justify-content: center; }
 .icon-svg :global(svg) { width: 1.1em; height: 1.1em; display: block; color: inherit; }
 .icon-img { width: 1.1em; height: 1.1em; display: block; }
+/* Tint the login / logout icons without editing the source SVGs
+   (they live in static/assets/ and are not committed from the
+   assistant side — see AGENTS.md). The base stroke in those
+   SVGs is #1C274C (dark navy). hue-rotate() rotates the hue
+   wheel so login ends up green (~120deg) and logout red
+   (~330deg). Brightness bumps the washed-out result back up. */
+.icon-img.icon-login {
+	filter: hue-rotate(110deg) saturate(1.4) brightness(1.15);
+}
+.icon-img.icon-logout {
+	filter: hue-rotate(320deg) saturate(1.6) brightness(1.1);
+}
 	.brand-text h1 {
 		font-size: var(--text-md);
 		margin: 0;

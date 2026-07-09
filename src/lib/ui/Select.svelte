@@ -121,7 +121,11 @@
 	.sel-chev { color: var(--muted); font-size: 0.9em; }
 
 	/* Popup: positioned just under the trigger. On TV the viewport
-	   is huge so the popup itself caps at a comfortable width. */
+	   is huge so the popup itself caps at a comfortable width. The
+	   viewport max-height + overflow-y is what lets the picker
+	   scroll when there are more options than fit. The
+	   `min-width: var(--bits-anchor-width, 200px)` keeps the popup
+	   at least as wide as the trigger so it doesn't look squished. */
 	.sel-content {
 		background: var(--surface);
 		border: 1px solid var(--line);
@@ -129,7 +133,7 @@
 		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 		min-width: var(--bits-anchor-width, 200px);
 		max-width: 480px;
-		max-height: 60dvh;
+		max-height: min(60dvh, 480px);
 		overflow: hidden;
 		z-index: 1000;
 	}
@@ -138,8 +142,10 @@
 		flex-direction: column;
 		padding: 4px;
 		gap: 2px;
-		max-height: 60dvh;
+		max-height: min(60dvh, 480px);
 		overflow-y: auto;
+		overflow-x: hidden;
+		-webkit-overflow-scrolling: touch;
 	}
 
 	/* Each option: 48px min height on touch; on TV (large viewport)

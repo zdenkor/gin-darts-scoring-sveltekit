@@ -229,7 +229,7 @@
 	}
 </script>
 
-<div class="screen">
+<div class="screen scrollable">
 	<div class="card">
 		<div class="card-header">
 			<h1>Competitions</h1>
@@ -394,6 +394,18 @@
 </div>
 
 <style>
+	/* Override the global .screen / .screen.scrollable defaults so
+	   the form scrolls inside the page rather than getting clipped
+	   by the game-layout container in app.css. */
+	.screen {
+		min-height: 0;
+	}
+	.screen.scrollable {
+		overflow-y: auto;
+		overflow-x: hidden;
+		-webkit-overflow-scrolling: touch;
+		padding-bottom: clamp(2rem, 8cqi, 4rem);
+	}
 	.card-header {
 		display: flex;
 		justify-content: space-between;
