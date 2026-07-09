@@ -60,7 +60,7 @@
 	let formEliminationFormat = $state('single elimination');
 	let formSeeding = $state('ordered');
 	let formGroups = $state(1);
-	let formAdvancePerGroup = $state(2);
+	let formAdvancePerGroup = $state(1);
 	let formDoubleRoundRobin = $state(false);
 	let formGameMode = $state('x01');
 	let formStart = $state(501);
@@ -168,7 +168,7 @@
 		formEliminationFormat = 'single elimination';
 		formSeeding = 'ordered';
 		formGroups = 1;
-		formAdvancePerGroup = 2;
+		formAdvancePerGroup = 1;
 		formDoubleRoundRobin = false;
 		formGameMode = 'x01';
 		formStart = 501;
@@ -318,32 +318,30 @@
 								aria-label="Open {c.name}"
 							>
 								<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-									<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-									<circle cx="12" cy="12" r="3" />
+									<polygon points="6 4 20 12 6 20 6 4" fill="currentColor" />
 								</svg>
 							</a>
-							<button
-								type="button"
+							<a
 								class="icon-action"
+								href="{base}/competitions/{c.id}/edit"
 								title="Edit"
 								aria-label="Edit {c.name}"
-								onclick={() => alert('Edit is not implemented yet.')}
 							>
 								<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 									<path d="M12 20h9" />
 									<path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-								</svg>
-							</button>
-							<button
-								type="button"
-								class="icon-action"
-								title="Watch"
+									</svg>
+									</a>
+									<button
+									type="button"
+									class="icon-action"
+									title="Watch"
 								aria-label="Watch {c.name}"
-								onclick={() => alert('Watch (live multiplayer) is not implemented yet.')}
+								onclick={() => alert('Watch (live multiplayer) requires a backend server for real-time updates. Not implemented in this single-player build.')}
 							>
 								<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-									<circle cx="12" cy="12" r="10" />
-									<circle cx="12" cy="12" r="3" fill="currentColor" />
+									<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+									<circle cx="12" cy="12" r="3" />
 								</svg>
 							</button>
 							<button

@@ -70,6 +70,28 @@ export async function getCompetition(id) {
 	return get(STORE, id);
 }
 
+// Update an existing competition by id. The user changes the
+// rules / player list and we replace the record. Matches are
+// also rebuilt by the caller — we just leave the matches store
+// alone here. (The edit page will delete old matches and write
+// new ones via the same createCompetitionWithMatches helper
+// would need id rewrite; we do it inline below to keep the
+// contract simple.)
+export async function updateCompetition(/** @type {any} */ data) {
+	if (!data || !data.id) throw new Error('updateCompetition: id is required');
+	const existing = await get(STORE, data.id);
+	if (!existing) throw new Error(`Competition ${data.id} not found`);
+	const record = {
+		...existing,
+		...data,
+		id: existing.id,
+		createdAt: existing.createdAt,
+		updatedAt: Date.now(),
+	};
+	await put(STORE, record);
+	return record;
+}
+
 export async function listMatches(competitionId) {
 	return getAll(MATCH_STORE, 'competitionId', IDBKeyRange.only(competitionId));
 }
