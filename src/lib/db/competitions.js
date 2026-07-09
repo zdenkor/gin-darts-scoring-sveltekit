@@ -106,6 +106,52 @@ export async function deleteCompetition(id) {
 	await del(STORE, id);
 }
 
+// Replace one player name with another across the whole
+// competition: the player list, the group assignments, and
+// every match in the bracket. The user does this when a
+// registered player has to drop out and someone else
+// takes their slot — we don't rebuild the bracket, we
+// just patch the existing matches in place so that the
+// schedule doesn't reset.
+export async function replacePlayer(competitionId, oldName, newName) {
+	if (!oldName || !newName || oldName === newName) {
+		throw new Error('replacePlayer: oldName and newName must differ');
+	}
+	const competition = await get(STORE, competitionId);
+	if (!competition) throw new Error(`Competition ${competitionId} not found`);
+
+	// Update the player list and any group assignments.
+	const newPlayers = (competition.players || []).map(p => (p === oldName ? newName : p));
+	const newGroups = (competition.groupAssignments || []).map(g => g.map(p => (p === oldName ? newName : p)));
+	const updated = {
+		...competition,
+		players: newPlayers,
+		groupAssignments: newGroups,
+		updatedAt: Date.now()
+	};
+	await put(STORE, updated);
+
+	// Patch every match that referenced the old name. We
+	// re-evaluate winner: if the old name was the winner
+	// we switch the winner key (p1 / p2) to point at the
+	// new slot, so a complete match doesn't end up with
+	// the wrong player credited.
+	const matches = await listMatches(competitionId);
+	for (const m of matches) {
+		let nextP1 = m.p1;
+		let nextP2 = m.p2;
+		let nextWinner = m.winner;
+		if (m.p1 === oldName) nextP1 = newName;
+		if (m.p2 === oldName) nextP2 = newName;
+		if (m.winner === 'p1' && m.p1 === oldName) nextWinner = 'p1';
+		else if (m.winner === 'p2' && m.p2 === oldName) nextWinner = 'p2';
+		if (nextP1 !== m.p1 || nextP2 !== m.p2 || nextWinner !== m.winner) {
+			await put(MATCH_STORE, { ...m, p1: nextP1, p2: nextP2, winner: nextWinner });
+		}
+	}
+	return updated;
+}
+
 export async function updateMatch(match) {
 	await put(MATCH_STORE, match);
 	return match;

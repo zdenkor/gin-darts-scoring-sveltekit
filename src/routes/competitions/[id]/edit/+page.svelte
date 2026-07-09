@@ -11,7 +11,7 @@
 	import { leagueStandings } from '$lib/competition/engine.js';
 	import { isSignedIn } from '$lib/auth/google.js';
 	import { pushCompetition, markDirty } from '$lib/auth/sync.js';
-	import CompetitionWizard from '$lib/ui/CompetitionWizard.svelte';
+	import CompetitionForm from '$lib/ui/CompetitionForm.svelte';
 
 	let competition = $state(/** @type {any} */ (null));
 	let matches = $state(/** @type {any[]} */ ([]));
@@ -38,15 +38,16 @@
 	const compId = $derived(/** @type {string} */ ($page.params.id));
 
 	// Group matrix state. The current buildLeague output is a
-	// 2D array (groups x players). The matrix below lets the
-	// user see the round-robin pairs visually and (later) edit
-	// the assignment via dropdowns. W-L-Legs-Rank is computed
-	// live from the engine.
+	// 2D array (groups x players). The matrix state below is
+	// still useful for the handleEditSave flow: concurrency
+	// and matchOrderSeed are placeholder fields the user
+	// expects to round-trip through the form, and
+	// matrixSlots is reseeded from the loaded record so the
+	// initial preview has the right names.
 	let matrixGroupIndex = $state(0);
 	let matrixSlots = $state(/** @type {string[]} */ ([]));
 	let concurrency = $state(1);
 	let matchOrderSeed = $state(0);
-	let editTab = $state(0);
 
 	onMount(async () => {
 		loading = true;
@@ -80,73 +81,6 @@
 		}
 	});
 
-	// Available player names for the dropdown: union of all
-	// groups plus the matrix's own slots so the user can shuffle.
-	let allPlayerNames = $derived.by(() => {
-		const ga = competition?.groupAssignments || [];
-		const set = new Set();
-		for (const g of ga) for (const p of g) if (p) set.add(p);
-		// Also include any names the user typed into the matrix
-		// that aren't in the source list (e.g. added a name but
-		// haven't saved the competition yet).
-		for (const s of matrixSlots) if (s && !set.has(s)) set.add(s);
-		return Array.from(set);
-	});
-
-	function matrixSlot(i) {
-		return matrixSlots[i] || '';
-	}
-
-	function setMatrixSlot(i, name) {
-		const next = matrixSlots.slice();
-		while (next.length <= i) next.push('');
-		next[i] = name;
-		matrixSlots = next;
-		matchOrderSeed++;
-	}
-
-	function addMatrixSlot() {
-		matrixSlots = [...matrixSlots, ''];
-	}
-
-	function removeMatrixSlot(i) {
-		if (matrixSlots.length <= 2) return;
-		matrixSlots = matrixSlots.filter((_, idx) => idx !== i);
-	}
-
-	function matrixAutomatic() {
-		// Fill empty slots with a deterministic default name so
-		// the user can see the matrix fully populated. Existing
-		// filled slots are kept.
-		const n = matrixSlots.length;
-		matrixSlots = matrixSlots.map((s, i) => s || `Player ${i + 1}`);
-		matchOrderSeed++;
-	}
-
-	function matrixRandom() {
-		// Shuffle the slot names in place. The set of names is
-		// unchanged — only the order moves.
-		const arr = matrixSlots.slice();
-		for (let i = arr.length - 1; i > 0; i--) {
-			const j = Math.floor(Math.random() * (i + 1));
-			[arr[i], arr[j]] = [arr[j], arr[i]];
-		}
-		matrixSlots = arr;
-		matchOrderSeed++;
-	}
-
-	function matrixClear() {
-		matrixSlots = matrixSlots.map(() => '');
-		matchOrderSeed++;
-	}
-
-	// Build the matrix grid for display: array of rows, each row
-	// is an array of cells. cellText(i, j) is the cell label.
-	function cellText(i, j) {
-		if (i === j) return '—';
-		return `${matrixSlot(i) || '?'} vs ${matrixSlot(j) || '?'}`;
-	}
-
 	function back() {
 		goto(`${base}/competitions/${compId}`);
 	}
@@ -155,40 +89,29 @@
 		goto(`${base}/competitions/${compId}`);
 	}
 
-	async function save() {
+	// Called by <CompetitionForm> when the user clicks Save
+	// (Edit mode). The form has rebuilt the competition +
+	// matches from scratch via the engine — we just need to
+	// persist them. Concurrency / matchOrderSeed are
+	// placeholders preserved from the existing record.
+	async function handleEditSave({ competition: newComp, matches: newMatches }) {
 		if (saving) return;
-		error = '';
-		const name = (editName || '').trim();
-		if (!name) {
-			error = 'Name is required.';
-			return;
-		}
 		saving = true;
+		error = '';
 		try {
-			// Persist matrix group slot (we only edit group 0
-			// for now; other groups stay as engine seeded
-			// them). Concurrency is a placeholder for a future
-			// "N matches at a time" feature.
-			const newGroups = (competition.groupAssignments || []).map((g, gi) =>
-				gi === matrixGroupIndex ? matrixSlots.filter(Boolean) : g
-			);
 			const updated = await updateCompetition({
-				...competition,
-				name,
-				season: Number(editSeason) || new Date().getFullYear(),
-				notes: editNotes || '',
-				status: editStatus,
-				legsToWin: Math.max(1, Number(editLegsToWin) || 1),
-				setsToWin: Math.max(1, Number(editSetsToWin) || 1),
-				groupAssignments: newGroups,
+				...newComp,
 				concurrency: Math.max(1, Number(concurrency) || 1),
-				matchOrderSeed,
+				matchOrderSeed
 			});
 			competition = updated;
-			// Push to Drive if signed in.
+			matches = newMatches;
+			if (updated.type === 'league') {
+				standings = leagueStandings(updated, newMatches);
+			}
 			if (await isSignedIn()) {
 				try {
-					await pushCompetition(updated, matches, []);
+					await pushCompetition(updated, newMatches, []);
 				} catch (e) {
 					console.warn('Drive push on edit failed', e);
 					markDirty(`comp:${updated.id}`);
@@ -223,200 +146,13 @@
 				{/if}
 			</p>
 
-			<form class="form" onsubmit={(e) => { e.preventDefault(); save(); }}>
-				<CompetitionWizard
-					mode="edit"
-					bind:competition
-					bind:matches
-					bind:standings
-					bind:activeTab={editTab}
-				>
-					<svelte:fragment slot="setup">
-						<h2>Basics</h2>
-						<label class="field">
-							<span>Name</span>
-							<input type="text" bind:value={editName} required />
-						</label>
-						<label class="field">
-							<span>Season</span>
-							<input type="number" min="2000" max="2100" bind:value={editSeason} />
-						</label>
-						<label class="field">
-							<span>Status</span>
-							<select bind:value={editStatus}>
-								<option value="upcoming">Upcoming</option>
-								<option value="active">Active</option>
-								<option value="complete">Complete</option>
-							</select>
-						</label>
-
-						<h2>Rules</h2>
-						<div class="grid-2">
-							<label class="field">
-								<span>Legs to win</span>
-								<input type="number" min="1" max="21" bind:value={editLegsToWin} />
-							</label>
-							<label class="field">
-								<span>Sets to win</span>
-								<input type="number" min="1" max="11" bind:value={editSetsToWin} />
-							</label>
-						</div>
-
-						<h2>Notes</h2>
-						<label class="field">
-							<span>Notes (private, only stored locally)</span>
-							<textarea bind:value={editNotes} rows="4" placeholder="Anything the players should know…"></textarea>
-						</label>
-
-						{#if error}
-							<p class="error">{error}</p>
-						{/if}
-
-						<div class="form-actions">
-							<button class="btn primary" type="submit" disabled={saving}>
-								{saving ? 'Saving…' : saved ? 'Saved!' : 'Save changes'}
-							</button>
-							<button class="btn ghost" type="button" onclick={cancel}>Cancel</button>
-						</div>
-					</svelte:fragment>
-
-					<svelte:fragment slot="registration">
-						<h2>Registration</h2>
-						<p class="hint">
-							The player roster is locked once a competition is created. To change the
-							roster, delete this competition and create a new one.
-						</p>
-						<ul class="player-readonly">
-							{#each competition.players || [] as p (p)}
-								<li>{p}</li>
-							{/each}
-						</ul>
-					</svelte:fragment>
-
-					<svelte:fragment slot="seeding">
-						<h2>Group {matrixGroupIndex + 1} — round-robin matrix</h2>
-						<p class="hint">
-							Edit the player slots for this group, then save to rebuild the
-							matches. Each cell is a pair; the diagonal (i = j) is locked.
-						</p>
-
-						<div class="matrix-toolbar">
-							<button class="btn ghost" type="button" onclick={matrixAutomatic}>
-								Automatic assignment
-							</button>
-							<button class="btn ghost" type="button" onclick={matrixRandom}>
-								Random
-							</button>
-							<button class="btn ghost danger" type="button" onclick={matrixClear}>
-								Clear
-							</button>
-						</div>
-
-						<ol class="matrix-slots">
-							{#each matrixSlots as _slot, i (i)}
-								<li>
-									<span class="row-num">{i + 1}</span>
-									<select
-										value={matrixSlot(i)}
-										onchange={(e) => setMatrixSlot(i, /** @type {HTMLSelectElement} */ (e.currentTarget).value)}
-									>
-										<option value="">— empty —</option>
-										{#each allPlayerNames as name (name)}
-											<option value={name}>{name}</option>
-										{/each}
-									</select>
-									{#if matrixSlots.length > 2}
-										<button class="btn ghost small" type="button" onclick={() => removeMatrixSlot(i)} aria-label="Remove slot {i + 1}">
-											×
-										</button>
-									{/if}
-								</li>
-							{/each}
-						</ol>
-						<button class="btn ghost" type="button" onclick={addMatrixSlot}>+ Add slot</button>
-
-						{#if matrixSlots.length >= 2}
-							<div class="matrix-wrap">
-								<table class="matrix">
-									<thead>
-										<tr>
-											<th></th>
-											{#each matrixSlots as _s, j (j)}
-												<th class="col-head">P{j + 1}</th>
-											{/each}
-										</tr>
-									</thead>
-									<tbody>
-										{#each matrixSlots as _row, i (i)}
-											<tr>
-												<th class="row-head">P{i + 1}</th>
-												{#each matrixSlots as _col, j (j)}
-													<td class:diag={i === j} class:ready={i !== j && matrixSlot(i) && matrixSlot(j)}>
-														{cellText(i, j)}
-													</td>
-												{/each}
-											</tr>
-										{/each}
-									</tbody>
-								</table>
-							</div>
-						{/if}
-					</svelte:fragment>
-
-					<svelte:fragment slot="live">
-						<h2>Live standings</h2>
-						{#if standings.length === 0}
-							<p class="muted small">No league matches played yet — the table will fill in as you record results.</p>
-						{:else}
-							<table class="standings">
-								<thead>
-									<tr>
-										<th>#</th>
-										<th>Name</th>
-										<th>W-L</th>
-										<th>Legs ±</th>
-										<th>Pts</th>
-									</tr>
-								</thead>
-								<tbody>
-									{#each standings as s, i (s.id)}
-										<tr>
-											<td>{i + 1}</td>
-											<td>{s.id}</td>
-											<td>{s.wins}-{s.losses}</td>
-											<td>{s.pointsFor - s.pointsAgainst > 0 ? '+' : ''}{s.pointsFor - s.pointsAgainst}</td>
-											<td><strong>{s.score}</strong></td>
-										</tr>
-									{/each}
-								</tbody>
-							</table>
-						{/if}
-					</svelte:fragment>
-
-					<svelte:fragment slot="finalization">
-						<h2>Finalization</h2>
-						<p class="hint">
-							Once all matches are complete, mark the competition status as
-							'Complete' on the Setup tab. Final ranking is determined by the
-							standings on the Live tab.
-						</p>
-
-						<h2>Concurrency</h2>
-						<label class="field">
-							<span>Number of matches at any one time (placeholder)</span>
-							<input type="number" min="1" max="16" bind:value={concurrency} />
-						</label>
-					</svelte:fragment>
-
-					<svelte:fragment slot="league">
-						<h2>League update</h2>
-						<p class="hint">
-							League points and seasonal stats will roll up here once the
-							competition finishes. (Coming soon.)
-						</p>
-					</svelte:fragment>
-				</CompetitionWizard>
-			</form>
+			<CompetitionForm
+				mode="edit"
+				existing={competition}
+				{saving}
+				onSave={handleEditSave}
+				onCancel={back}
+			/>
 
 			<section class="locked">
 				<h3>What you can't edit here</h3>
@@ -480,13 +216,34 @@
 		justify-content: flex-end;
 		margin-top: var(--space-md);
 	}
-	.player-readonly {
-		list-style: disc;
-		padding-left: var(--space-md);
+	.player-roster {
+		list-style: none;
+		padding: 0;
 		margin: 0 0 var(--space-md);
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-xs);
 	}
-	.player-readonly li {
-		padding: 2px 0;
+	.player-roster li {
+		display: grid;
+		grid-template-columns: 1fr auto auto auto;
+		align-items: center;
+		gap: var(--space-sm);
+		padding: 6px 10px;
+		background: var(--surface);
+		border: 1px solid var(--line);
+		border-radius: 8px;
+	}
+	.player-roster-name {
+		font-weight: 600;
+	}
+	.player-roster-input {
+		background: var(--bg);
+		border: 1px solid var(--line);
+		color: var(--text);
+		border-radius: 8px;
+		padding: 4px 8px;
+		font: inherit;
 	}
 	.locked {
 		margin-top: var(--space-lg);
