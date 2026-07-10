@@ -229,6 +229,63 @@
 	let svkPickerResults = $state(/** @type {any[]} */ ([]));
 	let svkPickerTimer = null;
 
+	// Assign a player name to a matrix slot and clear the
+	// same name from every other slot. This is how we
+	// guarantee the user can't accidentally place the same
+	// player in two slots at once — picking someone from
+	// the dropdown removes them from the other rows, and
+	// any slot they left behind goes back to the empty
+	// option so the user has to repopulate it on purpose.
+	// True when the given player name is already assigned
+	// to a different slot in any group. The dropdown uses
+	// this to grey out names that the user couldn't pick
+	// without overwriting another slot. The current row
+	// (gi, si) is always allowed to keep its own value so
+	// the option stays selectable when re-opening the
+	// picker.
+	function isPlayerUsedElsewhere(/** @type {string} */ name, /** @type {number} */ gi, /** @type {number} */ si) {
+		for (const [otherGi, group] of Object.entries(matrixSlotOverrides)) {
+			for (const [k, v] of Object.entries(group)) {
+				if (v !== name) continue;
+				if (Number(otherGi) === gi && Number(k) === si) continue;
+				return true;
+			}
+		}
+		return false;
+	}
+
+	function assignMatrixSlot(/** @type {number} */ gi, /** @type {number} */ si, /** @type {string} */ name) {
+		// Copy the current override map for this group.
+		const next = { ...(matrixSlotOverrides[gi] || {}) };
+		if (name) {
+			// Drop the new name from every other slot.
+			for (const [k, v] of Object.entries(next)) {
+				if (Number(k) !== si && v === name) delete next[Number(k)];
+			}
+		}
+		next[si] = name;
+		// Also clean up the same name in the OTHER groups
+		// so the user can't put the same player in Group 1
+		// and Group 2 by accident.
+		const allGroups = { ...matrixSlotOverrides };
+		allGroups[gi] = next;
+		if (name) {
+			for (const [otherGi, group] of Object.entries(allGroups)) {
+				if (Number(otherGi) === gi) continue;
+				const cleaned = { ...group };
+				let changed = false;
+				for (const [k, v] of Object.entries(cleaned)) {
+					if (v === name) {
+						delete cleaned[Number(k)];
+						changed = true;
+					}
+				}
+				if (changed) allGroups[Number(otherGi)] = cleaned;
+			}
+		}
+		matrixSlotOverrides = allGroups;
+	}
+
 	function addPlayer() {
 		if (formPlayers.length >= 16) return;
 		formPlayers = [...formPlayers, { id: Date.now(), name: `Player ${formPlayers.length + 1}` }];
@@ -278,6 +335,27 @@
 		if (playerNames.length < 2) {
 			formError = 'At least two players are required.';
 			return null;
+		}
+		// For league-style formats we want to make sure the
+		// user has actually placed every registered player
+		// into a slot. The engine would otherwise fall back
+		// to the round-robin default, but the matrix
+		// dropdown was meant to be authoritative — the
+		// user is on the hook for finishing the layout.
+		if (
+			formEliminationFormat === 'round robin' ||
+			formEliminationFormat === 'round robin knockout' ||
+			formEliminationFormat === 'double round robin'
+		) {
+			const assigned = new Set();
+			for (const group of previewGroupSlots) {
+				for (const n of group) if (n) assigned.add(n);
+			}
+			const missing = playerNames.filter(n => !assigned.has(n));
+			if (missing.length > 0) {
+				formError = `These players are not assigned to a slot yet: ${missing.join(', ')}. Pick them from the matrix dropdowns or open the Registration tab.`;
+				return null;
+			}
 		}
 		const meta = {
 			name: formName.trim() || 'Untitled competition',
@@ -553,23 +631,22 @@
 								{#each previewGroupSlots[previewGroupTab] as rowName, i (i)}
 									<tr>
 										<th class="row-head">
-											<select
-												class="matrix-slot-select"
-												value={rowName || ''}
-												onchange={(e) => {
-													const v = /** @type {HTMLSelectElement} */ (e.currentTarget).value;
-													const next = { ...(matrixSlotOverrides[previewGroupTab] || {}) };
-													next[i] = v;
-													matrixSlotOverrides = { ...matrixSlotOverrides, [previewGroupTab]: next };
-												}}
-												aria-label="Player for row {i + 1}"
-											>
-												<option value="">— empty —</option>
-												{#each availablePlayers as p (p)}
-													<option value={p}>{p}</option>
-												{/each}
-											</select>
-										</th>
+												<select
+													class="matrix-slot-select"
+													value={rowName || ''}
+													onchange={(e) => {
+														const v = /** @type {HTMLSelectElement} */ (e.currentTarget).value;
+														assignMatrixSlot(previewGroupTab, i, v);
+													}}
+													aria-label="Player for row {i + 1}"
+												>
+													<option value="">— empty —</option>
+													{#each availablePlayers as p (p)}
+														{@const usedElsewhere = isPlayerUsedElsewhere(p, previewGroupTab, i)}
+														<option value={p} disabled={usedElsewhere}>{p}{usedElsewhere ? ' (in use)' : ''}</option>
+													{/each}
+												</select>
+											</th>
 										{#each previewGroupSlots[previewGroupTab] as _col, j (j)}
 											<td class:diag={i === j}>
 												{#if i === j}—{:else}{previewMatchMap[`${i}-${j}`] ?? '·'}{/if}
@@ -750,6 +827,15 @@
 		font-size: 0.85em;
 		min-width: 7em;
 		max-width: 12em;
+	}
+	/* Native <option> styling is limited (browsers disagree
+	   on what they style), but option:disabled works in
+	   Chromium / Firefox / Safari. Players already in use
+	   show greyed out and are unselectable; the rest stay
+	   the default text colour. */
+	.matrix-slot-select option:disabled {
+		color: var(--muted, #8a93a4);
+		font-style: italic;
 	}
 	table.matrix td.diag {
 		background: var(--surface-2, #2a2f3e);

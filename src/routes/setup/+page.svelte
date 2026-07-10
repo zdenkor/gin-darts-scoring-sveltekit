@@ -267,7 +267,12 @@
 		/* Compact, fixed-size select for the bot level
 		   picker. Sits between the name input and the
 		   Bot ON/OFF toggle. Background is opaque so the
-		   dropdown options are readable on dark theme. */
+		   dropdown options are readable on dark theme.
+		   The inner trigger from src/lib/ui/Select.svelte
+		   ships with width: 100%, which would expand the
+		   trigger to fill the wrapper — we override it to
+		   the wrapper's width here so the trigger stays
+		   the same size as the wrapper. */
 		flex: 0 1 12em;
 		min-width: 8em;
 		max-width: 14em;
@@ -278,11 +283,26 @@
 		border: 1px solid var(--line, #2c3343);
 		border-radius: var(--radius, 8px);
 	}
+	.bot-level-select :global(.sel-trigger) {
+		/* The trigger inside the Bits UI Select wrapper
+		   wants width: 100% by default; constrain it to
+		   the wrapper's width so the row layout (P | sel |
+		   Bot ON | ✕) keeps its right edge. */
+		width: auto;
+		min-width: 8em;
+	}
 	.bot-toggle-btn {
 		/* Stay on the right edge, never shrink, never
 		   wrap onto a second line. */
 		flex: 0 0 auto;
 		white-space: nowrap;
+	}
+	.player-row > .btn.ghost {
+		/* The ✕ remove button needs the same compact
+		   treatment — otherwise flex tries to grow it
+		   like the name input and pushes the toggle off
+		   the right edge of the row. */
+		flex: 0 0 auto;
 	}
 	.add-btn {
 		width: 100%;
