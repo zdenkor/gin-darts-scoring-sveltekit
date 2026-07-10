@@ -64,6 +64,24 @@
 		}
 	}
 
+	async function refresh() {
+		loading = true;
+		await seedCompetitionsIfEmpty();
+		competitions = await listCompetitions();
+		// Pull match count per competition so the row can
+		// show "N matches" without making a second query
+		// at render time.
+		const counts = {};
+		for (const c of competitions) {
+			const ms = await listMatches(c.id);
+			counts[c.id] = ms.length;
+		}
+		matchCounts = counts;
+		loading = false;
+	}
+
+	onMount(refresh);
+
 	async function remove(id, name) {
 		if (!confirm(`Delete competition "${name}"?`)) return;
 		await deleteCompetition(id);
@@ -170,7 +188,9 @@
 			</div>
 		{/if}
 
-		<button class="btn primary" onclick={() => (formOpen = true)}>Create competition</button>
+		{#if !formOpen}
+			<button class="btn primary" onclick={() => (formOpen = true)}>Create competition</button>
+		{/if}
 
 		{#if formOpen}
 			<CompetitionForm

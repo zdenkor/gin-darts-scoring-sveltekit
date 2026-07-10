@@ -130,12 +130,51 @@
 
 	// Round-robin distribution for the live preview, mirroring
 	// the engine's distribution (player i → bucket i % groups).
+	// The user can override individual slots in the matrix via
+	// the dropdown in the row header (see matrixSlotOverrides +
+	// previewGroupSlots below). The engine still seeds the
+	// bracket round-robin from formPlayers — the overrides are
+	// preview-only so the matrix shows the user what the manual
+	// distribution would look like.
 	let previewGroupAssignments = $derived.by(() => {
 		const g = Math.max(1, Number(formGroups) || 1);
 		const names = formPlayers.map(p => p.name.trim()).filter(Boolean);
 		const buckets = Array.from({ length: g }, () => []);
 		names.forEach((p, i) => buckets[i % g].push(p));
 		return buckets;
+	});
+
+	// Per-slot manual overrides. Keyed by [gi][si]. When the
+	// user picks a different name from the row header dropdown
+	// the override is stored here and previewGroupSlots reads
+	// from it instead of the auto round-robin bucket.
+	let matrixSlotOverrides = $state(/** @type {Record<number, Record<number, string>>} */ ({}));
+
+	// The actual slot list shown in the matrix header. For each
+	// group we expose every slot (auto or overridden). A slot
+	// is the position in the matrix — the dropdown lets the
+	// user pick the player that should sit there. Empty slots
+	// (no player assigned, no override) show as '—' in the
+	// preview, but the underlying count for preview match
+	// sequence is determined by the slot count, not the
+	// override value.
+	let previewGroupSlots = $derived.by(() => {
+		return previewGroupAssignments.map((autoGroup, gi) => {
+			const overrides = matrixSlotOverrides[gi] || {};
+			return autoGroup.map((autoName, si) => overrides[si] || autoName);
+		});
+	});
+
+	// Available player names for the slot dropdowns. The
+	// union of the auto-distribution (so the user can pick
+	// anyone) and the current overrides (so a name the user
+	// already put in the matrix stays selectable even if
+	// it's not in the round-robin seed).
+	let availablePlayers = $derived.by(() => {
+		const set = new Set();
+		for (const g of previewGroupSlots) for (const n of g) if (n) set.add(n);
+		for (const p of formPlayers) if (p.name?.trim()) set.add(p.name.trim());
+		return Array.from(set);
 	});
 	let previewAdvanceCount = $derived(
 		Math.max(1, Number(formAdvancePerGroup) || 1) * Math.max(1, Number(formGroups) || 1)
@@ -274,11 +313,21 @@
 		) {
 			result = buildTournament({ ...meta, format: formEliminationFormat });
 		} else {
+			// Pull the user's manual slot picks from the
+			// matrix and pass them to the engine. The engine
+			// distributes by groupAssignments and runs
+			// round-robin within each group. If the user
+			// didn't touch the matrix (no overrides) the
+			// manual layout matches the auto round-robin, so
+			// passing the slots through is a no-op and the
+			// bracket is identical to the legacy behaviour.
+			const manualGroups = previewGroupSlots.map(group => group.filter(Boolean));
 			result = buildLeague({
 				...meta,
 				groups: formGroups,
 				advancePerGroup: formAdvancePerGroup,
-				doubleRoundRobin: formEliminationFormat === 'double round robin'
+				doubleRoundRobin: formEliminationFormat === 'double round robin',
+				manualGroups
 			});
 		}
 		// Stable string ids. In edit mode we keep the existing
@@ -489,22 +538,39 @@
 					</nav>
 				{/if}
 
-				{#if previewGroupAssignments[previewGroupTab]?.length >= 2}
+				{#if previewGroupSlots[previewGroupTab]?.length >= 2}
 					<div class="matrix-wrap">
 						<table class="matrix">
 							<thead>
 								<tr>
 									<th></th>
-									{#each previewGroupAssignments[previewGroupTab] as name, j (j)}
+									{#each previewGroupSlots[previewGroupTab] as name, j (j)}
 										<th class="col-head">{name || `P${j + 1}`}</th>
 									{/each}
 								</tr>
 							</thead>
 							<tbody>
-								{#each previewGroupAssignments[previewGroupTab] as rowName, i (i)}
+								{#each previewGroupSlots[previewGroupTab] as rowName, i (i)}
 									<tr>
-										<th class="row-head">{rowName || `P${i + 1}`}</th>
-										{#each previewGroupAssignments[previewGroupTab] as _col, j (j)}
+										<th class="row-head">
+											<select
+												class="matrix-slot-select"
+												value={rowName || ''}
+												onchange={(e) => {
+													const v = /** @type {HTMLSelectElement} */ (e.currentTarget).value;
+													const next = { ...(matrixSlotOverrides[previewGroupTab] || {}) };
+													next[i] = v;
+													matrixSlotOverrides = { ...matrixSlotOverrides, [previewGroupTab]: next };
+												}}
+												aria-label="Player for row {i + 1}"
+											>
+												<option value="">— empty —</option>
+												{#each availablePlayers as p (p)}
+													<option value={p}>{p}</option>
+												{/each}
+											</select>
+										</th>
+										{#each previewGroupSlots[previewGroupTab] as _col, j (j)}
 											<td class:diag={i === j}>
 												{#if i === j}—{:else}{previewMatchMap[`${i}-${j}`] ?? '·'}{/if}
 											</td>
@@ -669,6 +735,21 @@
 		background: var(--surface);
 		color: var(--muted);
 		text-align: center;
+	}
+	.matrix-slot-select {
+		/* Compact select inside the matrix row header. Same
+		   dark-theme treatment as the bot-level-select: opaque
+		   background so the option list is readable, the row
+		   header is still grey to mark it as a column heading. */
+		background: var(--bg, #1a1f2b);
+		color: var(--text, #e6ebf2);
+		border: 1px solid var(--line, #2c3343);
+		border-radius: 6px;
+		padding: 2px 6px;
+		font: inherit;
+		font-size: 0.85em;
+		min-width: 7em;
+		max-width: 12em;
 	}
 	table.matrix td.diag {
 		background: var(--surface-2, #2a2f3e);

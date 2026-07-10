@@ -329,16 +329,56 @@ function buildDoubleElim(matches, competition) {
    Group stage: split into groups; top N from each group advance to
    a knockout round (which we represent as additional bracket matches).
    ================================================================= */
-export function buildLeague({ name, ownerId, players, groups = 1, advancePerGroup = 2, doubleRoundRobin = false, gameMode = 'x01', gameOpts = {}, legsToWin = 1, createdAt = Date.now() }) {
+export function buildLeague({ name, ownerId, players, groups = 1, advancePerGroup = 2, doubleRoundRobin = false, manualGroups = null, gameMode = 'x01', gameOpts = {}, legsToWin = 1, createdAt = Date.now() }) {
   if (groups < 1) throw new Error('groups must be >= 1');
   if (advancePerGroup < 1) throw new Error('advancePerGroup must be >= 1');
+  // Distribute the seeded players into groups. Two modes:
+  //   1. manualGroups supplied by the caller (e.g. the user
+  //      moved a player from one group to another in the
+  //      Seeding tab). The caller hands us an array of
+  //      group name arrays; we use it as-is after dropping
+  //      empties. If the manual layout has fewer groups
+  //      than the `groups` parameter, we pad the trailing
+  //      slots with any leftover auto-distributed players
+  //      so we never drop a name.
+  //   2. auto (no manualGroups): the legacy round-robin
+  //      snake-free distribution (player i → bucket i %
+  //      groups).
   const seeds = players.slice();
-  // Snake-distribute players into groups
   const buckets = Array.from({ length: groups }, () => []);
-  seeds.forEach((p, i) => {
-    const g = i % groups;
-    buckets[g].push(p);
-  });
+  if (manualGroups && Array.isArray(manualGroups) && manualGroups.length > 0) {
+    const used = new Set();
+    for (let g = 0; g < Math.min(groups, manualGroups.length); g++) {
+      for (const name of manualGroups[g] || []) {
+        if (typeof name !== 'string') continue;
+        const trimmed = name.trim();
+        if (!trimmed) continue;
+        if (used.has(trimmed)) continue;
+        buckets[g].push(trimmed);
+        used.add(trimmed);
+      }
+    }
+    // Any seeds not yet placed (because the manual layout
+    // didn't cover them, or had empties) fall back to the
+    // round-robin distribution into the remaining slots.
+    for (let i = 0; i < seeds.length; i++) {
+      const p = seeds[i];
+      if (used.has(p)) continue;
+      // Find the bucket with the fewest entries to keep
+      // the manual groups balanced.
+      let target = 0;
+      for (let g = 1; g < groups; g++) {
+        if (buckets[g].length < buckets[target].length) target = g;
+      }
+      buckets[target].push(p);
+      used.add(p);
+    }
+  } else {
+    seeds.forEach((p, i) => {
+      const g = i % groups;
+      buckets[g].push(p);
+    });
+  }
   const competition = {
     type: 'league',
     name: name || 'League',
