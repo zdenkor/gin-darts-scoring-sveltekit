@@ -29,6 +29,7 @@
 	} from '$lib/competition/engine.js';
 	import { searchSVKCache } from '$lib/auth/svk.js';
 	import CompetitionWizard from '$lib/ui/CompetitionWizard.svelte';
+	import Bracket from '$lib/ui/Bracket.svelte';
 
 	const START_OPTIONS = [301, 401, 501, 701, 1001];
 	const PARTICIPANT_FORMATS = [
@@ -190,6 +191,45 @@
 	let previewKOMatches = $derived(previewAdvanceCount >= 2 ? Math.max(0, previewKOSize - 1) : 0);
 	let previewTotalMatches = $derived(previewTotalGroupPairs + previewKOMatches);
 
+	// KO-stage match objects for the bracket preview. We
+	// run the same engine the user would get on submit so
+	// the preview is identical to the final bracket — if
+	// the user picks a different seeding the KO pairings
+	// move with it. Only the KO rounds are forwarded;
+	// the group matches are still summarised above.
+	let previewKOMatchList = $derived.by(() => {
+		if (previewKOMatches === 0) return [];
+		const players = formPlayers.map(p => p.name.trim()).filter(Boolean);
+		if (players.length < 2) return [];
+		if (
+			formEliminationFormat === 'single elimination' ||
+			formEliminationFormat === 'double elimination'
+		) {
+			// The tournament path has no group stage; the
+			// whole bracket is the KO stage.
+			const { matches } = buildTournament({
+				name: 'preview', ownerId: null, players,
+				format: formEliminationFormat,
+				legsToWin: 1
+			});
+			return matches;
+		}
+		if (formEliminationFormat === 'round robin knockout' || formEliminationFormat === 'round robin') {
+			const manualGroups = previewGroupSlots.map(group => group.filter(Boolean));
+			if (formEliminationFormat === 'round robin' || formEliminationFormat === 'double round robin') {
+				// No KO stage to preview.
+				return [];
+			}
+			const { matches } = buildLeague({
+				name: 'preview', ownerId: null, players,
+				groups: formGroups, advancePerGroup: formAdvancePerGroup,
+				doubleRoundRobin: false, manualGroups
+			});
+			return matches;
+		}
+		return [];
+	});
+
 	// Match sequence map for the preview matrix. Engine
 	// generates matches in the standard round-robin order
 	// (i=0..n, j=i+1..n), so pair (i, j) in the matrix gets
@@ -252,6 +292,36 @@
 			}
 		}
 		return false;
+	}
+
+	// Player names the user can pick for a given row. The
+	// current row's own name is always included (so the
+	// picker stays selectable when re-opening), but every
+	// name that's already pinned to a different row in
+	// this group is hidden. The user only sees the
+	// available pool: registered players that are not
+	// already on the board.
+	function availablePlayersForRow(/** @type {number} */ si) {
+		const currentName = previewGroupSlots[previewGroupTab]?.[si] || '';
+		const taken = new Set();
+		for (const [otherGi, group] of Object.entries(matrixSlotOverrides)) {
+			if (Number(otherGi) !== previewGroupTab) continue;
+			for (const [k, v] of Object.entries(group)) {
+				if (Number(k) === si) continue;
+				if (v) taken.add(v);
+			}
+		}
+		const out = [];
+		for (const p of formPlayers) {
+			const name = (p.name || '').trim();
+			if (!name) continue;
+			if (taken.has(name)) continue;
+			out.push(name);
+		}
+		// Keep the current value selectable even if it's
+		// not in formPlayers anymore (e.g. legacy edits).
+		if (currentName && !out.includes(currentName)) out.unshift(currentName);
+		return out;
 	}
 
 	function assignMatrixSlot(/** @type {number} */ gi, /** @type {number} */ si, /** @type {string} */ name) {
@@ -616,37 +686,38 @@
 					</nav>
 				{/if}
 
-				{#if previewGroupSlots[previewGroupTab]?.length >= 2}
+				{#if previewGroupSlots[previewGroupTab]?.length >= 2 && (formEliminationFormat === 'round robin' || formEliminationFormat === 'round robin knockout' || formEliminationFormat === 'double round robin')}
 					<div class="matrix-wrap">
 						<table class="matrix">
 							<thead>
 								<tr>
-									<th></th>
-									{#each previewGroupSlots[previewGroupTab] as name, j (j)}
-										<th class="col-head">{name || `P${j + 1}`}</th>
+									<th class="row-num-head">#</th>
+									<th class="row-name-head">Name</th>
+									{#each previewGroupSlots[previewGroupTab] as _col, j (j)}
+										<th class="col-head">{j + 1}</th>
 									{/each}
 								</tr>
 							</thead>
 							<tbody>
 								{#each previewGroupSlots[previewGroupTab] as rowName, i (i)}
 									<tr>
+										<th class="row-num">{i + 1}</th>
 										<th class="row-head">
-												<select
-													class="matrix-slot-select"
-													value={rowName || ''}
-													onchange={(e) => {
-														const v = /** @type {HTMLSelectElement} */ (e.currentTarget).value;
-														assignMatrixSlot(previewGroupTab, i, v);
-													}}
-													aria-label="Player for row {i + 1}"
-												>
-													<option value="">— empty —</option>
-													{#each availablePlayers as p (p)}
-														{@const usedElsewhere = isPlayerUsedElsewhere(p, previewGroupTab, i)}
-														<option value={p} disabled={usedElsewhere}>{p}{usedElsewhere ? ' (in use)' : ''}</option>
-													{/each}
-												</select>
-											</th>
+											<select
+												class="matrix-slot-select"
+												value={rowName || ''}
+												onchange={(e) => {
+													const v = /** @type {HTMLSelectElement} */ (e.currentTarget).value;
+													assignMatrixSlot(previewGroupTab, i, v);
+												}}
+												aria-label="Player for row {i + 1}"
+											>
+												<option value="">— empty —</option>
+												{#each availablePlayersForRow(i) as p (p)}
+													<option value={p}>{p}</option>
+												{/each}
+											</select>
+										</th>
 										{#each previewGroupSlots[previewGroupTab] as _col, j (j)}
 											<td class:diag={i === j}>
 												{#if i === j}—{:else}{previewMatchMap[`${i}-${j}`] ?? '·'}{/if}
@@ -659,6 +730,12 @@
 					</div>
 				{:else}
 					<p class="hint">Add at least 2 players in the Registration tab to see the matrix.</p>
+				{/if}
+				{#if previewKOMatchList.length > 0}
+					<h3>Knockout bracket preview</h3>
+					<div class="bracket-wrap">
+						<Bracket matches={previewKOMatchList} competition={{ type: 'league', format: formEliminationFormat, groups: formGroups, advancePerGroup: formAdvancePerGroup }} />
+					</div>
 				{/if}
 			{:else}
 				<h3>Tournament seeding</h3>
@@ -794,7 +871,29 @@
 		color: var(--text);
 	}
 	.matrix-wrap { overflow-x: auto; margin: var(--space-sm) 0 var(--space-md); }
+	.bracket-wrap {
+		/* Cap the bracket preview height so a long
+		   tournament doesn't push the rest of the tab
+		   out of the viewport. The user can scroll
+		   within the wrapper if they need to see more. */
+		overflow: auto;
+		max-height: 60vh;
+		margin: var(--space-sm) 0 var(--space-md);
+		padding: var(--space-sm);
+		background: var(--bg-2, #14181f);
+		border: 1px solid var(--line);
+		border-radius: var(--radius, 8px);
+	}
 	table.matrix {
+		/* The matrix has a row header (the dropdown) on
+		   the left and N column headers (player names) on
+		   top, and N×N cells. table-layout: fixed with
+		   width: 100% makes every cell the same width so
+		   the match-sequence numbers line up visually
+		   down each column, instead of the table growing
+		   to fit the longest player name. */
+		width: 100%;
+		table-layout: fixed;
 		border-collapse: separate;
 		border-spacing: 0;
 		font-size: var(--text-sm);
@@ -803,7 +902,10 @@
 	table.matrix td {
 		padding: 6px 10px;
 		border: 1px solid var(--line);
-		text-align: left;
+		/* Match sequence numbers and the diag '—' read
+		   better centred. The row/col heads stay centred
+		   via the .row-head/.col-head rule below. */
+		text-align: center;
 		white-space: nowrap;
 	}
 	table.matrix thead th { background: var(--surface); }
@@ -812,6 +914,40 @@
 		background: var(--surface);
 		color: var(--muted);
 		text-align: center;
+	}
+	/* Matrix header / row layout, in column order:
+	      #  | Name  | 1 | 2 | 3 | 4
+	   The first column is a tight row index, the second
+	   column carries the dropdown. Pinning the widths
+	   here keeps the table from drifting under
+	   table-layout: fixed. */
+	table.matrix .row-num-head,
+	table.matrix .row-num {
+		width: 2.5em;
+		background: var(--surface);
+		color: var(--muted);
+		font-weight: 600;
+		text-align: center;
+	}
+	table.matrix .row-name-head {
+		width: 12em;
+		background: var(--surface);
+		color: var(--muted);
+		text-align: left;
+	}
+	/* The row header is the only cell that needs to
+	   stretch to fit the dropdown. With table-layout:
+	   fixed every column would otherwise share the
+	   remaining width equally, which is too narrow
+	   for the picker. Pin the first column wide and
+	   let the rest of the matrix split the leftover
+	   space evenly. */
+	table.matrix .row-head {
+		width: 12em;
+	}
+	table.matrix .col-head {
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 	.matrix-slot-select {
 		/* Compact select inside the matrix row header. Same
