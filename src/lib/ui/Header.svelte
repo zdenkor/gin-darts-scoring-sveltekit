@@ -5,10 +5,45 @@
 	import favicon from '$lib/assets/favicon.svg';
 	import settingsIcon from '$lib/assets/settings.svg?raw';
 	import { auth } from '$lib/state/auth.svelte.js';
+	import {
+		deriveKeypairFromGoogleUser,
+		clearStoredKeypair,
+		getStoredKeypair,
+		shortNpub,
+		storeKeypair
+	} from '$lib/nostr/identity.js';
 
 	const isAuthed = $derived(auth.isSignedIn);
 	const isAdmin = $derived(auth.isAdmin);
 	const displayName = $derived(auth.displayUser?.displayName || auth.displayUser?.name || 'Guest');
+
+	// NOSTR identity is bound to the signed-in Google account.
+	// We never mint a fallback keypair for anonymous users —
+	// the npub badge is shown only when the key was derived
+	// from a real Google user id. If the user signs out we
+	// drop the key too, so a future sign-in with a different
+	// Google account can't accidentally publish under the
+	// previous npub.
+	let nostrKey = $state(isAuthed ? getStoredKeypair() : null);
+	let shortKey = $derived(nostrKey ? shortNpub(nostrKey.publicKey) : '');
+	$effect(() => {
+		if (!isAuthed) {
+			// Sign-out (or never-signed-in): make sure no
+			// stray key sits in storage from a previous
+			// session.
+			clearStoredKeypair();
+			nostrKey = null;
+			return;
+		}
+		if (nostrKey) return;
+		(async () => {
+			const googleId = auth.displayUser?.id || auth.user?.uid;
+			if (!googleId) return;
+			const kp = await deriveKeypairFromGoogleUser(googleId);
+			storeKeypair(kp);
+			nostrKey = kp;
+		})();
+	});
 
 	function home() { goto(`${base}/`); }
 	async function signOut() {
@@ -27,6 +62,12 @@
 	</button>
 
 	<nav class="header-actions">
+		<a class="icon-btn" href="{base}/calendar" title="Calendar" aria-label="Calendar">
+			<span class="icon">📅</span>
+		</a>
+		<a class="icon-btn" href="{base}/history" title="Player history" aria-label="Player history">
+			<span class="icon">📊</span>
+		</a>
 		<a class="icon-btn" href="{base}/settings" title="Settings" aria-label="Settings">
 			<span class="icon icon-svg">{@html settingsIcon}</span>
 		</a>
@@ -36,6 +77,9 @@
 				<a class="icon-btn" href="{base}/admin" title="Admin" aria-label="Admin"><span class="icon">🔒</span></a>
 			{/if}
 			<span class="user-pill">{displayName}</span>
+			{#if shortKey}
+				<span class="nostr-pill" title={nostrKey.publicKey}>npub: {shortKey}</span>
+			{/if}
 			<button class="icon-btn" type="button" onclick={signOut} title="Sign out" aria-label="Sign out"><span class="icon icon-mask icon-logout" aria-hidden="true"></span></button>
 		{:else}
 			<a class="icon-btn" href="{base}/login" title="Sign in" aria-label="Sign in"><span class="icon icon-mask icon-login" aria-hidden="true"></span></a>
@@ -149,8 +193,20 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 	}
+	.nostr-pill {
+		/* Small NOSTR identifier shown next to the user
+		   name once the keypair has been derived. The
+		   colour is intentionally muted so it doesn't
+		   compete with the user name; the full key is on
+		   the title attribute for inspection. */
+		font-size: var(--text-sm);
+		color: var(--accent, #7aa2ff);
+		white-space: nowrap;
+		font-family: var(--mono, ui-monospace, monospace);
+	}
 @container app (max-width: 380px) {
 	.user-pill { display: none; }
+	.nostr-pill { display: none; }
 }
 @media (orientation: landscape) and (max-height: 400px) {
 	.brand-text .subtitle { display: none; }

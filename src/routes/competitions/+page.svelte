@@ -189,7 +189,20 @@
 		{/if}
 
 		{#if !formOpen}
-			<button class="btn primary" onclick={() => (formOpen = true)}>Create competition</button>
+			<button
+				class="btn primary"
+				onclick={() => {
+					// The first step of creating a competition
+					// is signing in. Anonymous users get bounced
+					// to the Google sign-in page; the redirect
+					// comes back here when the auth flow resolves.
+					if (!isSignedIn()) {
+						goto(`${base}/login?return=/competitions`);
+						return;
+					}
+					formOpen = true;
+				}}
+			>Create competition</button>
 		{/if}
 
 		{#if formOpen}

@@ -12,6 +12,16 @@
 	import { recordGameHistory, recordGameResult, deleteGameHistory, gameHistoryEntryFromState } from '$lib/util/history.js';
 	import { deepClone } from '$lib/util/deepClone.js';
 	import { loadSetting } from '$lib/util/settings.js';
+	import { openRoom, closeRoom, patchState, observeState, readState } from '$lib/sync/yjsRoom.js';
+	import { publishCheckpoint } from '$lib/nostr/checkpoint.js';
+	import { getStoredKeypair } from '$lib/nostr/identity.js';
+	import {
+		buildArchiveBlob,
+		uploadToDrive,
+		uploadToIPFS,
+		publishArchiveEvent
+	} from '$lib/archive.js';
+	import { getAccessToken } from '$lib/auth/google.js';
 
 	/** @type {{names?: string[] | null, bots?: string[], start?: number, inRule?: string, outRule?: string, legsToWin?: number, setsToWin?: number}} */
 	let {
@@ -73,10 +83,168 @@
 		scheduleBotIfNeeded();
 	}
 
+	// Lock set while we're in the middle of applying a
+	// local throw. We ignore Y.Map updates that arrive
+	// while the lock is held so a remote peer can't race
+	// the engine's own bookkeeping. The lock opens the
+	// instant commitTurn() returns.
+	let applyingRemote = $state(false);
+
+	// Yjs room. Two devices on the same match share a
+	// CRDT-backed Y.Map so they see each other's throws
+	// in real time over WebRTC. The room name is derived
+	// from the current game id (we set it on init); if
+	// no id is set yet we fall back to a stable hash of
+	// the player names so two tablets next to the same
+	// board find each other automatically.
+	let room = $state(/** @type {any} */ (null));
+	let lastSentUpdatedAt = $state(0);
+	// Push the current game into the Yjs room. The
+	// timestamp is what the observer compares against
+	// to avoid re-applying our own writes.
+	function publishToRoom() {
+		if (!room || applyingRemote || !game) return;
+		const ts = Date.now();
+		try {
+			patchState(room.state, {
+				game: deepClone(game),
+				updatedAt: ts
+			});
+			lastSentUpdatedAt = ts;
+		} catch (e) {
+			console.warn('[yjs] patchState failed', e);
+		}
+	}
+
+	// NOSTR background checkpoint. Fire-and-forget.
+	// The user must be signed in (Header derives a
+	// keypair only for signed-in accounts) and the
+	// game must have an id. We log the outcome so an
+	// admin can see in devtools whether the relay
+	// actually accepted the event.
+	async function publishNostrCheckpoint() {
+		try {
+			const kp = getStoredKeypair();
+			if (!kp?.secretKey || !game?.id) return;
+			await publishCheckpoint({
+				secretKey: kp.secretKey,
+				matchId: game.id,
+				snapshot: { game: deepClone(game) }
+			});
+		} catch (e) {
+			console.warn('[nostr] checkpoint publish failed', e);
+		}
+	}
+
+	// Archive upload. Runs once when a match finishes
+	// (game.winner != null && game.endedAt is set). It
+	// tries Google Drive first (free, persistent) and
+	// then IPFS if a Pinata JWT is stored in Settings.
+	// Whatever URL ends up with the data, we publish a
+	// NOSTR event pointing at it. All steps are
+	// best-effort — a network failure doesn't unwind
+	// the finished game.
+	async function archiveCompetition() {
+		if (!game?.id || game.winner == null || !game.endedAt) return;
+		const kp = getStoredKeypair();
+		if (!kp?.secretKey) return; // Need a key to sign the archive event.
+		const blob = buildArchiveBlob(game);
+		if (!blob) return;
+		let dataUrl = null;
+		try {
+			const accessToken = await getAccessToken();
+			if (accessToken) {
+				const fileId = await uploadToDrive({
+					accessToken,
+					json: blob,
+					filename: `gin-darts-match-${game.id}.json`
+				});
+				if (fileId) dataUrl = `https://drive.google.com/uc?id=${fileId}`;
+			}
+		} catch (e) { console.warn('[archive] drive upload failed', e); }
+		try {
+			const pinataJwt = loadSetting('pinataJwt');
+			if (pinataJwt) {
+				const cid = await uploadToIPFS({ pinataJwt, json: blob });
+				if (cid) dataUrl = `https://gateway.pinata.cloud/ipfs/${cid}`;
+			}
+		} catch (e) { console.warn('[archive] ipfs upload failed', e); }
+		if (!dataUrl) return;
+		try {
+			await publishArchiveEvent({
+				secretKey: kp.secretKey,
+				matchId: game.id,
+				dataUrl
+			});
+		} catch (e) { console.warn('[archive] nostr publish failed', e); }
+	}
+	let roomState = $derived(room?.state);
+	function deriveRoomName() {
+		if (game?.id) return `gin-darts-match-${game.id}`;
+		const seed = (names || []).slice().sort().join('|') || 'lobby';
+		return `gin-darts-match-${seed}`;
+	}
+
 	onMount(() => {
 		init();
+		// Open the Yjs room lazily after the game has
+		// been initialised. We open with the match's
+		// stable name so the second tablet that joins
+		// (e.g. the one the player picks up after
+		// walking over to the board) ends up in the
+		// same room.
+		const tryOpen = () => {
+			if (room) return;
+			const roomName = deriveRoomName();
+			try {
+				room = openRoom({ roomName });
+				// Mirror the current game state into the
+				// shared Y.Map so the peer can render
+				// something on join. We use the existing
+				// engine snapshot — no engine changes.
+				publishToRoom();
+				// Live mirror. Whenever the remote peer
+				// patches the room, we hydrate the local
+				// game with the remote snapshot. The
+				// engine itself is unchanged — we just
+				// adopt the remote game object as the
+				// new local game. The lock prevents the
+				// patchState() call we make *during*
+				// commitTurn from re-hydrating us while
+				// the engine is still mid-turn.
+				observeState(room.state, (ev) => {
+					if (applyingRemote) return;
+					const keys = ev?.changes?.keys ? Array.from(ev.changes.keys) : [];
+					if (!keys.includes('game')) return;
+					const remote = room.state.get('game');
+					if (!remote || !game) return;
+					// Don't loop the same snapshot back
+					// to ourselves: if the timestamps
+					// already match what we sent, skip.
+					const remoteUpdatedAt = room.state.get('updatedAt') || 0;
+					if (remoteUpdatedAt && remoteUpdatedAt <= (lastSentUpdatedAt || 0)) {
+						return;
+					}
+					applyingRemote = true;
+					try {
+						game = deepClone(remote);
+					} finally {
+						applyingRemote = false;
+					}
+					void keys;
+				});
+			} catch (e) {
+				console.warn('[yjs] openRoom failed', e);
+			}
+		};
+		// Give init() a tick to assign the game id.
+		setTimeout(tryOpen, 0);
 		return () => {
 			if (botTimer) clearTimeout(botTimer);
+			if (room) {
+				try { closeRoom(room); } catch { /* ignore */ }
+				room = null;
+			}
 		};
 	});
 
@@ -153,8 +321,30 @@
 			past = legWinUndoEntry
 				? [...past, legWinUndoEntry]
 				: [...past, before];
-			future = [];
-			await persist();
+				future = [];
+				// Mirror the latest state into the Yjs room so
+				// the peer (the other tablet at the board)
+				// can read it. The engine itself stays the
+				// source of truth; the Y.Map is just a fast
+				// broadcast channel.
+				publishToRoom();
+				// Background NOSTR checkpoint — fire-and-forget.
+				// If the user is signed in and we have a NOSTR
+				// key on the device, push a fresh snapshot of
+				// the current state to the relays. This is the
+				// recovery point for a tablet that rebooted or
+				// lost WebRTC. We don't await it because the
+				// game shouldn't pause on the network.
+				publishNostrCheckpoint();
+				// Same fire-and-forget for the archive. Only
+				// runs when the game has just ended (the
+				// archiveCompetition helper bails out for
+				// any other state). Network failures are
+				// logged, not raised.
+				if (game.winner != null && game.endedAt) {
+					archiveCompetition();
+				}
+				await persist();
 			// Auto-record to history when the game ends.
 			let legWinEntryId = null;
 			if (game.winner != null && game.endedAt) {
