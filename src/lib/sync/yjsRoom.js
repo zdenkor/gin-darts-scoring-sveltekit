@@ -28,6 +28,8 @@
 import * as Y from 'yjs';
 import { WebrtcProvider } from 'y-webrtc';
 import { IndexeddbPersistence } from 'y-indexeddb';
+import { log } from '$lib/debug/logger.js';
+import { isCategoryEnabled } from '$lib/debug/settings.js';
 
 /** Public y-webrtc signaling servers (free, community-run). */
 const DEFAULT_SIGNALING = [
@@ -61,6 +63,16 @@ export function openRoom(/** @type {{
 	// signaling servers, advertises our presence, and
 	// syncs with any peer that joins the same room.
 	const provider = new WebrtcProvider(roomName, doc, { signaling });
+	// y-webrtc fires on('peers') with the current peer
+	// count; we log it so the WebRTC tab in View Logs
+	// shows the connection lifecycle.
+	if (isCategoryEnabled('webrtc')) {
+		provider.on('peers', (peers) => log('webrtc', `${roomName}: peers=${peers.length}`));
+		provider.on('status', (s) => log('webrtc', `${roomName}: status=${s}`));
+	}
+	if (isCategoryEnabled('yjs')) {
+		log('yjs', `${roomName}: doc + provider + persistence created`);
+	}
 	const state = doc.getMap('match');
 
 	return { doc, provider, persistence, state };

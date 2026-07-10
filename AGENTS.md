@@ -155,6 +155,67 @@ a new screen; declare `container-type: inline-size` (or
 Header and Footer use `env(safe-area-inset-*)` padding for
 iOS notches and home indicators. Don't remove it.
 
+## Tech stack (current, 0.4.5)
+
+- **Svelte 5** with runes — every store is `$state` / `$derived`,
+  no legacy `writable` stores. New code should use runes too.
+- **SvelteKit** with `@sveltejs/adapter-static`. Pages that
+  touch the network (e.g. `/calendar`, `/history`) declare
+  `export const prerender = false; export const ssr = false;`
+  in a sibling `+page.js`.
+- **Bits UI** (`bits-ui` v2.18) for select / listbox / dropdown
+  primitives. The wrapper lives at `src/lib/ui/Select.svelte`;
+  prefer that over native `<select>`.
+- **nostr-tools** (`^2.23`) for the NOSTR layer — identity,
+  calendar, history, checkpoint, archive. Use the `/pure` and
+  `/pool` subpaths; the main `nostr-tools` import path is fine
+  too, just heavier.
+- **yjs** + **y-webrtc** + **y-indexeddb** for the live
+  multi-device sync layer. The room helper is
+  `src/lib/sync/yjsRoom.js`.
+- **Pinata** for IPFS pinning, via the public REST API
+  (`https://api.pinata.cloud/pinning/pinJSONToIPFS`). The
+  admin pastes their Pinata JWT into Settings; the app
+  reads it via `loadSetting('pinataJwt')`.
+- **Google Drive** for the admin's own archive copy. The
+  multipart upload uses `getAccessToken()` from
+  `src/lib/auth/google.js`.
+
+## Decentralized infrastructure rules
+
+- **Engine stays the source of truth.** The Y.Map and the
+  NOSTR checkpoint are broadcast / recovery channels, not
+  the game's data store. The engine in
+  `src/lib/competition/engine.js` is the canonical state.
+  This rule already applied to engine logic and now also
+  applies to the live sync layer — do not let the CRDT
+  overwrite the engine's bookkeeping.
+- **NOSTR identity is bound to the signed-in Google
+  account.** Don't add a random-keypair fallback for
+  anonymous users. The Header derives the key from
+  `auth.displayUser.id` (or `auth.user.uid`) on first
+  paint, and clears it on sign-out.
+- **Archive uploads are fire-and-forget.** Network
+  failures must never undo a finished game. The
+  `archiveCompetition()` helper is wrapped in try/catch
+  around every step; add new steps in the same style.
+- **Relay lists are public, free, community-run.** The
+  default relay list lives in
+  `src/lib/nostr/calendar.js` (`DEFAULT_RELAYS`). The
+  same list is reused by `checkpoint.js` and
+  `archive.js` — keep them in sync.
+- **No PII in events.** NOSTR events are world-readable.
+  Don't put email addresses, real names, or anything
+  sensitive in the event tags. Use the Google-derived
+  public key as the identity, the match id as the
+  correlation key, and a `data_url` pointing at the
+  admin's own Google Drive for the full JSON.
+- **Recovery belongs in the helper, not the UI.** The
+  UI doesn't surface "recovered from checkpoint"
+  notifications in 0.4.5 — the user just sees the
+  game as it was. Add a notification only if a future
+  commit explicitly asks for one.
+
 ## Local-development verification
 
 The dev sandbox can't bind TCP ports, so the only reliable

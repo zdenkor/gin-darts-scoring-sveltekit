@@ -11,6 +11,10 @@
 		getEffectiveGoogleClientId, getEffectiveSuperadminEmails
 	} from '$lib/util/settings.js';
 	import { setHelpVisible } from '$lib/util/help.js';
+	import { LOG_CATEGORIES, LOG_CATEGORY_LABELS } from '$lib/debug/categories.js';
+	import { isCategoryEnabled, setCategoryEnabled } from '$lib/debug/settings.js';
+	import { invalidateLogCache, clearLogs } from '$lib/debug/logger.js';
+	import LogsModal from '$lib/ui/LogsModal.svelte';
 	import {
 		parseSVKListText, importSVKList, getSVKCacheStats,
 		clearSVKCache, searchSVKCache
@@ -23,6 +27,21 @@
 	let svkStats = $state(/** @type {{count:number,lastImportedAt:number|null}} */ ({ count: 0, lastImportedAt: null }));
 	let svkImporting = $state(false);
 	let svkMessage = $state(/** @type {string} */ (''));
+	// Debug — re-render-friendly copy of the per-category
+	// toggles. We mirror the localStorage-backed settings
+	// so the UI updates immediately when a toggle changes.
+	let debugEnabled = $state(/** @type {Record<string, boolean>} */ (
+		Object.fromEntries(LOG_CATEGORIES.map((c) => [c, isCategoryEnabled(c)]))
+	));
+	let logsModalOpen = $state(false);
+	function toggleDebugCategory(/** @type {string} */ cat, /** @type {boolean} */ on) {
+		setCategoryEnabled(cat, on);
+		debugEnabled = { ...debugEnabled, [cat]: on };
+		// The logger keeps an in-memory cache, so we drop
+		// it on toggle to make sure the next log() call
+		// re-checks the on/off flag.
+		invalidateLogCache();
+	}
 	// SVK search state (used by both the import preview and the
 	// player picker in /competitions — the picker uses its own
 	// local state, this is just the settings-panel preview).
@@ -258,6 +277,23 @@
 				</details>
 			{/if}
 		</section>
+
+		<section class="settings-section">
+			<h2>Debug<HelpIcon topic="Debug logs" body="Each category logs to a private IndexedDB store when its toggle is on. The View Logs button opens a modal with a tab per category; entries are newest first. Toggling a category off prevents new entries from being written but does not delete existing ones — use the Clear button in the modal to wipe a category." /></h2>
+			{#each LOG_CATEGORIES as cat (cat)}
+				<label class="field debug-toggle">
+					<input
+						type="checkbox"
+						checked={debugEnabled[cat]}
+						onchange={(e) => toggleDebugCategory(cat, /** @type {HTMLInputElement} */ (e.currentTarget).checked)}
+					/>
+					<span>{LOG_CATEGORY_LABELS[cat]}</span>
+				</label>
+			{/each}
+			<button class="btn" type="button" onclick={() => (logsModalOpen = true)}>View logs</button>
+		</section>
+
+		<LogsModal open={logsModalOpen} onClose={() => (logsModalOpen = false)} />
 
 		<section class="settings-section danger-zone">
 			<h2>Data</h2>
