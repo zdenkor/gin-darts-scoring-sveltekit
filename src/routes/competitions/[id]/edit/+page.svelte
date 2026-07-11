@@ -12,6 +12,7 @@
 	import { isSignedIn } from '$lib/auth/google.js';
 	import { pushCompetition, markDirty } from '$lib/auth/sync.js';
 	import CompetitionForm from '$lib/ui/CompetitionForm.svelte';
+	import RoundsEditor from '$lib/ui/RoundsEditor.svelte';
 
 	let competition = $state(/** @type {any} */ (null));
 	let matches = $state(/** @type {any[]} */ ([]));
@@ -153,6 +154,8 @@
 				onSave={handleEditSave}
 				onCancel={back}
 			/>
+
+			<RoundsEditor bind:competition={competition} />
 
 			<section class="locked">
 				<h3>What you can't edit here</h3>

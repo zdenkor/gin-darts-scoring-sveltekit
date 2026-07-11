@@ -20,6 +20,7 @@
 import { finalizeEvent, getPublicKey } from 'nostr-tools/pure';
 import { SimplePool } from 'nostr-tools/pool';
 import { DEFAULT_RELAYS } from './nostr/calendar.js';
+import { hexToBytes } from './nostr/util.js';
 
 const KIND_ARCHIVE = 30001;
 const IPFS_PINATA_URL = 'https://api.pinata.cloud/pinning/pinJSONToIPFS';
@@ -170,12 +171,4 @@ export async function publishArchiveEvent(/** @type {{
 		pool.close(relays);
 	}
 	return ev.id;
-}
-
-function hexToBytes(/** @type {string} */ hex) {
-	const out = new Uint8Array(hex.length / 2);
-	for (let i = 0; i < out.length; i++) {
-		out[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
-	}
-	return out;
 }

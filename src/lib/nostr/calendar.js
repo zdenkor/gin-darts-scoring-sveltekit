@@ -22,8 +22,12 @@
  * the project has used in the past. We don't add a relay
  * picker to the UI in this commit; that's a follow-up.
  */
+import { finalizeEvent } from 'nostr-tools/pure';
 import { SimplePool } from 'nostr-tools/pool';
+import { hexToBytes } from './util.js';
 
+const KIND_TOURNAMENT = 30001;
+const PUBKEY_HEX = /^[0-9a-f]{64}$/i;
 const DEFAULT_RELAYS = [
 	'wss://relay.damus.io',
 	'wss://nos.lol',
@@ -140,14 +144,71 @@ export function parseTournamentEvent(/** @type {any} */ ev) {
 	}
 	// Tag-based overrides (the relay filter asks for
 	// '#t' but the calendar view can also display the
-	// other tags).
+	// other tags). `starts` is the NIP-52-style ISO
+	// date stamp; `d` is the tournament id; `l` is
+	// the location.
 	const tags = /** @type {string[][]} */ (ev?.tags || []);
+	let tournamentId = '';
 	for (const t of tags) {
 		if (t[0] === 'l' && !payload.location) payload.location = t[1];
-		if (t[0] === 'd' && !payload.date) payload.date = t[1];
+		if (t[0] === 'starts' && !payload.date) payload.date = t[1];
+		if (t[0] === 'd') tournamentId = t[1];
 		if (t[0] === 'format' && !payload.format) payload.format = t[1];
 	}
-	return { ...payload, id: ev.id, pubkey: ev.pubkey, created_at: ev.created_at };
+	return { ...payload, tournamentId, id: ev.id, pubkey: ev.pubkey, created_at: ev.created_at };
+}
+
+/**
+ * Sign and publish a tournament announcement. The
+ * wire format mirrors the read path so a future
+ * `parseTournamentEvent` call can recover the same
+ * fields:
+ *   - tags: t = darts-tournament, l = location,
+ *     starts = ISO YYYY-MM-DD, d = tournament id,
+ *     format = format
+ *   - content: JSON with at least { name, date, location,
+ *     format, data_url }
+ * The function is fire-and-forget; a relay that doesn't
+ * answer simply doesn't get the event.
+ */
+export async function publishTournament(/** @type {{
+ * relays?: string[],
+ * secretKey: string,
+ * tournament: { id: string, name: string, date?: string, location?: string, format?: string, data_url?: string }
+ * }} */ opts) {
+	const skHex = String(opts?.secretKey || '');
+	if (!PUBKEY_HEX.test(skHex)) return null;
+	const t = opts?.tournament || {};
+	if (!t.id || !t.name) return null;
+	const sk = hexToBytes(skHex);
+	const template = {
+		kind: KIND_TOURNAMENT,
+		created_at: Math.floor(Date.now() / 1000),
+		tags: [
+			['t', 'darts-tournament'],
+			['d', t.id],
+			...(t.location ? [['l', t.location]] : []),
+			...(t.date ? [['starts', t.date]] : []),
+			...(t.format ? [['format', t.format]] : [])
+		],
+		content: JSON.stringify({
+			name: t.name,
+			date: t.date || '',
+			location: t.location || '',
+			format: t.format || '',
+			data_url: t.data_url || ''
+		}),
+		pubkey: ''
+	};
+	const ev = finalizeEvent(template, sk);
+	const relays = opts.relays && opts.relays.length > 0 ? opts.relays : DEFAULT_RELAYS;
+	const pool = new SimplePool();
+	try {
+		await Promise.any(pool.publish(relays, ev));
+	} catch { /* see publishCheckpoint for the rationale */ } finally {
+		pool.close(relays);
+	}
+	return ev.id;
 }
 
 export { DEFAULT_RELAYS };

@@ -30,6 +30,8 @@
 	import { searchSVKCache } from '$lib/auth/svk.js';
 	import CompetitionWizard from '$lib/ui/CompetitionWizard.svelte';
 	import Bracket from '$lib/ui/Bracket.svelte';
+	import ScoringEditor from '$lib/ui/ScoringEditor.svelte';
+	import { freshScoring } from '$lib/scoring/points.js';
 
 	const START_OPTIONS = [301, 401, 501, 701, 1001];
 	const PARTICIPANT_FORMATS = [
@@ -79,6 +81,13 @@
 	// overwrites them from `existing`.
 	let formName = $state('');
 	let formType = $state('league');
+	let formDate = $state('');
+	let formLocation = $state('');
+	let formRoundCount = $state(0);
+	// League scoring — bound to <ScoringEditor> for the
+	// Scoring wizard tab. Lazy-initialised to fresh
+	// defaults so the editor can mutate it in place.
+	let formScoring = $state(/** @type {any} */ (null));
 	let formParticipantFormat = $state('singles');
 	let formEliminationFormat = $state('round robin');
 	let formSeeding = $state('ordered');
@@ -107,6 +116,10 @@
 		if (initialised) return;
 		if (mode === 'edit' && existing) {
 			formName = existing.name || '';
+			formDate = existing.date || '';
+			formLocation = existing.location || '';
+			formRoundCount = existing.roundCount || 0;
+			formScoring = existing.scoring || freshScoring();
 			formSeason = existing.season ?? new Date().getFullYear();
 			formStatus = existing.status || 'upcoming';
 			formType = existing.type || 'league';
@@ -125,6 +138,10 @@
 			formNotes = existing.notes || '';
 			formPlayers = (existing.players || []).map((name, i) => ({ id: i, name }));
 			// Keep the same id, don't generate a new one.
+		} else if (mode === 'create') {
+			// Seed the scoring block so the Scoring tab is
+			// immediately usable on a fresh league.
+			formScoring = freshScoring();
 		}
 		initialised = true;
 	});
@@ -430,6 +447,33 @@
 		const meta = {
 			name: formName.trim() || 'Untitled competition',
 			ownerId: existing?.ownerId ?? null,
+			// Tournament venue + date (ISO YYYY-MM-DD) are
+			// captured on the Setup tab and shipped in the
+			// competition shape so the calendar and history
+			// can surface them later.
+			date: formDate || '',
+			location: formLocation || '',
+			// League shape. We pre-fill the rounds array
+			// with N empty placeholders so the league is
+			// "wired" as soon as the form is saved. The
+			// player can then open the parent page and
+			// add a date / location for each round.
+			roundCount: formType === 'league' ? Math.max(0, formRoundCount | 0) : 0,
+			rounds: formType === 'league'
+				? Array.from({ length: Math.max(0, formRoundCount | 0) }, (_, i) => ({
+					id: `round-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 6)}`,
+					roundNumber: i + 1,
+					name: `${formName.trim() || 'Untitled league'} — kolo ${i + 1}`,
+					date: '',
+					location: formLocation || '',
+					status: 'pending',
+					matches: []
+				}))
+				: [],
+			// League scoring — only relevant for league
+			// competitions. The editor owns the deep clone
+			// so we just pass it through.
+			scoring: formType === 'league' ? (formScoring || freshScoring()) : null,
 			players: playerNames,
 			gameMode: formGameMode,
 			gameOpts: {
@@ -510,9 +554,23 @@
 					<input type="text" bind:value={formName} placeholder="League or tournament name" required />
 				</label>
 				<label class="field">
+					<span>Date</span>
+					<input type="date" bind:value={formDate} />
+				</label>
+				<label class="field">
+					<span>Location</span>
+					<input type="text" bind:value={formLocation} placeholder="e.g. Nitra, pub Centrum" />
+				</label>
+				<label class="field">
 					<span>Season</span>
 					<input type="text" bind:value={formSeason} placeholder="2026" />
 				</label>
+				{#if formType === 'league'}
+					<label class="field">
+						<span>Number of rounds</span>
+						<input type="number" min="0" max="52" bind:value={formRoundCount} />
+					</label>
+				{/if}
 			</div>
 
 			<div class="grid-3">
@@ -572,6 +630,10 @@
 				<span>Notes (optional)</span>
 				<textarea rows="2" bind:value={formNotes} placeholder="Anything to remember about this competition"></textarea>
 			</label>
+		</svelte:fragment>
+
+		<svelte:fragment slot="scoring">
+			<ScoringEditor bind:scoring={formScoring} league={formType === 'league'} />
 		</svelte:fragment>
 
 		<svelte:fragment slot="registration">

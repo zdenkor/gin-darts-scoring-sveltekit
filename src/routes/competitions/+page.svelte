@@ -11,6 +11,8 @@
 	} from '$lib/db/competitions.js';
 	import { isSignedIn } from '$lib/auth/google.js';
 	import { pushCompetition, markDirty } from '$lib/auth/sync.js';
+	import { getStoredKeypair } from '$lib/nostr/identity.js';
+	import { publishTournament } from '$lib/nostr/calendar.js';
 	import CompetitionForm from '$lib/ui/CompetitionForm.svelte';
 
 	// Tab visibility for the empty-state banner. We show
@@ -48,6 +50,49 @@
 					markDirty(`comp:${created.competition.id}`);
 				}
 			}
+			// NOSTR publish — fire-and-forget, same pattern
+			// as the Drive push. We need a NOSTR keypair
+			// (derived only for signed-in accounts) and a
+			// competition name. If publish fails the
+			// competition is still saved locally; the
+			// calendar just doesn't list it.
+			try {
+				const kp = getStoredKeypair();
+				if (kp?.secretKey && created.competition.name) {
+					await publishTournament({
+						secretKey: kp.secretKey,
+						tournament: {
+							id: created.competition.id,
+							name: created.competition.name,
+							date: created.competition.date || '',
+							location: created.competition.location || '',
+							format: created.competition.format || created.competition.type || ''
+						}
+					});
+					// For leagues, publish every round as its
+					// own tournament event so the calendar
+					// shows each round on its date. We
+					// prefix the round name with the parent
+					// league name and round number so
+					// 'Gin's League — kolo 3' lands as its
+					// own row.
+					if (created.competition.type === 'league' && Array.isArray(created.competition.rounds)) {
+						for (const r of created.competition.rounds) {
+							if (!r.date) continue; // only rounds with a date go on the calendar
+							await publishTournament({
+								secretKey: kp.secretKey,
+								tournament: {
+									id: r.id,
+									name: r.name || `${created.competition.name} — kolo ${r.roundNumber}`,
+									date: r.date,
+									location: r.location || created.competition.location || '',
+									format: created.competition.type
+								}
+							});
+						}
+					}
+				}
+			} catch (e) { console.warn('Nostr publish on create failed', e); }
 			// The submit button reads 'Create and next phase' /
 			// 'Generate and next phase' — so after a successful
 			// create we jump straight to the detail page so
@@ -222,6 +267,8 @@
 	   by the game-layout container in app.css. */
 	.screen {
 		min-height: 0;
+		container-type: inline-size;
+		container-name: comp;
 	}
 	.screen.scrollable {
 		overflow-y: auto;
@@ -255,6 +302,12 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-xs);
+		min-width: 0;
+		flex: 1 1 auto;
+	}
+	.info :global(h3), .info :global(.name) {
+		overflow-wrap: anywhere;
+		word-break: break-word;
 	}
 	.meta {
 		display: flex;
@@ -493,6 +546,18 @@
 	.svk-picker-empty {
 		margin: var(--space-sm) 0 0;
 		color: var(--muted);
+	}
+	@container comp (max-width: 28rem) {
+		.competition-row {
+			flex-wrap: wrap;
+		}
+		.row-actions {
+			flex: 1 1 100%;
+			justify-content: flex-end;
+		}
+		.competition-form-card {
+			padding: var(--space-sm);
+		}
 	}
 	@container app (min-width: 60rem) {
 		.svk-picker-input,

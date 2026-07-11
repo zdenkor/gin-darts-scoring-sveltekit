@@ -6,6 +6,7 @@
 	import { getCompetition, listMatches, updateMatch } from '$lib/db/competitions.js';
 	import { completeMatch } from '$lib/competition/engine.js';
 	import Bracket from '$lib/ui/Bracket.svelte';
+	import StandingsTable from '$lib/ui/StandingsTable.svelte';
 
 	let competition = $state(/** @type {any} */ (null));
 	let matches = $state(/** @type {any[]} */ ([]));
@@ -204,6 +205,8 @@
 					</div>
 				</section>
 			{/if}
+
+			<StandingsTable {competition} {matches} scoring={competition?.scoring} />
 
 			<section class="rule">
 				<div class="matches-header">

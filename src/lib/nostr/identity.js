@@ -20,19 +20,12 @@
  * the key from their Google login.
  */
 import { generateSecretKey, getPublicKey } from 'nostr-tools/pure';
+import { hexToBytes, isValidHexPriv } from './util.js';
 
 const STORAGE_KEY = 'gin-darts-nostr-identity';
 
 function toHex(/** @type {Uint8Array} */ bytes) {
 	return Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
-}
-
-function fromHex(/** @type {string} */ hex) {
-	const out = new Uint8Array(hex.length / 2);
-	for (let i = 0; i < out.length; i++) {
-		out[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
-	}
-	return out;
 }
 
 /** Generate a brand-new NOSTR keypair (random 32 bytes). */
@@ -118,5 +111,6 @@ export function shortNpub(/** @type {string} */ publicKeyHex, /** @type {number}
 	return `${publicKeyHex.slice(0, head)}…${publicKeyHex.slice(-tail)}`;
 }
 
-/** Re-export fromHex for the rare caller that needs it. */
-export { fromHex };
+/** Re-export for backwards compatibility with callers
+ *  that imported the old `fromHex` name. */
+export { hexToBytes as fromHex, isValidHexPriv };

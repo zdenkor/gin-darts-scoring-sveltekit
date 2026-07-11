@@ -26,6 +26,7 @@
 
 	const TABS = [
 		{ key: 'setup', label: 'Competition Setup', en: 'Competition_Setup' },
+		{ key: 'scoring', label: 'Scoring', en: 'League_Scoring' },
 		{ key: 'registration', label: 'Registration', en: 'Registration' },
 		{ key: 'seeding', label: 'Seeding & Draw', en: 'Seeding_And_Draw' },
 		{ key: 'live', label: 'Live Tournament', en: 'Live_Tournament' },
@@ -63,11 +64,11 @@
 	let visibleTabs = $derived.by(() => {
 		if (mode === 'watch') {
 			const out = TABS.filter(t => t.key === 'live' || t.key === 'finalization');
-			if (competition?.type === 'league') out.push(TABS[5]);
+			if (competition?.type === 'league') out.push(TABS[6]);
 			return out;
 		}
 		if (competition?.type !== 'league' && competition !== null) {
-			return TABS.slice(0, 5);
+			return TABS.filter(t => t.key !== 'scoring' && t.key !== 'league');
 		}
 		return TABS;
 	});
@@ -108,6 +109,8 @@
 	<div class="wizard-panel" role="tabpanel" id="wizard-panel-{tabKey(activeTab)}" aria-labelledby="wizard-tab-{tabKey(activeTab)}">
 		{#if tabKey(activeTab) === 'setup'}
 			<slot name="setup" />
+		{:else if tabKey(activeTab) === 'scoring'}
+			<slot name="scoring" />
 		{:else if tabKey(activeTab) === 'registration'}
 			<slot name="registration" />
 		{:else if tabKey(activeTab) === 'seeding'}

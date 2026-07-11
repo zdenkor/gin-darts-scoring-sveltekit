@@ -141,6 +141,7 @@ export function new01(playerNames, opts = {}) {
     opts: { start, in: inOut.inRule, out: inOut.outRule, legsToWin, setsToWin, maxDarts },
     players,
     current: order ? order.indexOf(Math.min(...order.map((_, i) => i))) : 0,
+    currentAtLegStart: order ? order.indexOf(Math.min(...order.map((_, i) => i))) : 0,
     throwOrder: order || playerNames.map((_, i) => i),
     turnDarts: [],
     startedAt: Date.now(),
@@ -511,7 +512,7 @@ export function submitTurnTotal01(state, total) {
   const events = [];
   if (wouldBust) {
     events.push({ type: 'bust', total: pts, scoreAfter: startScore });
-    player.history.push({ what: `BUST (${pts})`, delta: 0, scoreAfter: startScore });
+    player.history.push({ what: `BUST (${pts})`, delta: 0, scoreAfter: startScore, total: pts, is180: pts === 180, is171: pts === 171, is170plus: pts >= 170 && pts <= 179, is140plus: pts >= 140 && pts <= 169, is100plus: pts >= 100 && pts <= 139, isCheckout: false });
     // If the original target was closable, the player COULD have
     // aimed at the close-out before busting. Emit a
     // checkout-attempt event so the UI asks how many of the 3
@@ -536,7 +537,7 @@ export function submitTurnTotal01(state, total) {
   const dartsThisTurn = 3;
   player.score = prospective;
   events.push({ type: 'turn', total: pts, delta: -pts, scoreAfter: player.score, darts: dartsThisTurn });
-  player.history.push({ what: `${pts}`, delta: -pts, scoreAfter: player.score });
+  player.history.push({ what: `${pts}`, delta: -pts, scoreAfter: player.score, total: pts, darts: dartsThisTurn, is180: pts === 180, is171: pts === 171, is170plus: pts >= 170 && pts <= 179, is140plus: pts >= 140 && pts <= 169, is100plus: pts >= 100 && pts <= 139, isCheckout: isFinish, checkoutValue: isFinish ? startScore : 0, isCheckout100plus: isFinish && startScore >= 100, legsToIn: startScore - pts });
   state.turnDarts = [{ total: pts, darts: dartsThisTurn }];
   // If the player COULD have aimed at a checkout this turn, emit a
   // 'checkout-attempt' event with the maximum number of darts they
@@ -561,7 +562,24 @@ export function submitTurnTotal01(state, total) {
   }
   if (isFinish) {
     player.legsWon += 1;
-    events.push({ type: 'leg-won', playerIndex: state.current, legsWon: player.legsWon, legsToWin: state.opts.legsToWin, isCheckout: true });
+    // Throwing-first tracking: snapshot who started
+    // the leg (state.currentAtLegStart is set when the
+    // leg opens), then flag the winning entry on the
+    // winner's history so recordGameResult can count
+    // it later.
+    const firstIdx = state.currentAtLegStart ?? state.current;
+    const lastEntry = player.history[player.history.length - 1];
+    if (lastEntry && lastEntry.isCheckout) {
+      if (firstIdx === state.current) {
+        lastEntry.legsThrowingFirst = true;
+        lastEntry.legsThrowingFirstWon = true;
+      } else {
+        // Winner wasn't the first thrower — mark that
+        // we know who was, but the win was thrown second.
+        lastEntry.legsThrowingFirst = false;
+      }
+    }
+    events.push({ type: 'leg-won', playerIndex: state.current, legsWon: player.legsWon, legsToWin: state.opts.legsToWin, isCheckout: true, throwFirstIndex: firstIdx });
     if (player.legsWon >= state.opts.legsToWin) {
       player.setsWon = (player.setsWon || 0) + 1;
       events.push({ type: 'set-won', playerIndex: state.current, setsWon: player.setsWon, setsToWin: state.opts.setsToWin });
@@ -573,9 +591,11 @@ export function submitTurnTotal01(state, total) {
         return { state, events, applied: pts, darts: dartsThisTurn, isLegWin: true, isCheckout: true };
       }
       for (const p of state.players) { p.score = state.opts.start; p.dartsThisLeg = 0; p.legsWon = 0; }
+      state.currentAtLegStart = state.current;
       events.push({ type: 'new-set', startingScore: state.opts.start });
     } else {
       for (const p of state.players) { p.score = state.opts.start; p.dartsThisLeg = 0; }
+      state.currentAtLegStart = state.current;
       events.push({ type: 'new-leg', startingScore: state.opts.start });
     }
     state.current = advanceTurn(state);

@@ -22,6 +22,21 @@ export async function createCompetition(/** @type {any} */ data) {
 		participantFormat: data.participantFormat || 'singles',
 		eliminationFormat: data.eliminationFormat || null,
 		seeding: data.seeding || 'ordered',
+		// Tournament venue + date (ISO YYYY-MM-DD) are
+		// captured on the Setup tab and shipped in the
+		// competition shape so the calendar and history
+		// can surface them later.
+		date: data.date || '',
+		location: data.location || '',
+		// League shape. A league is a parent record that
+		// owns N rounds, each of which is a self-contained
+		// sub-tournament. The rounds[] array is empty for
+		// non-league competitions and is the source of
+		// truth for everything that shows up on the
+		// calendar. Each round has its own date / location
+		// and accumulates the same players.
+		roundCount: data.roundCount || 0,
+		rounds: data.rounds || [],
 		status: data.status || 'pending',
 		players: data.players || [],
 		gameMode: data.gameMode || 'x01',
@@ -155,6 +170,48 @@ export async function replacePlayer(competitionId, oldName, newName) {
 export async function updateMatch(match) {
 	await put(MATCH_STORE, match);
 	return match;
+}
+
+/**
+ * League round helpers. A league owns an array of
+ * `rounds`, each of which is a self-contained sub-tournament
+ * with its own date / location / matches. The round id is
+ * stable so we can update it from a separate editor
+ * without rebuilding the whole competition.
+ */
+export async function createRound(/** @type {string} */ competitionId, /** @type {any} */ round) {
+	const comp = await getCompetition(competitionId);
+	if (!comp) return null;
+	const r = {
+		id: round?.id || `round-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+		roundNumber: round?.roundNumber || (comp.rounds?.length || 0) + 1,
+		name: round?.name || `${comp.name} — kolo ${round?.roundNumber || (comp.rounds?.length || 0) + 1}`,
+		date: round?.date || '',
+		location: round?.location || comp.location || '',
+		status: round?.status || 'pending',
+		matches: round?.matches || []
+	};
+	comp.rounds = [...(comp.rounds || []), r];
+	await put(STORE, comp);
+	return r;
+}
+
+export async function updateRound(/** @type {string} */ competitionId, /** @type {string} */ roundId, /** @type {any} */ patch) {
+	const comp = await getCompetition(competitionId);
+	if (!comp) return null;
+	const idx = (comp.rounds || []).findIndex((/** @type {any} */ r) => r.id === roundId);
+	if (idx < 0) return null;
+	comp.rounds[idx] = { ...comp.rounds[idx], ...patch, id: roundId };
+	await put(STORE, comp);
+	return comp.rounds[idx];
+}
+
+export async function deleteRound(/** @type {string} */ competitionId, /** @type {string} */ roundId) {
+	const comp = await getCompetition(competitionId);
+	if (!comp) return null;
+	comp.rounds = (comp.rounds || []).filter((/** @type {any} */ r) => r.id !== roundId);
+	await put(STORE, comp);
+	return comp.rounds;
 }
 
 // Previously this seeded two demo competitions ('Summer League

@@ -23,6 +23,7 @@
 import { finalizeEvent, getPublicKey } from 'nostr-tools/pure';
 import { SimplePool } from 'nostr-tools/pool';
 import { DEFAULT_RELAYS } from './calendar.js';
+import { hexToBytes } from './util.js';
 
 const KIND_CHECKPOINT = 30001;
 
@@ -153,12 +154,4 @@ export async function fetchLatestCheckpoint(/** @type {{
 	} finally {
 		pool.close(relays);
 	}
-}
-
-function hexToBytes(/** @type {string} */ hex) {
-	const out = new Uint8Array(hex.length / 2);
-	for (let i = 0; i < out.length; i++) {
-		out[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
-	}
-	return out;
 }
