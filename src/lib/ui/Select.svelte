@@ -125,8 +125,14 @@
 	   viewport max-height + overflow-y is what lets the picker
 	   scroll when there are more options than fit. The
 	   `min-width: var(--bits-anchor-width, 200px)` keeps the popup
-	   at least as wide as the trigger so it doesn't look squished. */
-	.sel-content {
+	   at least as wide as the trigger so it doesn't look squished.
+	   IMPORTANT: `<Select.Portal>` teleports the DOM out to
+	   <body>, so the scoped class hash on `.sel-content` is
+	   stripped at runtime — without `:global` the rule never
+	   matches and the popup falls back to a transparent
+	   background, which on a light page means white text on
+	   white. */
+	:global(.sel-content) {
 		background: var(--surface);
 		border: 1px solid var(--line);
 		border-radius: 12px;
@@ -137,7 +143,7 @@
 		overflow: hidden;
 		z-index: 1000;
 	}
-	.sel-viewport {
+	:global(.sel-viewport) {
 		display: flex;
 		flex-direction: column;
 		padding: 4px;
@@ -151,7 +157,7 @@
 	/* Each option: 48px min height on touch; on TV (large viewport)
 	   the text and hit area scale up so D-Pad users can read from
 	   across the room. */
-	.sel-item {
+	:global(.sel-item) {
 		display: flex;
 		align-items: center;
 		gap: var(--space-sm);
@@ -164,23 +170,23 @@
 		outline: none;
 		user-select: none;
 	}
-	.sel-item[data-highlighted] {
+	:global(.sel-item[data-highlighted]) {
 		background: color-mix(in srgb, var(--accent) 22%, transparent);
 	}
-	.sel-item[data-state='checked'] {
+	:global(.sel-item[data-state='checked']) {
 		font-weight: 700;
 	}
-	.sel-item:focus-visible,
-	.sel-item[data-highlighted]:focus-visible {
+	:global(.sel-item:focus-visible),
+	:global(.sel-item[data-highlighted]:focus-visible) {
 		outline: 3px solid var(--accent);
 		outline-offset: -3px;
 	}
-	.sel-item-label { flex: 1; }
-	.sel-item-desc {
+	:global(.sel-item-label) { flex: 1; }
+	:global(.sel-item-desc) {
 		font-size: var(--text-xs);
 		color: var(--muted);
 	}
-	.sel-item-check {
+	:global(.sel-item-check) {
 		color: var(--accent);
 		font-weight: 700;
 	}
@@ -188,7 +194,7 @@
 	/* Mobile / tablet: anchor at the bottom of the screen like a
 	   bottom sheet, so the user's thumb can reach every option. */
 	@media (max-width: 768px) {
-		.sel-content {
+		:global(.sel-content) {
 			position: fixed;
 			left: 8px !important;
 			right: 8px !important;
@@ -199,18 +205,18 @@
 			max-height: 70dvh;
 			transform: none !important;
 		}
-		.sel-item { min-height: 56px; font-size: var(--text-lg); }
+		:global(.sel-item) { min-height: 56px; font-size: var(--text-lg); }
 	}
 
 	/* TV: large viewport, large text, prominent focus. */
 	@media (min-width: 1600px) {
-		.sel-trigger {
+		:global(.sel-trigger) {
 			min-height: 64px;
 			font-size: var(--text-lg);
 			padding: 0 var(--space-md);
 		}
-		.sel-content { max-width: 640px; }
-		.sel-item {
+		:global(.sel-content) { max-width: 640px; }
+		:global(.sel-item) {
 			min-height: 64px;
 			font-size: var(--text-lg);
 			padding: 14px 18px;
