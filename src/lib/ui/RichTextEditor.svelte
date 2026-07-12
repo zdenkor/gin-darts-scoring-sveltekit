@@ -18,8 +18,11 @@
 
 	/** @type {HTMLElement | undefined} */
 	let mount;
-	/** @type {Editor | undefined} */
-	let editor;
+	// `$state` so the toolbar re-renders as the editor
+	// instance becomes available after `onMount`. A plain
+	// `let` is not reactive in Svelte 5 — `{#if editor}`
+	// would never flip to true.
+	let editor = $state(/** @type {any} */ (undefined));
 
 	onMount(() => {
 		if (!mount) return;

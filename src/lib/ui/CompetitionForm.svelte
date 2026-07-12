@@ -175,7 +175,7 @@
 			const extra = Array.from({ length: wanted - formRounds.length }, (_, i) => ({
 				id: `round-${Date.now()}-${formRounds.length + i}-${Math.random().toString(36).slice(2, 6)}`,
 				roundNumber: formRounds.length + i + 1,
-				name: `${formName || 'League'} ${formRounds.length + i + 1}. kolo`,
+				name: `${formName || 'League'} ${formSeason || ''} kolo ${formRounds.length + i + 1}`.replace(/\s+/g, ' ').trim(),
 				date: '',
 				time: '',
 				location: formLocation || '',
@@ -517,7 +517,7 @@
 					? Array.from({ length: Math.max(0, formRoundCount | 0) }, (_, i) => ({
 						id: `round-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 6)}`,
 						roundNumber: i + 1,
-						name: `${formName.trim() || 'Untitled league'} ${i + 1}. kolo`,
+						name: `${formName.trim() || 'Untitled league'} ${formSeason || ''} kolo ${i + 1}`.replace(/\s+/g, ' ').trim(),
 						date: '',
 						time: '',
 						location: formLocation || '',
@@ -721,7 +721,7 @@
 					Set the date / time / location of the first round,
 					then "Apply to all rounds" to repeat weekly.
 				</p>
-				<RoundsScheduler bind:rounds={formRounds} leagueName={formName || 'League'} />
+				<RoundsScheduler bind:rounds={formRounds} leagueName={formName || 'League'} season={formSeason || ''} />
 			{:else}
 				<p class="muted">Scheduling is only available for league competitions with rounds.</p>
 			{/if}

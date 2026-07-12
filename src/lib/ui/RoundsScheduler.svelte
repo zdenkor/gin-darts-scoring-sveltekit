@@ -11,7 +11,7 @@
 	 * Parent binds `rounds` so the change is reflected
 	 * back into the league's per-round `rounds[]` array.
 	 */
-	let { rounds = $bindable(/** @type {any[]} */ ([])), leagueName = 'League' } = $props();
+	let { rounds = $bindable(/** @type {any[]} */ ([])), leagueName = 'League', season = '' } = $props();
 
 	// Outlook-style repeat interval. Applied from round 1.
 	let repeatEvery = $state(7); // 7 = weekly, 14 = bi-weekly, 30 = monthly
@@ -83,7 +83,7 @@
 					<input
 						type="text"
 						bind:value={r.name}
-						placeholder="{leagueName} {i + 1}. kolo"
+						placeholder="{leagueName} {season} kolo {i + 1}"
 					/>
 				</label>
 				<label class="field">
