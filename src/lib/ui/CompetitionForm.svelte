@@ -734,6 +734,21 @@
 			</p>
 		</svelte:fragment>
 
+		<svelte:fragment slot="finalization">
+			<h3>Finalization</h3>
+			<p class="muted small">
+				Review your competition above, then click Finish and Save to publish it.
+			</p>
+			<div class="form-actions">
+				<button class="btn primary" type="submit" disabled={saving}>
+					{saving ? 'Saving…' : (submitLabel || (mode === 'edit' ? (canGenerateBracket ? 'Save & rebuild bracket' : 'Save changes') : (canGenerateBracket ? 'Generate and next phase' : 'Finish and Save')))}
+				</button>
+				<button class="btn ghost" type="button" onclick={onCancel} disabled={saving}>
+					Cancel
+				</button>
+			</div>
+		</svelte:fragment>
+
 		<svelte:fragment slot="scoring">
 			<ScoringEditor bind:scoring={formScoring} league={formType === 'league'} />
 		</svelte:fragment>
@@ -911,14 +926,20 @@
 				</label>
 			{/if}
 
-			<div class="form-actions">
-				<button class="btn primary" type="submit" disabled={saving}>
-					{saving ? 'Saving…' : (submitLabel || (mode === 'edit' ? (canGenerateBracket ? 'Save & rebuild bracket' : 'Save changes') : (canGenerateBracket ? 'Generate and next phase' : 'Create and next phase')))}
-				</button>
-				<button class="btn ghost" type="button" onclick={onCancel} disabled={saving}>
-					Cancel
-				</button>
-			</div>
+				<!-- Save / Cancel. For leagues the actions live
+				     inside the Finalization tab (slot above). For
+				     single/team/elim formats there's no finalization
+				     tab, so we render the actions here. -->
+				{#if formType !== 'league'}
+					<div class="form-actions">
+						<button class="btn primary" type="submit" disabled={saving}>
+							{saving ? 'Saving…' : (submitLabel || (canGenerateBracket ? 'Generate and next phase' : 'Create and next phase'))}
+						</button>
+						<button class="btn ghost" type="button" onclick={onCancel} disabled={saving}>
+							Cancel
+						</button>
+					</div>
+				{/if}
 		</svelte:fragment>
 	</CompetitionWizard>
 </form>
