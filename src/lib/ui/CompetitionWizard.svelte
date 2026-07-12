@@ -24,13 +24,18 @@
 	/** @type {'create' | 'edit' | 'watch'} */
 	let { mode = 'create', competition = $bindable(/** @type {any} */ (null)), matches = $bindable(/** @type {any[]} */ ([])), standings = $bindable(/** @type {any[]} */ ([])), activeTab = $bindable(0) } = $props();
 
+	// League flow uses 4 tabs (Setup / Scheduling / Standings /
+	// Finalization). Other formats keep the 6-tab classic flow.
+	// `key: 'league'` is kept for backwards-compat watch mode only.
 	const TABS = [
 		{ key: 'setup', label: 'Competition Setup', en: 'Competition_Setup' },
+		{ key: 'scheduling', label: 'Scheduling', en: 'League_Scheduling' },
+		{ key: 'standings', label: 'Standings', en: 'League_Standings' },
+		{ key: 'finalization', label: 'Finalization', en: 'Tournament_Finalization' },
 		{ key: 'scoring', label: 'Scoring', en: 'League_Scoring' },
 		{ key: 'registration', label: 'Registration', en: 'Registration' },
 		{ key: 'seeding', label: 'Seeding & Draw', en: 'Seeding_And_Draw' },
 		{ key: 'live', label: 'Live Tournament', en: 'Live_Tournament' },
-		{ key: 'finalization', label: 'Finalization', en: 'Tournament_Finalization' },
 		{ key: 'league', label: 'League Update', en: 'League_Update' }
 	];
 
@@ -59,18 +64,27 @@
 		else window.scrollTo({ top: 0, behavior: 'smooth' });
 	}
 
-	// Which tabs to render. Watch only shows 4+5; league only on
-	// competitions of type 'league'.
+	// Which tabs to render. Watch only shows 4+5; league
+	// uses the new 4-tab flow (Setup / Scheduling / Standings /
+	// Finalization); other formats keep the classic 6-tab
+	// flow (Setup / Scoring / Registration / Seeding / Live /
+	// Finalization). The `league` key is kept for legacy
+	// watch-mode state and is not surfaced in create/edit.
 	let visibleTabs = $derived.by(() => {
 		if (mode === 'watch') {
 			const out = TABS.filter(t => t.key === 'live' || t.key === 'finalization');
-			if (competition?.type === 'league') out.push(TABS[6]);
+			if (competition?.type === 'league') out.push(TABS.find(t => t.key === 'league'));
 			return out;
 		}
-		if (competition?.type !== 'league' && competition !== null) {
-			return TABS.filter(t => t.key !== 'scoring' && t.key !== 'league');
+		if (competition?.type === 'league') {
+			return TABS.filter(t =>
+				t.key === 'setup' ||
+				t.key === 'scheduling' ||
+				t.key === 'standings' ||
+				t.key === 'finalization'
+			);
 		}
-		return TABS;
+		return TABS.filter(t => t.key !== 'scheduling' && t.key !== 'standings' && t.key !== 'league');
 	});
 
 	// Clamp activeTab to a valid index whenever the visible set
@@ -109,6 +123,10 @@
 	<div class="wizard-panel" role="tabpanel" id="wizard-panel-{tabKey(activeTab)}" aria-labelledby="wizard-tab-{tabKey(activeTab)}">
 		{#if tabKey(activeTab) === 'setup'}
 			<slot name="setup" />
+		{:else if tabKey(activeTab) === 'scheduling'}
+			<slot name="scheduling" />
+		{:else if tabKey(activeTab) === 'standings'}
+			<slot name="standings" />
 		{:else if tabKey(activeTab) === 'scoring'}
 			<slot name="scoring" />
 		{:else if tabKey(activeTab) === 'registration'}

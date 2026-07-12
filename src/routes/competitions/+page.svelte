@@ -5,6 +5,7 @@
 	import {
 		listCompetitions,
 		createCompetitionWithMatches,
+		createChildTournamentsForLeague,
 		deleteCompetition,
 		seedCompetitionsIfEmpty,
 		listMatches
@@ -38,6 +39,17 @@
 		formError = '';
 		try {
 			const created = await createCompetitionWithMatches(competition, matches);
+			// For league competitions, fan out per-round
+			// child tournaments. The child has its own
+			// date / time / location, takes the league
+			// scoring, and links back via parentLeagueId.
+			if (created.competition?.type === 'league') {
+				try {
+					await createChildTournamentsForLeague(created.competition);
+				} catch (e) {
+					console.warn('createChildTournamentsForLeague failed', e);
+				}
+			}
 			// Push to Drive if signed in. If push fails
 			// (offline, network error, signed out) we mark
 			// the competition dirty so a future sync sweep

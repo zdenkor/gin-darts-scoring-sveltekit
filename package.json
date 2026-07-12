@@ -1,7 +1,7 @@
 {
 	"name": "gin-darts-scoring-sveltekit",
 	"private": true,
-	"version": "0.4.8",
+	"version": "0.4.9",
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
@@ -22,6 +22,8 @@
 		"vite": "^8.0.16"
 	},
 	"dependencies": {
+		"@tiptap/core": "^3.27.3",
+		"@tiptap/starter-kit": "^3.27.3",
 		"bits-ui": "^2.18.1",
 		"nostr-tools": "^2.23.9",
 		"y-indexeddb": "^9.0.12",

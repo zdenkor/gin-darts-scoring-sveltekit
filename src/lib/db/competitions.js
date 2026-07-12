@@ -27,17 +27,28 @@ export async function createCompetition(/** @type {any} */ data) {
 		// competition shape so the calendar and history
 		// can surface them later.
 		date: data.date || '',
+		time: data.time || '',
 		location: data.location || '',
+		// Free-form rich-text rules (Tiptap HTML).
+		// Surfaced on the competition detail page and
+		// in the NOSTR tournament event for discoverability.
+		rules: data.rules || '',
 		// League shape. A league is a parent record that
 		// owns N rounds, each of which is a self-contained
 		// sub-tournament. The rounds[] array is empty for
 		// non-league competitions and is the source of
 		// truth for everything that shows up on the
 		// calendar. Each round has its own date / location
-		// and accumulates the same players.
+		// and its own player list — registration happens
+		// per round, not per league.
 		roundCount: data.roundCount || 0,
-		rounds: data.rounds || [],
+		rounds: (data.rounds || []).map(r => ({
+			...r,
+			players: r.players || []
+		})),
 		status: data.status || 'pending',
+		// Master player list kept for back-compat and as
+		// a starting point when a new round is created.
 		players: data.players || [],
 		gameMode: data.gameMode || 'x01',
 		gameOpts: data.gameOpts || {},
@@ -189,6 +200,10 @@ export async function createRound(/** @type {string} */ competitionId, /** @type
 		date: round?.date || '',
 		location: round?.location || comp.location || '',
 		status: round?.status || 'pending',
+		// Each round carries its own player list. New
+		// rounds start empty — the admin registers
+		// players per round in the Registration tab.
+		players: Array.isArray(round?.players) ? [...round.players] : [],
 		matches: round?.matches || []
 	};
 	comp.rounds = [...(comp.rounds || []), r];
@@ -212,6 +227,50 @@ export async function deleteRound(/** @type {string} */ competitionId, /** @type
 	comp.rounds = (comp.rounds || []).filter((/** @type {any} */ r) => r.id !== roundId);
 	await put(STORE, comp);
 	return comp.rounds;
+}
+
+/**
+ * Build a child competition per round in a league.
+ * Each child is a self-contained tournament that
+ * inherits the league's game mode, owner, season and
+ * scoring. The round's own date / time / location is
+ * the venue for the child. The link back to the league
+ * is stored in `parentLeagueId` so the calendar can
+ * surface "this round belongs to league X" later.
+ *
+ * The engine is NOT involved — we just write
+ * competition records that look like any other
+ * competition, so the existing buildXxx helpers will
+ * accept them. Standings are computed per-child.
+ */
+export async function createChildTournamentsForLeague(/** @type {any} */ league) {
+	if (!league || league.type !== 'league' || !Array.isArray(league.rounds)) return [];
+	const children = [];
+	for (const round of league.rounds) {
+		const child = {
+			id: `comp-${round.id}`,
+			name: round.name || `${league.name} ${round.roundNumber}. kolo`,
+			type: 'single', // each round is a single-elim/rr tournament
+			format: 'round robin',
+			parentLeagueId: league.id,
+			roundNumber: round.roundNumber,
+			season: league.season,
+			date: round.date || league.date || '',
+			time: round.time || '',
+			location: round.location || league.location || '',
+			ownerId: league.ownerId,
+			gameMode: league.gameMode,
+			gameOpts: league.gameOpts || {},
+			legsToWin: league.legsToWin,
+			players: round.players || [],
+			scoring: league.scoring,
+			status: round.status || 'pending',
+			createdAt: Date.now()
+		};
+		await put(STORE, child);
+		children.push(child);
+	}
+	return children;
 }
 
 // Previously this seeded two demo competitions ('Summer League

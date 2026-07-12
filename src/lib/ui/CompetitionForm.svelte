@@ -31,6 +31,8 @@
 	import CompetitionWizard from '$lib/ui/CompetitionWizard.svelte';
 	import Bracket from '$lib/ui/Bracket.svelte';
 	import ScoringEditor from '$lib/ui/ScoringEditor.svelte';
+	import RoundsScheduler from '$lib/ui/RoundsScheduler.svelte';
+	import RichTextEditor from '$lib/ui/RichTextEditor.svelte';
 	import { freshScoring } from '$lib/scoring/points.js';
 
 	const START_OPTIONS = [301, 401, 501, 701, 1001];
@@ -82,12 +84,18 @@
 	let formName = $state('');
 	let formType = $state('league');
 	let formDate = $state('');
+	let formTime = $state('');
 	let formLocation = $state('');
+	let formRules = $state('');
 	let formRoundCount = $state(0);
 	// League scoring — bound to <ScoringEditor> for the
 	// Scoring wizard tab. Lazy-initialised to fresh
 	// defaults so the editor can mutate it in place.
 	let formScoring = $state(/** @type {any} */ (null));
+	// Per-round editing surface. Mirrors the `rounds`
+	// array that we save to the league. RoundsScheduler
+	// mutates this in place.
+	let formRounds = $state(/** @type {any[]} */ ([]));
 	let formParticipantFormat = $state('singles');
 	let formEliminationFormat = $state('round robin');
 	let formSeeding = $state('ordered');
@@ -117,8 +125,11 @@
 		if (mode === 'edit' && existing) {
 			formName = existing.name || '';
 			formDate = existing.date || '';
+			formTime = existing.time || '';
 			formLocation = existing.location || '';
+			formRules = existing.rules || '';
 			formRoundCount = existing.roundCount || 0;
+			formRounds = (existing.rounds || []).map(r => ({ ...r, players: r.players || [] }));
 			formScoring = existing.scoring || freshScoring();
 			formSeason = existing.season ?? new Date().getFullYear();
 			formStatus = existing.status || 'upcoming';
@@ -144,6 +155,32 @@
 			formScoring = freshScoring();
 		}
 		initialised = true;
+	});
+
+	// Mirror `formRoundCount` changes into the rounds[]
+	// editing surface so the Scheduling tab has something
+	// to render. Auto-generated rounds start blank — the
+	// admin fills in date / time / location in the tab.
+	$effect(() => {
+		if (formType !== 'league') return;
+		const wanted = Math.max(0, formRoundCount | 0);
+		if (wanted === formRounds.length) return;
+		if (wanted > formRounds.length) {
+			const extra = Array.from({ length: wanted - formRounds.length }, (_, i) => ({
+				id: `round-${Date.now()}-${formRounds.length + i}-${Math.random().toString(36).slice(2, 6)}`,
+				roundNumber: formRounds.length + i + 1,
+				name: `${formName || 'League'} ${formRounds.length + i + 1}. kolo`,
+				date: '',
+				time: '',
+				location: formLocation || '',
+				status: 'pending',
+				players: [],
+				matches: []
+			}));
+			formRounds = [...formRounds, ...extra];
+		} else {
+			formRounds = formRounds.slice(0, wanted);
+		}
 	});
 
 	// Round-robin distribution for the live preview, mirroring
@@ -451,25 +488,38 @@
 			// captured on the Setup tab and shipped in the
 			// competition shape so the calendar and history
 			// can surface them later.
-			date: formDate || '',
+			date: formType === 'league' ? '' : (formDate || ''),
+			time: formType === 'league' ? '' : (formTime || ''),
 			location: formLocation || '',
+			rules: formRules || '',
 			// League shape. We pre-fill the rounds array
 			// with N empty placeholders so the league is
 			// "wired" as soon as the form is saved. The
 			// player can then open the parent page and
 			// add a date / location for each round.
 			roundCount: formType === 'league' ? Math.max(0, formRoundCount | 0) : 0,
-			rounds: formType === 'league'
-				? Array.from({ length: Math.max(0, formRoundCount | 0) }, (_, i) => ({
-					id: `round-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 6)}`,
-					roundNumber: i + 1,
-					name: `${formName.trim() || 'Untitled league'} — kolo ${i + 1}`,
-					date: '',
-					location: formLocation || '',
-					status: 'pending',
-					matches: []
-				}))
-				: [],
+			// Per-round details (date / time / location)
+			// come from the Scheduling tab. The array is
+			// kept in sync with `formRoundCount` via the
+			// `$effect` above. If the admin never opens
+			// the Scheduling tab, we still fall back to a
+			// blank auto-generated set so the shape is
+			// stable.
+			rounds: formType === 'league' && formRounds.length === Math.max(0, formRoundCount | 0)
+				? formRounds
+				: formType === 'league'
+					? Array.from({ length: Math.max(0, formRoundCount | 0) }, (_, i) => ({
+						id: `round-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 6)}`,
+						roundNumber: i + 1,
+						name: `${formName.trim() || 'Untitled league'} ${i + 1}. kolo`,
+						date: '',
+						time: '',
+						location: formLocation || '',
+						status: 'pending',
+						players: [],
+						matches: []
+					}))
+					: [],
 			// League scoring — only relevant for league
 			// competitions. The editor owns the deep clone
 			// so we just pass it through.
@@ -548,22 +598,15 @@
 			{#if formError}
 				<p class="error">{formError}</p>
 			{/if}
-			<div class="grid-2">
+			<!-- Type is the first field on the form so the
+			     rest of the UI can branch on league / single /
+			     team / elimination without re-shuffling. -->
+			<div class="grid-3">
 				<label class="field">
-					<span>Name</span>
-					<input type="text" bind:value={formName} placeholder="League or tournament name" required />
-				</label>
-				<label class="field">
-					<span>Date</span>
-					<input type="date" bind:value={formDate} />
-				</label>
-				<label class="field">
-					<span>Location</span>
-					<input type="text" bind:value={formLocation} placeholder="e.g. Nitra, pub Centrum" />
-				</label>
-				<label class="field">
-					<span>Season</span>
-					<input type="text" bind:value={formSeason} placeholder="2026" />
+					<span>Type</span>
+					<select bind:value={formType}>
+						{#each COMP_TYPES as opt}<option value={opt.value}>{opt.label}</option>{/each}
+					</select>
 				</label>
 				{#if formType === 'league'}
 					<label class="field">
@@ -575,11 +618,44 @@
 
 			<div class="grid-3">
 				<label class="field">
-					<span>Type</span>
-					<select bind:value={formType}>
-						{#each COMP_TYPES as opt}<option value={opt.value}>{opt.label}</option>{/each}
-					</select>
+					<span>Name</span>
+					<input type="text" bind:value={formName} placeholder="League or tournament name" required />
 				</label>
+				<!-- For leagues, the date / time live on each
+				     round in the Scheduling tab. Showing them
+				     here would be misleading (the league as a
+				     whole has no single date — it spans the
+				     whole season). -->
+				{#if formType !== 'league'}
+					<label class="field">
+						<span>Date</span>
+						<input type="date" bind:value={formDate} />
+					</label>
+					<label class="field">
+						<span>Time</span>
+						<input type="time" bind:value={formTime} />
+					</label>
+				{/if}
+				<label class="field">
+					<span>Location</span>
+					<input type="text" bind:value={formLocation} placeholder="e.g. Nitra, pub Centrum" />
+				</label>
+				<label class="field">
+					<span>Season</span>
+					<input type="text" bind:value={formSeason} placeholder="2026" />
+				</label>
+			</div>
+
+			<label class="field rules-field">
+				<span>Rules</span>
+				<RichTextEditor
+					bind:content={formRules}
+					placeholder="Describe the rules of this competition (legs, in/out, double-out, scoring, …)"
+				/>
+				<small class="muted">Free-form text. Shown on the competition detail page.</small>
+				</label>
+
+				<div class="grid-3">
 				<label class="field">
 					<span>Participants</span>
 					<select bind:value={formParticipantFormat}>
@@ -592,10 +668,10 @@
 						{#each ELIMINATION_FORMATS as opt}<option value={opt.value}>{opt.label}</option>{/each}
 					</select>
 				</label>
-			</div>
+				</div>
 
-			<h3>Game rules</h3>
-			<div class="grid-3">
+				<h3>Game rules</h3>
+				<div class="grid-3">
 				<label class="field">
 					<span>Game mode</span>
 					<select bind:value={formGameMode}>
@@ -630,6 +706,26 @@
 				<span>Notes (optional)</span>
 				<textarea rows="2" bind:value={formNotes} placeholder="Anything to remember about this competition"></textarea>
 			</label>
+		</svelte:fragment>
+
+		<svelte:fragment slot="scheduling">
+			{#if formType === 'league' && formRounds.length > 0}
+				<h3>Schedule rounds</h3>
+				<p class="muted small">
+					Set the date / time / location of the first round,
+					then "Apply to all rounds" to repeat weekly.
+				</p>
+				<RoundsScheduler bind:rounds={formRounds} leagueName={formName || 'League'} />
+			{:else}
+				<p class="muted">Scheduling is only available for league competitions with rounds.</p>
+			{/if}
+		</svelte:fragment>
+
+		<svelte:fragment slot="standings">
+			<h3>Standings</h3>
+			<p class="muted small">
+				Live standings will appear here once matches are played.
+			</p>
 		</svelte:fragment>
 
 		<svelte:fragment slot="scoring">
