@@ -99,6 +99,12 @@
 	let formParticipantFormat = $state('singles');
 	let formEliminationFormat = $state('round robin');
 	let formSeeding = $state('ordered');
+	// The wizard needs an object with a `type` property
+	// so it can branch on league / single / team / elim
+	// in `visibleTabs`. We don't bind it back because
+	// `formType` is the source of truth — every render
+	// just builds a fresh `{ type: formType }` view.
+	let formCompetition = $derived(/** @type {any} */ ({ type: formType }));
 	let formGroups = $state(1);
 	let formAdvancePerGroup = $state(1);
 	let formDoubleRoundRobin = $state(false);
@@ -593,7 +599,7 @@
 </script>
 
 <form class="form" onsubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
-	<CompetitionWizard mode={mode} bind:competition={formType} bind:matches={formMatches} bind:activeTab={formTab}>
+	<CompetitionWizard mode={mode} competition={formCompetition} bind:matches={formMatches} bind:activeTab={formTab}>
 		<svelte:fragment slot="setup">
 			{#if formError}
 				<p class="error">{formError}</p>
