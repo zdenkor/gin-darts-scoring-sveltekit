@@ -3,13 +3,19 @@
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { onMount } from 'svelte';
-	import { getCompetition, listMatches, updateMatch } from '$lib/db/competitions.js';
+	import { getCompetition, listMatches, updateMatch, listChildTournaments } from '$lib/db/competitions.js';
 	import { completeMatch } from '$lib/competition/engine.js';
 	import Bracket from '$lib/ui/Bracket.svelte';
 	import StandingsTable from '$lib/ui/StandingsTable.svelte';
 
 	let competition = $state(/** @type {any} */ (null));
 	let matches = $state(/** @type {any[]} */ ([]));
+	// For league competitions: the per-round child
+	// tournaments (created on save). Used by the league
+	// standings rollup — the league's own `matches` are
+	// empty because the actual matches live on each
+	// child. Each entry is { child, matches }.
+	let childRounds = $state(/** @type {any[]} */ ([]));
 	// Match display mode. 'list' is the default (rows with
 	// Play / P1 wins / P2 wins buttons). 'bracket' is the
 	// graphical horizontal view from Bracket.svelte. We
@@ -37,6 +43,21 @@
 				error = `Competition ${compId} not found.`;
 			} else {
 				matches = await listMatches(compId);
+				// League rollup: for each child tournament
+				// (one per round) load its matches so the
+				// StandingsTable can sum placement points
+				// across rounds.
+				if (competition.type === 'league') {
+					const children = await listChildTournaments(compId);
+					childRounds = await Promise.all(
+						children.map(async (c) => ({
+							child: c,
+							matches: await listMatches(c.id)
+						}))
+					);
+				} else {
+					childRounds = [];
+				}
 			}
 		} catch (e) {
 			error = String(e?.message || e);
@@ -206,7 +227,12 @@
 				</section>
 			{/if}
 
-			<StandingsTable {competition} {matches} scoring={competition?.scoring} />
+			<StandingsTable
+				{competition}
+				{matches}
+				scoring={competition?.scoring}
+				rounds={competition?.type === 'league' ? childRounds : null}
+			/>
 
 			<section class="rule">
 				<div class="matches-header">

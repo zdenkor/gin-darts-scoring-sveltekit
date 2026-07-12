@@ -8,9 +8,22 @@
 	import { computeStandings } from '$lib/scoring/standings.js';
 	import HelpIcon from '$lib/ui/HelpIcon.svelte';
 
-	let { competition, matches, scoring = null } = $props();
+	/**
+	 * Read-only league / tournament standings table.
+	 * For single competitions the standings come straight
+	 * from `matches`. For leagues, `rounds` is an array of
+	 * `{ child, matches }` and the table rolls up placement
+	 * points from each round (the league's own `matches`
+	 * array is empty because the actual matches live on
+	 * the child tournaments).
+	 */
+	let { competition, matches, scoring = null, rounds = null } = $props();
 
-	let standings = $derived(computeStandings({ competition, matches: matches || [], scoring }));
+	let standings = $derived(
+		Array.isArray(rounds) && rounds.length > 0
+			? computeLeagueStandings({ league: competition, rounds, scoring })
+			: computeStandings({ competition, matches: matches || [], scoring })
+	);
 </script>
 
 <section class="standings">

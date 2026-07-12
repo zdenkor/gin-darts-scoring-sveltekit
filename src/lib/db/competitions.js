@@ -96,6 +96,22 @@ export async function getCompetition(id) {
 	return get(STORE, id);
 }
 
+/**
+ * List every competition that is a child of the given
+ * league. A child has `parentLeagueId === leagueId` and
+ * is the per-round tournament created when the league
+ * was saved (see `createChildTournamentsForLeague`).
+ * Sorted by `roundNumber` so callers can iterate
+ * round-1, round-2, ... in order.
+ */
+export async function listChildTournaments(/** @type {string} */ leagueId) {
+	if (!leagueId) return [];
+	const all = await getAll(STORE);
+	return all
+		.filter(c => c?.parentLeagueId === leagueId)
+		.sort((a, b) => (a.roundNumber || 0) - (b.roundNumber || 0));
+}
+
 // Update an existing competition by id. The user changes the
 // rules / player list and we replace the record. Matches are
 // also rebuilt by the caller — we just leave the matches store

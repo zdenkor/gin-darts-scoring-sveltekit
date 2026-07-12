@@ -102,3 +102,82 @@ function extractLegs(/** @type {any} */ match, /** @type {'p1' | 'p2'} */ side) 
 	const n = side === 'p1' ? s.p1 : s.p2;
 	return Number.isFinite(n) ? n : 0;
 }
+
+/**
+ * League standings — roll up the placement points from
+ * every round (child tournament) into one table. Each
+ * `round` argument looks like:
+ *   { name, roundNumber, matches: [...], scoring }
+ * We compute per-round placement points (using the
+ * round's own scoring block, falling back to the
+ * league's) and then sum across rounds.
+ */
+export function computeLeagueStandings(/** @type {any} */ opts) {
+	const { league, rounds = [], scoring = null } = opts || {};
+	/** @type {Map<string, any>} */
+	const totals = new Map();
+	function ensure(/** @type {string} */ name) {
+		if (!totals.has(name)) {
+			totals.set(name, {
+				playerName: name,
+				wins: 0,
+				losses: 0,
+				played: 0,
+				legsFor: 0,
+				legsAgainst: 0,
+				placement: 0, // best placement across rounds
+				points: 0,
+				bonuses: 0,
+				total: 0,
+				roundsPlayed: 0
+			});
+		}
+		return totals.get(name);
+	}
+	for (const round of rounds) {
+		const matches = Array.isArray(round?.matches) ? round.matches : [];
+		if (matches.length === 0) continue;
+		const perRound = computeStandings({
+			competition: { players: collectPlayersFromMatches(matches), type: 'single' },
+			matches,
+			scoring: round?.scoring || scoring
+		});
+		for (const row of perRound) {
+			const acc = ensure(row.playerName);
+			acc.wins += row.wins;
+			acc.losses += row.losses;
+			acc.played += row.played;
+			acc.legsFor += row.legsFor;
+			acc.legsAgainst += row.legsAgainst;
+			acc.points += row.points;
+			acc.bonuses += row.bonuses;
+			acc.total += row.total;
+			acc.roundsPlayed += 1;
+			// Best placement across rounds (lower = better)
+			if (!acc.placement || row.placement < acc.placement) {
+				acc.placement = row.placement;
+			}
+		}
+	}
+	// Sort: most points first, then by leg diff, then alpha.
+	const out = Array.from(totals.values()).sort((a, b) => {
+		if (b.total !== a.total) return b.total - a.total;
+		const da = a.legsFor - a.legsAgainst;
+		const db = b.legsFor - b.legsAgainst;
+		if (db !== da) return db - da;
+		return a.playerName.localeCompare(b.playerName);
+	});
+	// Re-assign placement 1..N at the league level (not the
+	// round level — best total gets 1.).
+	for (let i = 0; i < out.length; i++) out[i].placement = i + 1;
+	return out;
+}
+
+function collectPlayersFromMatches(/** @type {any[]} */ matches) {
+	const set = new Set();
+	for (const m of matches) {
+		if (m?.p1) set.add(m.p1);
+		if (m?.p2) set.add(m.p2);
+	}
+	return Array.from(set);
+}
