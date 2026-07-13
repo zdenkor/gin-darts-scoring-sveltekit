@@ -278,3 +278,29 @@ input:focus, select:focus {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ---------- Date / time picker icons in dark mode ----------
+   The native Webkit calendar / clock indicators default
+   to black (system color). In dark mode that's almost
+   invisible against a dark surface. We use a CSS filter
+   to invert only when the page is in dark theme, so the
+   icons stay legible without affecting the input text
+   itself. The same rule applies whether the dark theme
+   is auto-detected (prefers-color-scheme) or user-picked
+   (`.theme-dark` on <html>). */
+@media (prefers-color-scheme: dark) {
+  :root:not(.theme-light) input[type="date"]::-webkit-calendar-picker-indicator,
+  :root:not(.theme-light) input[type="time"]::-webkit-calendar-picker-indicator,
+  :root:not(.theme-light) input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    cursor: pointer;
+    opacity: .8;
+  }
+}
+:root.theme-dark input[type="date"]::-webkit-calendar-picker-indicator,
+:root.theme-dark input[type="time"]::-webkit-calendar-picker-indicator,
+:root.theme-dark input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+  opacity: .8;
+}

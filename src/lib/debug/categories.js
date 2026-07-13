@@ -21,11 +21,19 @@ export const LOG_CATEGORY_LABELS = {
  * switch with Yjs so we leave the live-sync toggle
  * on by default too.
  */
+// Default for the per-category Debug toggle. We
+// default to OFF so the app doesn't quietly write
+// anything to the private IDB log store on a fresh
+// install — the user has to opt in (Settings →
+// Debug → toggle) for logs to be captured. Once on,
+// the toggle persists in localStorage and stays on
+// across reloads. Production users who never touch
+// Settings therefore see no log overhead.
 export const LOG_CATEGORY_DEFAULTS = {
-	nostr: true,
-	webrtc: true,
-	yjs: true,
-	livesync: true
+	nostr: false,
+	webrtc: false,
+	yjs: false,
+	livesync: false
 };
 
 export function isCategory(/** @type {any} */ cat) {

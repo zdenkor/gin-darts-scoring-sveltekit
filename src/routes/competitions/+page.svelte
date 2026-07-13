@@ -78,12 +78,26 @@
 					await log('nostr', `handleCreateSave: competition has no name, skipping publish`);
 				} else {
 					await log('nostr', `handleCreateSave: publishing parent ${created.competition.id}`);
+					// For leagues the parent record has no
+					// own date/time (those live on each round),
+					// so we leave them blank and rely on the
+					// child-round events to populate the
+					// calendar. For non-league (single match
+					// or tournament) we use the Setup tab's
+					// date+time directly.
+					const parentStarts = (() => {
+						if (created.competition.type === 'league') return '';
+						const d = created.competition.date || '';
+						const t = created.competition.time || '';
+						if (!d) return '';
+						return t ? `${d}T${t}` : d;
+					})();
 					await publishTournament({
 						secretKey: kp.secretKey,
 						tournament: {
 							id: created.competition.id,
 							name: created.competition.name,
-							date: created.competition.date || '',
+							date: parentStarts,
 							location: created.competition.location || '',
 							format: created.competition.format || created.competition.type || ''
 						}
@@ -91,27 +105,38 @@
 					// For leagues, publish every round as its
 					// own tournament event so the calendar
 					// shows each round on its date. We
-					// prefix the round name with the parent
-					// league name and round number so
-					// 'Gin's League — kolo 3' lands as its
-					// own row.
+					// forward the round's user-edited name
+					// (set in the Scheduling tab as
+					// "League Season Round N") and combine
+					// date+time into a single ISO stamp that
+					// NOSTR calendars can sort by.
 					if (created.competition.type === 'league' && Array.isArray(created.competition.rounds)) {
 						let publishedRounds = 0;
 						let skippedRounds = 0;
 						for (const r of created.competition.rounds) {
 							if (!r.date) { skippedRounds += 1; continue; } // only rounds with a date go on the calendar
+							// Round name: prefer the user-edited
+							// `r.name` (set in the Scheduling tab
+							// as "League Season Round N"); fall
+							// back to a generated string for
+							// rounds that the admin didn't rename.
+							const roundName = r.name || `${created.competition.name} Round ${r.roundNumber}`;
+							// ISO stamp: combine date+time so the
+							// calendar can sort and show the
+							// actual start time, not just the day.
+							const starts = r.time ? `${r.date}T${r.time}` : r.date;
 							await publishTournament({
 								secretKey: kp.secretKey,
 								tournament: {
 									id: r.id,
-									name: r.name || `${created.competition.name} — kolo ${r.roundNumber}`,
-									date: r.date,
+									name: roundName,
+									date: starts,
 									location: r.location || created.competition.location || '',
 									format: created.competition.type
 								}
-								});
-								publishedRounds += 1;
-								}
+							});
+							publishedRounds += 1;
+						}
 								if (created.competition.type === 'league') {
 								await log('nostr', `handleCreateSave: league rounds published=${publishedRounds} skipped(no date)=${skippedRounds}`);
 								}

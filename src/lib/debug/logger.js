@@ -16,6 +16,7 @@
  * weight.
  */
 import { isCategory } from './categories.js';
+import { isCategoryEnabled } from './settings.js';
 
 const DB_NAME = 'gin-darts-debug';
 const STORE_NAME = 'gin-darts-debug-logs';
@@ -91,6 +92,12 @@ async function deleteStore(/** @type {string} */ key) {
  */
 export async function log(/** @type {string} */ category, /** @type {any} */ message) {
 	if (!isCategory(category)) return;
+	// Respect the per-category toggle. The Settings page
+	// stores `gin-darts-debug-enabled` in localStorage;
+	// when a category is off we drop the log without
+	// touching IDB. Without this guard the toggle would
+	// be cosmetic — the IDB store would still fill up.
+	if (!isCategoryEnabled(category)) return;
 	const entry = {
 		ts: Date.now(),
 		message: typeof message === 'string' ? message : safeStringify(message)

@@ -71,7 +71,14 @@ export async function fetchTournaments(/** @type {{
  * timeoutMs?: number
  * }} */ opts = {}) {
 	const relays = opts.relays && opts.relays.length > 0 ? opts.relays : DEFAULT_RELAYS;
-	const since = opts.since ?? Math.floor(Date.now() / 1000);
+	// Default window: last 30 days. Using `now` as the
+	// default would silently exclude any tournament that
+	// the admin published earlier (relays still keep them,
+	// but the NOSTR `since` filter drops them). Users can
+	// still pass `opts.since` to widen the window further
+	// (e.g. for a year view). 30 days matches what most
+	// calendar UIs do and keeps the request cheap.
+	const since = opts.since ?? Math.floor(Date.now() / 1000) - 60 * 60 * 24 * 30;
 	const extra = opts.extra ?? {};
 	const idleMs = opts.idleMs ?? 1500;
 	const timeoutMs = opts.timeoutMs ?? 6000;
