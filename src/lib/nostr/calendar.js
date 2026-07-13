@@ -96,7 +96,7 @@ export async function fetchTournaments(/** @type {{
 			// fires first.
 			let idleTimer = setTimeout(() => finish('idle'), idleMs);
 			let deadline = setTimeout(() => finish('deadline'), timeoutMs);
-			const sub = pool.subscribeMany(relays, [filter], {
+			const sub = pool.subscribeMany(relays, filter, {
 				onevent: (/** @type {any} */ ev) => {
 					if (seen.has(ev.id)) return;
 					seen.set(ev.id, ev);
