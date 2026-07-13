@@ -22,7 +22,15 @@
 	import { onMount } from 'svelte';
 
 	/** @type {'create' | 'edit' | 'watch'} */
-	let { mode = 'create', competition = $bindable(/** @type {any} */ (null)), matches = $bindable(/** @type {any[]} */ ([])), standings = $bindable(/** @type {any[]} */ ([])), activeTab = $bindable(0) } = $props();
+	let {
+		mode = 'create',
+		competition = $bindable(/** @type {any} */ (null)),
+		matches = $bindable(/** @type {any[]} */ ([])),
+		standings = $bindable(/** @type {any[]} */ ([])),
+		activeTab = $bindable(0),
+		onSave = () => {},
+		onCancel = () => {}
+	} = $props();
 
 	// League flow uses 4 tabs (Setup / Scheduling / Standings /
 	// Finalization). Other formats keep the 6-tab classic flow.
@@ -103,25 +111,43 @@
 </script>
 
 <div class="wizard">
-	<nav class="wizard-tabs" role="tablist" aria-label="Competition sections">
-		{#each visibleTabs as tab, i (tab.key)}
+	<header class="wizard-header">
+		<nav class="wizard-tabs" role="tablist" aria-label="Competition sections">
+			{#each visibleTabs as tab, i (tab.key)}
+				<button
+					role="tab"
+					aria-selected={activeTab === i}
+					aria-controls="wizard-panel-{tab.key}"
+					id="wizard-tab-{tab.key}"
+					class="wizard-tab"
+					class:active={activeTab === i}
+					class:disabled={mode === 'watch' && (tab.key === 'live' || tab.key === 'finalization') ? false : false}
+					type="button"
+					onclick={() => { activeTab = i; scrollToTop(); }}
+				>
+					<span class="wizard-tab-num">{i + 1}</span>
+					<span class="wizard-tab-label">{tab.label}</span>
+					<span class="wizard-tab-en">{tab.en}</span>
+				</button>
+			{/each}
+		</nav>
+		{#if mode !== 'watch'}
+			<!-- X sits at the trailing edge of the tab strip,
+			     a single click away from "throw it all away".
+			     Wired to the host form's cancel callback so
+			     it has the same effect as the old bottom-bar
+			     Cancel button. -->
 			<button
-				role="tab"
-				aria-selected={activeTab === i}
-				aria-controls="wizard-panel-{tab.key}"
-				id="wizard-tab-{tab.key}"
-				class="wizard-tab"
-				class:active={activeTab === i}
-				class:disabled={mode === 'watch' && (tab.key === 'live' || tab.key === 'finalization') ? false : false}
 				type="button"
-				onclick={() => { activeTab = i; scrollToTop(); }}
+				class="wizard-close"
+				onclick={onCancel}
+				aria-label="Close wizard and discard changes"
+				title="Close"
 			>
-				<span class="wizard-tab-num">{i + 1}</span>
-				<span class="wizard-tab-label">{tab.label}</span>
-				<span class="wizard-tab-en">{tab.en}</span>
+				✕
 			</button>
-		{/each}
-	</nav>
+		{/if}
+	</header>
 
 	<div class="wizard-panel" role="tabpanel" id="wizard-panel-{tabKey(activeTab)}" aria-labelledby="wizard-tab-{tabKey(activeTab)}">
 		{#if tabKey(activeTab) === 'setup'}
@@ -146,28 +172,36 @@
 	</div>
 
 	<div class="wizard-nav">
-		{#if activeTab > 0}
-			<button
-				type="button"
-				class="btn ghost"
-				onclick={prev}
-				aria-label="Previous section"
-			>
-				← Previous
-			</button>
-		{/if}
 		<span class="wizard-position muted small">
 			{activeTab + 1} / {visibleTabs.length}
 		</span>
-		{#if activeTab < visibleTabs.length - 1}
-			<button
-				type="button"
-				class="btn ghost"
-				onclick={next}
-				aria-label="Next section"
-			>
-				Next →
-			</button>
+		{#if mode === 'watch'}
+			<!-- Watch mode has no Save / Next — the live
+			     section is the only thing to interact with. -->
+		{:else}
+			{#if activeTab < visibleTabs.length - 1}
+				<button
+					type="button"
+					class="btn ghost"
+					onclick={next}
+					aria-label="Next section"
+				>
+					Next →
+				</button>
+			{:else}
+				<!-- Last tab: the wizard hands the Save action
+				     back to the host (CompetitionForm) so the
+				     form's submit pipeline can validate,
+				     drive the IDB save, etc. -->
+				<button
+					type="button"
+					class="btn primary"
+					onclick={onSave}
+					aria-label="Save and finish"
+				>
+					{mode === 'edit' ? 'Save changes' : 'Finish and Save'}
+				</button>
+			{/if}
 		{/if}
 	</div>
 </div>
