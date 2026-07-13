@@ -27,15 +27,18 @@
 	// League flow uses 4 tabs (Setup / Scheduling / Standings /
 	// Finalization). Other formats keep the 6-tab classic flow.
 	// `key: 'league'` is kept for backwards-compat watch mode only.
+	// Finalization is LAST in the non-league flow because it
+	// holds the Finish and Save button — the user reviews
+	// scoring/registration/seeding/live first, then finalizes.
 	const TABS = [
 		{ key: 'setup', label: 'Competition Setup', en: 'Competition_Setup' },
-		{ key: 'scheduling', label: 'Scheduling', en: 'League_Scheduling' },
-		{ key: 'standings', label: 'Standings', en: 'League_Standings' },
-		{ key: 'finalization', label: 'Finalization', en: 'Tournament_Finalization' },
 		{ key: 'scoring', label: 'Scoring', en: 'League_Scoring' },
 		{ key: 'registration', label: 'Registration', en: 'Registration' },
 		{ key: 'seeding', label: 'Seeding & Draw', en: 'Seeding_And_Draw' },
 		{ key: 'live', label: 'Live Tournament', en: 'Live_Tournament' },
+		{ key: 'finalization', label: 'Finalization', en: 'Tournament_Finalization' },
+		{ key: 'scheduling', label: 'Scheduling', en: 'League_Scheduling' },
+		{ key: 'standings', label: 'Standings', en: 'League_Standings' },
 		{ key: 'league', label: 'League Update', en: 'League_Update' }
 	];
 
