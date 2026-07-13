@@ -14,6 +14,7 @@
 	import { pushCompetition, markDirty } from '$lib/auth/sync.js';
 	import { getStoredKeypair } from '$lib/nostr/identity.js';
 	import { publishTournament } from '$lib/nostr/calendar.js';
+	import { log } from '$lib/debug/logger.js';
 	import CompetitionForm from '$lib/ui/CompetitionForm.svelte';
 
 	// Tab visibility for the empty-state banner. We show
@@ -68,9 +69,15 @@
 			// competition name. If publish fails the
 			// competition is still saved locally; the
 			// calendar just doesn't list it.
+			await log('nostr', `handleCreateSave: starting NOSTR publish for ${created.competition.id} (type=${created.competition.type})`);
 			try {
 				const kp = getStoredKeypair();
-				if (kp?.secretKey && created.competition.name) {
+				if (!kp?.secretKey) {
+					await log('nostr', `handleCreateSave: getStoredKeypair returned no secretKey — user not signed in, skipping publish`);
+				} else if (!created.competition.name) {
+					await log('nostr', `handleCreateSave: competition has no name, skipping publish`);
+				} else {
+					await log('nostr', `handleCreateSave: publishing parent ${created.competition.id}`);
 					await publishTournament({
 						secretKey: kp.secretKey,
 						tournament: {
@@ -89,8 +96,10 @@
 					// 'Gin's League — kolo 3' lands as its
 					// own row.
 					if (created.competition.type === 'league' && Array.isArray(created.competition.rounds)) {
+						let publishedRounds = 0;
+						let skippedRounds = 0;
 						for (const r of created.competition.rounds) {
-							if (!r.date) continue; // only rounds with a date go on the calendar
+							if (!r.date) { skippedRounds += 1; continue; } // only rounds with a date go on the calendar
 							await publishTournament({
 								secretKey: kp.secretKey,
 								tournament: {
@@ -100,12 +109,20 @@
 									location: r.location || created.competition.location || '',
 									format: created.competition.type
 								}
-							});
-						}
-					}
-				}
-			} catch (e) { console.warn('Nostr publish on create failed', e); }
-			// The submit button reads 'Create and next phase' /
+								});
+								publishedRounds += 1;
+								}
+								if (created.competition.type === 'league') {
+								await log('nostr', `handleCreateSave: league rounds published=${publishedRounds} skipped(no date)=${skippedRounds}`);
+								}
+								}
+								}
+								} catch (e) {
+								await log('nostr', `handleCreateSave: NOSTR publish threw — ${e?.message || e}`);
+								console.warn('Nostr publish on create failed', e);
+								}
+								await log('nostr', `handleCreateSave: NOSTR publish phase complete for ${created.competition.id}`);
+								// The submit button reads 'Create and next phase' /
 			// 'Generate and next phase' — so after a successful
 			// create we jump straight to the detail page so
 			// the user can start the next phase (play matches,

@@ -25,6 +25,7 @@
 import { finalizeEvent } from 'nostr-tools/pure';
 import { SimplePool } from 'nostr-tools/pool';
 import { hexToBytes } from './util.js';
+import { log } from '$lib/debug/logger.js';
 
 const KIND_TOURNAMENT = 30001;
 const PUBKEY_HEX = /^[0-9a-f]{64}$/i;
@@ -78,6 +79,7 @@ export async function fetchTournaments(/** @type {{
 	const pool = new SimplePool();
 	const filter = buildTournamentFilter(since, extra);
 	const seen = new Map();
+	await log('nostr', `fetchTournaments: start relays=[${relays.join(', ')}] since=${since} timeoutMs=${timeoutMs} filter=${JSON.stringify(filter)}`);
 
 	try {
 		return await new Promise((resolve) => {
@@ -86,8 +88,8 @@ export async function fetchTournaments(/** @type {{
 				clearTimeout(deadline);
 				sub.close();
 				const list = Array.from(seen.values()).sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+				void log('nostr', `fetchTournaments: finish reason=${reason} count=${list.length}`);
 				resolve(list);
-				void reason;
 			};
 			// The "we're done" signal: the relay set has
 			// gone quiet for idleMs, OR the hard deadline
@@ -98,6 +100,7 @@ export async function fetchTournaments(/** @type {{
 				onevent: (/** @type {any} */ ev) => {
 					if (seen.has(ev.id)) return;
 					seen.set(ev.id, ev);
+					void log('nostr', `fetchTournaments: event id=${ev.id} kind=${ev.kind} created_at=${ev.created_at} tags=${JSON.stringify(ev.tags?.slice(0, 5) || [])}`);
 				},
 				oneose: () => {
 					// End of stored events on every relay —
@@ -105,14 +108,19 @@ export async function fetchTournaments(/** @type {{
 					// only shorten the idle deadline, we
 					// don't finish immediately.
 					clearTimeout(idleTimer);
+					void log('nostr', `fetchTournaments: EOSE received, shortening idle to 500ms`);
 					idleTimer = setTimeout(() => finish('eose'), 500);
 				},
-				onclose: () => {
+				onclose: (/** @type {any} */ reason) => {
 					// A relay went away; that's not fatal,
 					// the others can still answer.
+					void log('nostr', `fetchTournaments: relay closed reason=${JSON.stringify(reason)}`);
 				}
 			});
 		});
+	} catch (e) {
+		await log('nostr', `fetchTournaments: threw — ${e?.message || e}`);
+		throw e;
 	} finally {
 		// SimplePool is fine to leave open for follow-up
 		// subscriptions, but the calendar view tears down
@@ -120,6 +128,7 @@ export async function fetchTournaments(/** @type {{
 		// default. (In a future commit we can move the
 		// pool up to a long-lived store.)
 		pool.close(relays);
+		await log('nostr', `fetchTournaments: done unique=${seen.size}`);
 	}
 }
 
@@ -136,10 +145,11 @@ export function parseTournamentEvent(/** @type {any} */ ev) {
 		try {
 			const parsed = JSON.parse(ev.content);
 			payload = { ...payload, ...parsed };
-		} catch {
+		} catch (e) {
 			// Treat the content as plain text name. Useful
 			// for the early, hand-published events.
 			payload.name = ev.content.slice(0, 80);
+			void log('nostr', `parseTournamentEvent: JSON.parse failed for ev=${ev.id} — ${e?.message || e}, falling back to plain text name`);
 		}
 	}
 	// Tag-based overrides (the relay filter asks for
@@ -177,9 +187,15 @@ export async function publishTournament(/** @type {{
  * tournament: { id: string, name: string, date?: string, location?: string, format?: string, data_url?: string }
  * }} */ opts) {
 	const skHex = String(opts?.secretKey || '');
-	if (!PUBKEY_HEX.test(skHex)) return null;
+	if (!PUBKEY_HEX.test(skHex)) {
+		await log('nostr', `publishTournament: invalid secretKey (length=${skHex.length})`);
+		return null;
+	}
 	const t = opts?.tournament || {};
-	if (!t.id || !t.name) return null;
+	if (!t.id || !t.name) {
+		await log('nostr', `publishTournament: missing id or name (id=${t.id || '<empty>'}, name=${t.name || '<empty>'})`);
+		return null;
+	}
 	const sk = hexToBytes(skHex);
 	const template = {
 		kind: KIND_TOURNAMENT,
@@ -202,12 +218,28 @@ export async function publishTournament(/** @type {{
 	};
 	const ev = finalizeEvent(template, sk);
 	const relays = opts.relays && opts.relays.length > 0 ? opts.relays : DEFAULT_RELAYS;
+	await log('nostr', `publishTournament: id=${t.id} name="${t.name}" relays=[${relays.join(', ')}]`);
 	const pool = new SimplePool();
-	try {
-		await Promise.any(pool.publish(relays, ev));
-	} catch { /* see publishCheckpoint for the rationale */ } finally {
-		pool.close(relays);
+	let successCount = 0;
+	let failureCount = 0;
+	// Publish to every relay in parallel and log each
+	// one's outcome. We don't fail the overall call on
+	// individual relay errors — one bad relay shouldn't
+	// stop the event from reaching the others.
+	const settled = await Promise.allSettled(pool.publish(relays, ev));
+	for (let i = 0; i < settled.length; i++) {
+		const r = settled[i];
+		const relay = relays[i];
+		if (r.status === 'fulfilled') {
+			successCount += 1;
+			await log('nostr', `publishTournament: relay ${relay} OK`);
+		} else {
+			failureCount += 1;
+			await log('nostr', `publishTournament: relay ${relay} FAILED — ${r.reason?.message || r.reason || 'unknown'}`);
+		}
 	}
+	pool.close(relays);
+	await log('nostr', `publishTournament: done id=${t.id} ok=${successCount} fail=${failureCount} evId=${ev.id}`);
 	return ev.id;
 }
 
