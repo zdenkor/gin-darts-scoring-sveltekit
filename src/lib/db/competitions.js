@@ -212,7 +212,7 @@ export async function createRound(/** @type {string} */ competitionId, /** @type
 	const r = {
 		id: round?.id || `round-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
 		roundNumber: round?.roundNumber || (comp.rounds?.length || 0) + 1,
-		name: round?.name || `${comp.name} ${comp.season || ''} kolo ${round?.roundNumber || (comp.rounds?.length || 0) + 1}`.replace(/\s+/g, ' ').trim(),
+		name: round?.name || `${comp.name} ${comp.season || ''} Round ${round?.roundNumber || (comp.rounds?.length || 0) + 1}`.replace(/\s+/g, ' ').trim(),
 		date: round?.date || '',
 		location: round?.location || comp.location || '',
 		status: round?.status || 'pending',

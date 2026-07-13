@@ -83,7 +83,7 @@
 					<input
 						type="text"
 						bind:value={r.name}
-						placeholder="{leagueName} {season} kolo {i + 1}"
+						placeholder="{leagueName} {season} Round {i + 1}"
 					/>
 				</label>
 				<label class="field">

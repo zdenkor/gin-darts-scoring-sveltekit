@@ -53,10 +53,15 @@
 		{ value: 'ordered', label: 'Ordered' },
 		{ value: 'random', label: 'Random' }
 	];
+	// Type selects between a league (a parent record that
+	// owns X round tournaments) and a tournament (a single
+	// self-contained bracket / round-robin). Team / team
+	// game is NOT a Type — it's a separate Participants
+	// picker so a league and a tournament can both be
+	// team-based. We deliberately keep Type small.
 	const COMP_TYPES = [
 		{ value: 'league', label: 'League' },
-		{ value: 'tournament', label: 'Tournament' },
-		{ value: 'team', label: 'Team' }
+		{ value: 'tournament', label: 'Tournament' }
 	];
 
 	/**
@@ -175,7 +180,7 @@
 			const extra = Array.from({ length: wanted - formRounds.length }, (_, i) => ({
 				id: `round-${Date.now()}-${formRounds.length + i}-${Math.random().toString(36).slice(2, 6)}`,
 				roundNumber: formRounds.length + i + 1,
-				name: `${formName || 'League'} ${formSeason || ''} kolo ${formRounds.length + i + 1}`.replace(/\s+/g, ' ').trim(),
+				name: `${formName || 'League'} ${formSeason || ''} Round ${formRounds.length + i + 1}`.replace(/\s+/g, ' ').trim(),
 				date: '',
 				time: '',
 				location: formLocation || '',
@@ -517,7 +522,7 @@
 					? Array.from({ length: Math.max(0, formRoundCount | 0) }, (_, i) => ({
 						id: `round-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 6)}`,
 						roundNumber: i + 1,
-						name: `${formName.trim() || 'Untitled league'} ${formSeason || ''} kolo ${i + 1}`.replace(/\s+/g, ' ').trim(),
+						name: `${formName.trim() || 'Untitled league'} ${formSeason || ''} Round ${i + 1}`.replace(/\s+/g, ' ').trim(),
 						date: '',
 						time: '',
 						location: formLocation || '',
@@ -553,7 +558,7 @@
 		let result;
 		if (formEliminationFormat === 'single game') {
 			result = buildSingleMatch(meta);
-		} else if (formType === 'team' || formParticipantFormat === 'team') {
+		} else if (formParticipantFormat === 'team') {
 			result = buildTeamGame(meta);
 		} else if (
 			formEliminationFormat === 'single elimination' ||

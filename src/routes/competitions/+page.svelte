@@ -248,12 +248,17 @@
 		{#if !formOpen}
 			<button
 				class="btn primary"
-				onclick={() => {
+				onclick={async () => {
 					// The first step of creating a competition
 					// is signing in. Anonymous users get bounced
 					// to the Google sign-in page; the redirect
 					// comes back here when the auth flow resolves.
-					if (!isSignedIn()) {
+					// `isSignedIn` is async (reads Google Identity
+					// services) — must `await` it; calling without
+					// `await` always returns a Promise which is
+					// truthy, so the guard would let anonymous
+					// users through and open the form anyway.
+					if (!(await isSignedIn())) {
 						goto(`${base}/login?return=/competitions`);
 						return;
 					}

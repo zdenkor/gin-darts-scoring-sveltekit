@@ -53,6 +53,15 @@
 	onMount(async () => {
 		loading = true;
 		try {
+			// Sign-in gate. Edit is a write operation that
+			// eventually pushes to Drive, so anonymous
+			// users get bounced to the login page just
+			// like Create does. The `return=/competitions/.../edit`
+			// param brings them back here after sign-in.
+			if (!(await isSignedIn())) {
+				goto(`${base}/login?return=/competitions/${compId}/edit`);
+				return;
+			}
 			competition = await getCompetition(compId);
 			if (!competition) {
 				error = `Competition ${compId} not found.`;
