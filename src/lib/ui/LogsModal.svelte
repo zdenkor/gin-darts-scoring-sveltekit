@@ -26,6 +26,14 @@
 	}
 
 	$effect(() => {
+		// Re-read when the modal opens AND when the user
+		// switches categories. Without referencing
+		// `activeTab` here, the effect only fires on the
+		// `open` toggle and stays stale when the user
+		// clicks a different tab inside an already-open
+		// modal.
+		void open;
+		void activeTab;
 		if (open) refresh(activeTab);
 	});
 
