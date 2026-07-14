@@ -6,6 +6,15 @@
 	import { auth } from '$lib/state/auth.svelte.js';
 	import { APP_VERSION } from '$lib/version.js';
 	import HelpIcon from '$lib/ui/HelpIcon.svelte';
+	import { getStoredKeypair, shortNpub } from '$lib/nostr/identity.js';
+	// nip19 (NIP-19 bech32) gives us the canonical
+	// `npub1...` form of a public key for display in
+	// Settings → Account. We import it from the main
+	// entry of nostr-tools, not /pure, because /pure
+	// deliberately doesn't ship bech32 to keep the
+	// bundle small. Settings is rare-to-load so the
+	// extra weight is fine.
+	import { nip19 } from 'nostr-tools';
 	import {
 		loadAllSettings, saveAllSettings, applyTheme,
 		getEffectiveGoogleClientId, getEffectiveSuperadminEmails
@@ -22,6 +31,42 @@
 
 	let s = $state(loadAllSettings());
 	let saved = $state(false);
+	// NOSTR identity state for the Account section.
+	// Recomputed on mount; the keypair is only created
+	// at sign-in time, so we read it lazily.
+	let nostrKey = $state(/** @type {any} */ (null));
+	// Bech32 npub, computed from the hex pubkey. We
+	// try/catch because a malformed pubkey (e.g. wrong
+	// length) would throw in nip19.npubEncode.
+	let npub = $derived.by(() => {
+		if (!nostrKey?.publicKey) return '';
+		try { return nip19.npubEncode(nostrKey.publicKey); } catch { return nostrKey.publicKey; }
+	});
+	// Which row's Copy button we just clicked. Reset
+	// to '' after a short timeout so the button can
+	// flip back from "Copied!" to "Copy".
+	let copyState = $state(/** @type {'' | 'npub' | 'hex'} */ (''));
+	async function copyToClipboard(/** @type {string} */ value) {
+		const which = value === npub ? 'npub' : 'hex';
+		try {
+			if (navigator.clipboard?.writeText) {
+				await navigator.clipboard.writeText(value);
+			} else {
+				// Fallback for very old browsers that
+				// don't expose the async clipboard API.
+				const ta = document.createElement('textarea');
+				ta.value = value;
+				document.body.appendChild(ta);
+				ta.select();
+				document.execCommand('copy');
+				document.body.removeChild(ta);
+			}
+			copyState = which;
+			setTimeout(() => { copyState = ''; }, 1500);
+		} catch (e) {
+			alert('Copy failed: ' + (e?.message || e));
+		}
+	}
 	// SVK import state.
 	let svkPaste = $state('');
 	let svkStats = $state(/** @type {{count:number,lastImportedAt:number|null}} */ ({ count: 0, lastImportedAt: null }));
@@ -82,6 +127,14 @@
 	onMount(() => {
 		applyTheme(s.theme);
 		refreshSVKStats();
+		// Hydrate NOSTR keypair for the Account section.
+		// Anonymous users (no sign-in) get an empty
+		// Account card explaining how to get one.
+		try {
+			nostrKey = getStoredKeypair();
+		} catch {
+			nostrKey = null;
+		}
 	});
 
 	async function refreshSVKStats() {
@@ -217,8 +270,49 @@
 				{/if}
 				<button class="btn ghost" onclick={() => auth.signOut()}>Sign out</button>
 			{:else}
-				<p class="muted">Not signed in. Admin features are disabled.</p>
-				<a class="btn primary" href="{base}/login">Sign in</a>
+				<!-- The "Not signed in" copy + the big Sign
+				     in button used to live here, but they
+				     made Account feel like a Sign-in screen
+				     for users who never intend to sign in.
+				     The header already has a Sign in icon
+				     for that case. Account now just shows
+				     NOSTR identity details for the signed-
+				     in user, and stays out of the way
+				     otherwise. -->
+				<p class="muted">No account signed in on this device.</p>
+			{/if}
+			<!-- NOSTR identity. The header used to show
+			     a short npub pill; we moved the full
+			     key + copy affordance here where it has
+			     room to breathe. -->
+			{#if nostrKey}
+				<div class="nostr-id">
+					<label class="nostr-label">NOSTR public key (npub)</label>
+					<div class="nostr-row">
+						<code class="nostr-code" title={nostrKey.publicKey}>{npub}</code>
+						<button
+							type="button"
+							class="btn ghost small"
+							onclick={() => copyToClipboard(npub)}
+						>
+							{copyState === 'npub' ? 'Copied!' : 'Copy'}
+						</button>
+					</div>
+					<label class="nostr-label">Hex (raw 64-char pubkey)</label>
+					<div class="nostr-row">
+						<code class="nostr-code nostr-code-hex" title={nostrKey.publicKey}>{nostrKey.publicKey}</code>
+						<button
+							type="button"
+							class="btn ghost small"
+							onclick={() => copyToClipboard(nostrKey.publicKey)}
+						>
+							{copyState === 'hex' ? 'Copied!' : 'Copy'}
+						</button>
+					</div>
+					<p class="hint">Short: {shortNpub(nostrKey.publicKey)}. This NOSTR identity is what other players see when you publish tournaments to the calendar.</p>
+				</div>
+			{:else}
+				<p class="hint">NOSTR identity is generated on first sign-in. Sign in to get a keypair so you can publish tournaments and delete your own events.</p>
 			{/if}
 		</section>
 

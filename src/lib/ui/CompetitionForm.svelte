@@ -466,6 +466,39 @@
 	// ---- Engine call (shared with create page) ----
 	function buildBracket() {
 		formError = '';
+		// Dátum a čas sú pre competition povinné (okrem
+		// ligy, kde dátum žije na jednotlivých kolách v
+		// Scheduling tabe). Bez dátumu sa event v kalendári
+		// nikdy nezobrazí a vyzerá to ako "competition
+		// bez začiatku". Vyžadujeme oboje — dátum aj čas —
+		// aby hráč vedel kedy prísť.
+		if (formType !== 'league') {
+			if (!formDate) {
+				formError = 'Date is required for a competition. Pick a day in the Setup tab.';
+				return null;
+			}
+			if (!formTime) {
+				formError = 'Time is required for a competition. Pick a time in the Setup tab.';
+				return null;
+			}
+		} else {
+			// League: every round needs a date + time in
+			// the Scheduling tab. If any round is missing
+			// them, the publish step would silently skip
+			// it (`if (!r.date) continue;`) and you'd get
+			// a competition whose rounds never reach the
+			// calendar. Fail fast here instead.
+			if (Array.isArray(formRounds) && formRounds.length > 0) {
+				const missing = formRounds
+					.map((r, i) => ({ name: r.name || `Round ${i + 1}`, date: r.date, time: r.time }))
+					.filter(r => !r.date || !r.time);
+				if (missing.length > 0) {
+					const list = missing.map(r => r.name).join(', ');
+					formError = `Date and time are required for every round. Missing: ${list}. Open the Scheduling tab.`;
+					return null;
+				}
+			}
+		}
 		const playerNames = formPlayers.map(p => p.name.trim()).filter(Boolean);
 		if (playerNames.length < 2) {
 			formError = 'At least two players are required.';

@@ -179,9 +179,6 @@
 	</div>
 
 	<div class="wizard-nav">
-		<span class="wizard-position muted small">
-			{activeTab + 1} / {visibleTabs.length}
-		</span>
 		{#if mode === 'watch'}
 			<!-- Watch mode has no Save / Next / Previous —
 			     the live section is the only thing to
@@ -196,6 +193,11 @@
 			>
 				← Previous
 			</button>
+		{/if}
+		<span class="wizard-position muted small">
+			{activeTab + 1} / {visibleTabs.length}
+		</span>
+		{#if mode !== 'watch'}
 			{#if activeTab < visibleTabs.length - 1}
 				<button
 					type="button"

@@ -227,7 +227,21 @@ export async function publishTournament(/** @type {{
 			date: t.date || '',
 			location: t.location || '',
 			format: t.format || '',
-			data_url: t.data_url || ''
+			data_url: t.data_url || '',
+			// Extra fields added so the calendar can
+			// surface a quick summary (round list + rules
+			// excerpt) without forcing the reader to
+			// follow a link. `rules` is the Tiptap HTML
+			// from the Setup tab; we keep it short to
+			// stay under most NOSTR relay size limits
+			// (16kB per event by default).
+			rounds: Array.isArray(t.rounds) ? t.rounds.map((/** @type {any} */ r) => ({
+				name: r.name || '',
+				date: r.date || '',
+				time: r.time || '',
+				location: r.location || ''
+			})) : [],
+			rules: t.rules || ''
 		}),
 		pubkey: ''
 	};

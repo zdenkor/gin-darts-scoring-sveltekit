@@ -63,10 +63,10 @@
 
 	<nav class="header-actions">
 		<a class="icon-btn" href="{base}/calendar" title="Calendar" aria-label="Calendar">
-			<span class="icon">📅</span>
+			<span class="icon icon-mask icon-calendar" aria-hidden="true"></span>
 		</a>
 		<a class="icon-btn" href="{base}/history" title="Player history" aria-label="Player history">
-			<span class="icon">📊</span>
+			<span class="icon icon-mask icon-statistic" aria-hidden="true"></span>
 		</a>
 		<a class="icon-btn" href="{base}/settings" title="Settings" aria-label="Settings">
 			<span class="icon icon-svg">{@html settingsIcon}</span>
@@ -77,9 +77,12 @@
 				<a class="icon-btn" href="{base}/admin" title="Admin" aria-label="Admin"><span class="icon">🔒</span></a>
 			{/if}
 			<span class="user-pill">{displayName}</span>
-			{#if shortKey}
-				<span class="nostr-pill" title={nostrKey.publicKey}>npub: {shortKey}</span>
-			{/if}
+			<!-- NOSTR identity (npub, pubkey) lives in
+			     Settings → Account. The header used to
+			     show a short npub pill here, but it
+			     crowded the top bar and the user wanted
+			     the full key + copy affordance, so we
+			     moved it. -->
 			<button class="icon-btn" type="button" onclick={signOut} title="Sign out" aria-label="Sign out"><span class="icon icon-mask icon-logout" aria-hidden="true"></span></button>
 		{:else}
 			<a class="icon-btn" href="{base}/login" title="Sign in" aria-label="Sign in"><span class="icon icon-mask icon-login" aria-hidden="true"></span></a>
@@ -170,6 +173,16 @@
 		mask-image: url('/assets/logout.svg');
 		-webkit-mask-image: url('/assets/logout.svg');
 		color: #c62828; /* red */
+	}
+	.icon-mask.icon-calendar {
+		mask-image: url('/assets/calendar.svg');
+		-webkit-mask-image: url('/assets/calendar.svg');
+		color: currentColor;
+	}
+	.icon-mask.icon-statistic {
+		mask-image: url('/assets/statistic.svg');
+		-webkit-mask-image: url('/assets/statistic.svg');
+		color: currentColor;
 	}
 	.brand-text h1 {
 		font-size: var(--text-md);

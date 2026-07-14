@@ -151,6 +151,41 @@
 			);
 		});
 	});
+
+	// Tiptap stores rules as HTML. The calendar shows
+	// just a short plain-text teaser so the row stays
+	// scannable — strip tags, collapse whitespace, cut
+	// to ~160 chars with an ellipsis.
+	function rulesExcerpt(/** @type {string} */ html) {
+		if (!html) return '';
+		const text = html
+			.replace(/<[^>]+>/g, ' ')   // strip tags
+			.replace(/&nbsp;/g, ' ')
+			.replace(/&amp;/g, '&')
+			.replace(/&lt;/g, '<')
+			.replace(/&gt;/g, '>')
+			.replace(/\s+/g, ' ')
+			.trim();
+		if (text.length <= 160) return text;
+		return text.slice(0, 160).trim() + '…';
+	}
+
+	// The "More info" link target. We prefer an explicit
+	// data_url if the publisher set one (a bracket / live
+	// scoring page), and fall back to the in-app Edit
+	// route when the viewer is the owner — that way a
+	// league can ship just a parent event and the owner
+	// still gets a one-click jump to the editor.
+	function moreInfoHref(/** @type {any} */ t) {
+		if (t.data_url) return t.data_url;
+		if (myPubkey && t.pubkey === myPubkey && t.tournamentId && !t.legacy) {
+			const id = t.tournamentId.startsWith('round-')
+				? t.tournamentId.replace(/^round-/, '')
+				: t.tournamentId;
+			return `${base}/competitions/${id}/edit`;
+		}
+		return '';
+	}
 </script>
 
 <div class="screen scrollable">
@@ -201,6 +236,26 @@
 								{#if t.location}<span> · {t.location}</span>{/if}
 								{#if t.format}<span> · {t.format}</span>{/if}
 							</div>
+							{#if Array.isArray(t.rounds) && t.rounds.length > 0}
+								<!-- Round list. For a league the
+								     publisher ships one event per
+								     round, but the parent event
+								     also carries a summary so the
+								     reader can see the whole
+								     schedule at a glance. -->
+								<ul class="rounds-list">
+									{#each t.rounds as r, i (i)}
+										<li>
+											<span class="round-name">{r.name || `Round ${i + 1}`}</span>
+											{#if r.date}<span class="round-when"> · {formatStarts(r.time ? `${r.date}T${r.time}` : r.date)}</span>{/if}
+											{#if r.location && r.location !== t.location}<span class="round-where"> · {r.location}</span>{/if}
+										</li>
+									{/each}
+								</ul>
+							{/if}
+							{#if t.rules}
+								<p class="rules-excerpt">{rulesExcerpt(t.rules)}</p>
+							{/if}
 						</div>
 						<div class="row-actions">
 							{#if myPubkey && t.pubkey === myPubkey}
@@ -238,6 +293,17 @@
 									</a>
 								{/if}
 							{/if}
+							{#if moreInfoHref(t)}
+								<a
+									class="btn ghost small"
+									href={moreInfoHref(t)}
+									target={t.data_url ? '_blank' : undefined}
+									rel={t.data_url ? 'noopener' : undefined}
+									aria-label="More info about this competition"
+								>
+									More info
+								</a>
+							{/if}
 							{#if t.data_url}
 								<a class="btn ghost small" href={t.data_url} target="_blank" rel="noopener">Open bracket</a>
 							{/if}
@@ -267,6 +333,29 @@
 
 <style>
 	.head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-sm); }
+	.rounds-list {
+		list-style: none;
+		padding: 0;
+		margin: var(--space-xs) 0 0;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+	.rounds-list li {
+		font-size: var(--text-sm);
+		color: var(--muted);
+	}
+	.round-name { color: var(--text); font-weight: 500; }
+	.round-when, .round-where { color: var(--muted); }
+	.rules-excerpt {
+		margin: var(--space-xs) 0 0;
+		padding: var(--space-xs) var(--space-sm);
+		background: var(--surface-2, var(--surface));
+		border-left: 2px solid var(--line);
+		font-size: var(--text-sm);
+		color: var(--muted);
+		border-radius: 4px;
+	}
 	.search {
 		width: 100%;
 		padding: var(--space-sm);

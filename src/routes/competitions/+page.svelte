@@ -99,7 +99,22 @@
 							name: created.competition.name,
 							date: parentStarts,
 							location: created.competition.location || '',
-							format: created.competition.format || created.competition.type || ''
+							format: created.competition.format || created.competition.type || '',
+							// Ship the rich-text rules and a
+							// round summary alongside the
+							// parent so the calendar can
+							// show a quick league preview
+							// without forcing the reader
+							// to open the bracket link.
+							rules: created.competition.rules || '',
+							rounds: Array.isArray(created.competition.rounds)
+								? created.competition.rounds.map((/** @type {any} */ r) => ({
+									name: r.name || '',
+									date: r.date || '',
+									time: r.time || '',
+									location: r.location || ''
+								}))
+								: []
 						}
 					});
 					// For leagues, publish every round as its
