@@ -153,10 +153,18 @@ export function parseTournamentEvent(/** @type {any} */ ev) {
 			const parsed = JSON.parse(ev.content);
 			payload = { ...payload, ...parsed };
 		} catch (e) {
-			// Treat the content as plain text name. Useful
-			// for the early, hand-published events.
-			payload.name = ev.content.slice(0, 80);
-			void log('nostr', `parseTournamentEvent: JSON.parse failed for ev=${ev.id} — ${e?.message || e}, falling back to plain text name`);
+			// Older (pre-0.4.20) publishers sometimes
+			// shipped the name as plain text instead of
+			// a JSON object. We don't want to surface the
+			// raw blob as the tournament name because it
+			// can be misleading ("Untitled competition"
+			// is the literal string this user saw, and
+			// it's just the default noisiest placeholder).
+			// Mark these explicitly as legacy records so
+			// the user knows the data is stale, not real.
+			payload.name = '';
+			payload.legacy = true;
+			void log('nostr', `parseTournamentEvent: JSON.parse failed for ev=${ev.id} — ${e?.message || e}; marking as legacy event`);
 		}
 	}
 	// Tag-based overrides (the relay filter asks for

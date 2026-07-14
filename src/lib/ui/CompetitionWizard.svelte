@@ -33,21 +33,29 @@
 	} = $props();
 
 	// League flow uses 4 tabs (Setup / Scheduling / Standings /
-	// Finalization). Other formats keep the 6-tab classic flow.
-	// `key: 'league'` is kept for backwards-compat watch mode only.
-	// Finalization is LAST in the non-league flow because it
-	// holds the Finish and Save button — the user reviews
-	// scoring/registration/seeding/live first, then finalizes.
+	// Finalization). Other formats keep the 6-tab classic flow
+	// (Setup / Scoring / Registration / Seeding / Live /
+	// Finalization). `key: 'league'` is kept for backwards-compat
+	// watch mode only.
+	//
+	// `finalization` is intentionally the LAST entry in the
+	// array so any filtered view that includes it (league's
+	// 4-tab flow, the classic 6-tab flow, watch mode) sees
+	// the Save button on its own final step instead of in
+	// the middle of the wizard. The league filter pulls
+	// `setup / scheduling / standings / finalization` in the
+	// order given by TABS — so the order here IS the visible
+	// order.
 	const TABS = [
 		{ key: 'setup', label: 'Competition Setup', en: 'Competition_Setup' },
 		{ key: 'scoring', label: 'Scoring', en: 'League_Scoring' },
 		{ key: 'registration', label: 'Registration', en: 'Registration' },
 		{ key: 'seeding', label: 'Seeding & Draw', en: 'Seeding_And_Draw' },
 		{ key: 'live', label: 'Live Tournament', en: 'Live_Tournament' },
-		{ key: 'finalization', label: 'Finalization', en: 'Tournament_Finalization' },
 		{ key: 'scheduling', label: 'Scheduling', en: 'League_Scheduling' },
 		{ key: 'standings', label: 'Standings', en: 'League_Standings' },
-		{ key: 'league', label: 'League Update', en: 'League_Update' }
+		{ key: 'league', label: 'League Update', en: 'League_Update' },
+		{ key: 'finalization', label: 'Finalization', en: 'Tournament_Finalization' }
 	];
 
 	// Two-way navigation: the tab nav at the top AND
@@ -111,8 +119,24 @@
 </script>
 
 <div class="wizard">
-	<header class="wizard-header">
-		<nav class="wizard-tabs" role="tablist" aria-label="Competition sections">
+	{#if mode !== 'watch'}
+		<!-- X sits at the very top of the wizard (above
+		     the tab strip) so it's always a single click
+		     away from "throw it all away", no matter which
+		     tab the user is currently on. -->
+		<div class="wizard-close-row">
+			<button
+				type="button"
+				class="wizard-close"
+				onclick={onCancel}
+				aria-label="Close wizard and discard changes"
+				title="Close"
+			>
+				✕
+			</button>
+		</div>
+	{/if}
+	<nav class="wizard-tabs" role="tablist" aria-label="Competition sections">
 			{#each visibleTabs as tab, i (tab.key)}
 				<button
 					role="tab"
@@ -129,25 +153,8 @@
 					<span class="wizard-tab-label">{tab.label}</span>
 					<span class="wizard-tab-en">{tab.en}</span>
 				</button>
-			{/each}
-		</nav>
-		{#if mode !== 'watch'}
-			<!-- X sits at the trailing edge of the tab strip,
-			     a single click away from "throw it all away".
-			     Wired to the host form's cancel callback so
-			     it has the same effect as the old bottom-bar
-			     Cancel button. -->
-			<button
-				type="button"
-				class="wizard-close"
-				onclick={onCancel}
-				aria-label="Close wizard and discard changes"
-				title="Close"
-			>
-				✕
-			</button>
-		{/if}
-	</header>
+				{/each}
+				</nav>
 
 	<div class="wizard-panel" role="tabpanel" id="wizard-panel-{tabKey(activeTab)}" aria-labelledby="wizard-tab-{tabKey(activeTab)}">
 		{#if tabKey(activeTab) === 'setup'}
@@ -176,9 +183,19 @@
 			{activeTab + 1} / {visibleTabs.length}
 		</span>
 		{#if mode === 'watch'}
-			<!-- Watch mode has no Save / Next — the live
-			     section is the only thing to interact with. -->
+			<!-- Watch mode has no Save / Next / Previous —
+			     the live section is the only thing to
+			     interact with. -->
 		{:else}
+			<button
+				type="button"
+				class="btn ghost"
+				onclick={prev}
+				disabled={activeTab === 0}
+				aria-label="Previous section"
+			>
+				← Previous
+			</button>
 			{#if activeTab < visibleTabs.length - 1}
 				<button
 					type="button"

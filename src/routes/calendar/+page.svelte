@@ -1,11 +1,48 @@
 <script>
 	import { onMount } from 'svelte';
 	import { fetchTournaments, parseTournamentEvent, DEFAULT_RELAYS } from '$lib/nostr/calendar.js';
+	import { getStoredKeypair } from '$lib/nostr/identity.js';
 
 	let loading = $state(true);
 	let error = $state(/** @type {string} */ (''));
 	let tournaments = $state(/** @type {any[]} */ ([]));
 	let query = $state(/** @type {string} */ (''));
+	// x-only public key of the currently signed-in user,
+	// or empty string for anonymous. Used to flag the
+	// user's own events with an Edit link in the list
+	// below. Recomputed on mount; we don't watch for
+	// sign-in changes because the calendar is already
+	// pulled on every Reload.
+	let myPubkey = $state(/** @type {string} */ (''));
+
+	// The NOSTR event carries the start time in an ISO
+	// stamp like "2026-04-15" or "2026-04-15T18:00". The
+	// raw stamp is fine for sorting, but the user
+	// wants to read the day and the hour at a glance,
+	// so we project it into a friendly "Sat 15 Apr
+	// 2026, 18:00" string. Date-only stamps render
+	// without the time bit so we don't mislead the
+	// reader into thinking the time is known.
+	function formatStarts(/** @type {string} */ iso) {
+		if (!iso) return '';
+		const d = new Date(iso);
+		if (Number.isNaN(d.getTime())) return iso;
+		const datePart = d.toLocaleDateString(undefined, {
+			weekday: 'short',
+			day: 'numeric',
+			month: 'short',
+			year: 'numeric'
+		});
+		// The time component is only present when the
+		// stamp contains a "T" (e.g. "2026-04-15T18:00").
+		// Pure date strings ("2026-04-15") skip it.
+		if (!iso.includes('T')) return datePart;
+		const timePart = d.toLocaleTimeString(undefined, {
+			hour: '2-digit',
+			minute: '2-digit'
+		});
+		return `${datePart}, ${timePart}`;
+	}
 
 	// Fetch a fresh calendar on mount. The user can
 	// pull to refresh later via the Reload button; we
@@ -25,7 +62,19 @@
 		}
 	}
 
-	onMount(load);
+	onMount(() => {
+		// Hydrate `myPubkey` so the Edit link in the list
+		// below can light up for the signed-in user. We
+		// read once; if the user signs in later they can
+		// just hit Reload.
+		try {
+			const kp = getStoredKeypair();
+			myPubkey = kp?.publicKey || '';
+		} catch {
+			myPubkey = '';
+		}
+		load();
+	});
 
 	// In-memory filter: matches the user query against
 	// the name, location, and format fields. Kept on
@@ -82,16 +131,48 @@
 				{#each visible as t (t.id)}
 					<li class="row">
 						<div class="row-main">
-							<strong class="name">{t.name || 'Untitled tournament'}</strong>
+							<strong class="name">
+								{#if t.legacy}
+									Untitled (legacy event)
+								{:else}
+									{t.name || 'Untitled competition'}
+								{/if}
+							</strong>
 							<div class="meta">
-								{#if t.date}<span>{t.date}</span>{/if}
+								{#if t.date}<span>{formatStarts(t.date)}</span>{/if}
 								{#if t.location}<span> · {t.location}</span>{/if}
 								{#if t.format}<span> · {t.format}</span>{/if}
 							</div>
 						</div>
-						{#if t.data_url}
-							<a class="btn ghost small" href={t.data_url} target="_blank" rel="noopener">Open bracket</a>
-						{/if}
+						<div class="row-actions">
+							{#if myPubkey && t.pubkey === myPubkey}
+								<!-- The signed-in user is the
+								     author of this NOSTR event.
+								     Surface an Edit shortcut
+								     that takes them straight
+								     to the existing edit
+								     route. We can only edit
+								     tournaments that have a
+								     stable `tournamentId`
+								     (parsed from the `d`
+								     tag); round events use
+								     `round-{roundId}` and
+								     can be edited through
+								     their parent league. -->
+								<a
+									class="btn ghost small"
+									href={t.tournamentId?.startsWith('round-')
+										? `/competitions/${(t.tournamentId || '').replace(/^round-/, '')}/edit`
+										: `/competitions/${t.tournamentId || t.id}/edit`}
+									aria-label="Edit this competition"
+								>
+									Edit
+								</a>
+							{/if}
+							{#if t.data_url}
+								<a class="btn ghost small" href={t.data_url} target="_blank" rel="noopener">Open bracket</a>
+							{/if}
+						</div>
 					</li>
 				{/each}
 			</ul>
