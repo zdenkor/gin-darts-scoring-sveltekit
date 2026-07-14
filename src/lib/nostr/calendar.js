@@ -180,7 +180,7 @@ export function parseTournamentEvent(/** @type {any} */ ev) {
 		if (t[0] === 'd') tournamentId = t[1];
 		if (t[0] === 'format' && !payload.format) payload.format = t[1];
 	}
-	return { ...payload, tournamentId, id: ev.id, pubkey: ev.pubkey, created_at: ev.created_at };
+	return { ...payload, tournamentId, id: ev.id, pubkey: ev.pubkey, created_at: ev.created_at, _rawTags: tags };
 }
 
 /**
@@ -253,9 +253,87 @@ export async function publishTournament(/** @type {{
 			await log('nostr', `publishTournament: relay ${relay} FAILED — ${r.reason?.message || r.reason || 'unknown'}`);
 		}
 	}
-	pool.close(relays);
 	await log('nostr', `publishTournament: done id=${t.id} ok=${successCount} fail=${failureCount} evId=${ev.id}`);
+
 	return ev.id;
+}
+
+/**
+ * Issue a NIP-09 deletion request against a tournament
+ * announcement we previously published. NOSTR relays
+ * that respect NIP-09 should drop the original event
+ * from their store; relays that don't are free to
+ * ignore the request (the spec is best-effort).
+ *
+ * For addressable / replaceable events like our
+ * `kind: 30001` tournaments, NIP-09 says the deletion
+ * reference MUST use the `a` tag in the form
+ *   `<kind>:<author-pubkey>:<d-tag-identifier>`
+ * so relays can match the right event to drop.
+ *
+ * The caller must own the secret key that signed the
+ * original event — relays should reject a deletion
+ * request from anyone but the author. We don't enforce
+ * that here; we just hand the signed request to the
+ * relays and let them decide.
+ *
+ * @param {{
+ *   relays?: string[],
+ *   secretKey: string,
+ *   event: { id: string, kind: number, pubkey: string, tags: string[][] }
+ * }} opts
+ * @returns {Promise<boolean>} true if at least one relay
+ *   accepted the deletion request.
+ */
+export async function deleteTournament(/** @type {any} */ opts) {
+	const relays = (opts?.relays && opts.relays.length > 0) ? opts.relays : DEFAULT_RELAYS;
+	const skHex = opts?.secretKey;
+	const target = opts?.event;
+	if (!skHex || !target?.id || !target?.pubkey) {
+		await log('nostr', `deleteTournament: missing secretKey / event.id / event.pubkey`);
+		return false;
+	}
+	// Build the `a`-tag reference. The d-identifier is
+	// the value of the original event's `d` tag; for our
+	// 30001 events that's the competition id.
+	const dTag = (target.tags || []).find((/** @type {string[]} */ t) => t[0] === 'd')?.[1] || '';
+	if (!dTag) {
+		await log('nostr', `deleteTournament: target event ${target.id} has no d tag; cannot build a-tag reference`);
+		return false;
+	}
+	const aRef = `${target.kind || KIND_TOURNAMENT}:${target.pubkey}:${dTag}`;
+	const sk = hexToBytes(skHex);
+	const template = {
+		kind: 5,
+		created_at: Math.floor(Date.now() / 1000),
+		tags: [
+			['a', aRef],
+			// Some relays also accept the e-tag as a
+			// belt-and-suspenders hint pointing at the
+			// specific event id; cheap to include.
+			['e', target.id]
+		],
+		content: 'deleted',
+		pubkey: ''
+	};
+	const ev = finalizeEvent(template, sk);
+	await log('nostr', `deleteTournament: aRef=${aRef} evId=${target.id} relays=[${relays.join(', ')}]`);
+	const pool = new SimplePool();
+	let successCount = 0;
+	let failureCount = 0;
+	const publishOne = async (/** @type {string} */ relay) => {
+		try {
+			await pool.publish([relay], ev);
+			successCount += 1;
+			await log('nostr', `deleteTournament: relay OK ${relay}`);
+		} catch (e) {
+			failureCount += 1;
+			await log('nostr', `deleteTournament: relay FAILED ${relay} — ${e?.message || e}`);
+		}
+	};
+	await Promise.allSettled(relays.map(publishOne));
+	await log('nostr', `deleteTournament: done ok=${successCount} fail=${failureCount} evId=${ev.id}`);
+	return successCount > 0;
 }
 
 export { DEFAULT_RELAYS };

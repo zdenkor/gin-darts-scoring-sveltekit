@@ -1,7 +1,13 @@
 <script>
 	import { onMount } from 'svelte';
-	import { fetchTournaments, parseTournamentEvent, DEFAULT_RELAYS } from '$lib/nostr/calendar.js';
+	import { fetchTournaments, parseTournamentEvent, deleteTournament, DEFAULT_RELAYS } from '$lib/nostr/calendar.js';
 	import { getStoredKeypair } from '$lib/nostr/identity.js';
+	// `base` is the configured URL prefix (empty in dev,
+	// `/gin-darts-scoring-sveltekit` on GitHub Pages).
+	// Raw `href="/..."` strings would otherwise resolve
+	// against the bare origin and skip the prefix, so we
+	// prepend `base` to every internal link below.
+	import { base } from '$app/paths';
 
 	let loading = $state(true);
 	let error = $state(/** @type {string} */ (''));
@@ -14,6 +20,10 @@
 	// sign-in changes because the calendar is already
 	// pulled on every Reload.
 	let myPubkey = $state(/** @type {string} */ (''));
+	// Tracks which event id the user has just asked to
+	// delete, so we can show "deleting…" feedback. Keyed
+	// by NOSTR event id.
+	let deletingId = $state(/** @type {string} */ (''));
 
 	// The NOSTR event carries the start time in an ISO
 	// stamp like "2026-04-15" or "2026-04-15T18:00". The
@@ -75,6 +85,54 @@
 		}
 		load();
 	});
+
+	// Issue a NIP-09 deletion request for one of the
+	// signed-in user's own events. Relays that respect
+	// NIP-09 will drop the original event; the rest
+	// may keep it (the spec is best-effort). Either
+	// way, we hide the row locally so the user
+	// immediately sees their intent take effect.
+	async function handleDelete(/** @type {any} */ t) {
+		if (!t?.id) return;
+		const ok = confirm(
+			`Delete "${t.name || 'this tournament'}"?\n\n` +
+			`A NOSTR NIP-09 deletion request will be sent to all relays. ` +
+			`Relays that respect NIP-09 will remove the event; others may keep it.`
+		);
+		if (!ok) return;
+		const kp = getStoredKeypair();
+		if (!kp?.secretKey) {
+			alert('Not signed in.');
+			return;
+		}
+		deletingId = t.id;
+		try {
+			const success = await deleteTournament({
+				secretKey: kp.secretKey,
+				event: {
+					id: t.id,
+					kind: 30001,
+					pubkey: t.pubkey,
+					// parseTournamentEvent exposes the raw
+					// tags, so we can hand them straight
+					// through and let the delete function
+					// pick out the `d` identifier.
+					tags: t._rawTags || []
+				}
+			});
+			if (success) {
+				// Hide the row optimistically — the next
+				// Reload will confirm the relay dropped it.
+				tournaments = tournaments.filter((/** @type {any} */ x) => x.id !== t.id);
+			} else {
+				alert('No relay accepted the deletion request. Check the NOSTR logs for details.');
+			}
+		} catch (e) {
+			alert('Delete failed: ' + (e?.message || e));
+		} finally {
+			deletingId = '';
+		}
+	}
 
 	// In-memory filter: matches the user query against
 	// the name, location, and format fields. Kept on
@@ -151,28 +209,51 @@
 								     Surface an Edit shortcut
 								     that takes them straight
 								     to the existing edit
-								     route. We can only edit
-								     tournaments that have a
-								     stable `tournamentId`
+								     route. We only render the
+								     link when we have a
+								     usable `tournamentId`
 								     (parsed from the `d`
-								     tag); round events use
+								     tag). Round events use
 								     `round-{roundId}` and
 								     can be edited through
-								     their parent league. -->
-								<a
-									class="btn ghost small"
-									href={t.tournamentId?.startsWith('round-')
-										? `/competitions/${(t.tournamentId || '').replace(/^round-/, '')}/edit`
-										: `/competitions/${t.tournamentId || t.id}/edit`}
-									aria-label="Edit this competition"
-								>
-									Edit
-								</a>
+								     their parent league.
+								     Legacy events (JSON
+								     parse failed) and events
+								     without a stable `d` tag
+								     are skipped — clicking
+								     through to a non-existent
+								     IDB record would land on
+								     GitHub Pages' raw 404
+								     page. -->
+								{#if t.tournamentId && !t.legacy}
+									{@const editId = t.tournamentId.startsWith('round-')
+										? t.tournamentId.replace(/^round-/, '')
+										: t.tournamentId}
+									<a
+										class="btn ghost small"
+										href={`${base}/competitions/${editId}/edit`}
+										aria-label="Edit this competition"
+									>
+										Edit
+									</a>
+								{/if}
 							{/if}
 							{#if t.data_url}
 								<a class="btn ghost small" href={t.data_url} target="_blank" rel="noopener">Open bracket</a>
 							{/if}
-						</div>
+							{#if myPubkey && t.pubkey === myPubkey && t.tournamentId && !t.legacy}
+								<button
+									type="button"
+									class="btn danger small"
+									onclick={() => handleDelete(t)}
+									disabled={deletingId === t.id}
+									aria-label="Delete this competition from NOSTR"
+									title="Send a NIP-09 deletion request"
+								>
+									{deletingId === t.id ? 'Deleting…' : 'Delete'}
+								</button>
+							{/if}
+							</div>
 					</li>
 				{/each}
 			</ul>
