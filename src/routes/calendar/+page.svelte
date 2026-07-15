@@ -231,6 +231,22 @@
 									{t.name || 'Untitled competition'}
 								{/if}
 							</strong>
+							<!-- v0.4.26: league / tournament /
+							     round label surfaces the kind of
+							     event this row represents. The
+							     NOSTR event ships `type` in its
+							     content JSON; older events that
+							     pre-date the field fall through
+							     to the legacy placeholder. -->
+							<div class="kind-row">
+								{#if t.type === 'league'}
+									<span class="kind-badge kind-league">League</span>
+								{:else if t.type === 'tournament'}
+									<span class="kind-badge kind-tournament">Tournament</span>
+								{:else}
+									<span class="kind-badge kind-unknown">Event</span>
+								{/if}
+							</div>
 							<div class="meta">
 								{#if t.date}<span>{formatStarts(t.date)}</span>{/if}
 								{#if t.location}<span> · {t.location}</span>{/if}
@@ -376,6 +392,33 @@
 	}
 	.row-main { flex: 1 1 auto; min-width: 0; }
 	.name { display: block; }
+	.kind-row { margin-top: 2px; }
+	.kind-badge {
+		display: inline-block;
+		font-size: var(--text-xs);
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		padding: 1px 6px;
+		border-radius: 4px;
+		border: 1px solid var(--line);
+		background: var(--surface);
+		color: var(--muted);
+	}
+	.kind-badge.kind-league {
+		/* League parent: blue-tinted accent so the
+		   reader can tell a season-long league from
+		   a one-off tournament at a glance. */
+		border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+		color: var(--accent);
+	}
+	.kind-badge.kind-tournament {
+		/* Tournament: warm orange so it reads as a
+		   different category, not just a copy of
+		   the league badge. */
+		border-color: var(--warn, #e8b923);
+		color: var(--warn, #e8b923);
+	}
 	.meta { font-size: var(--text-sm); color: var(--muted); }
 	.foot { margin-top: var(--space-md); font-size: var(--text-xs); }
 	.error { color: #ff6b6b; font-size: var(--text-sm); }

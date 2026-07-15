@@ -29,6 +29,30 @@
 
 	let formError = $state('');
 	let saving = $state(false);
+	// Finer-grained progress for the saving dialog.
+	// `saving` flips true the moment the user clicks
+	// Save; `savingPhase` tracks which sub-step is
+	// running so the dialog can show "Saving locally…"
+	// vs "Publishing to NOSTR…" vs "Pushing to Drive…"
+	// instead of a single opaque spinner. The values
+	// mirror the comments in handleCreateSave below.
+	let savingPhase = $state(/** @type {'local' | 'children' | 'drive' | 'nostr' | 'done' | ''} */ (''));
+
+	// Human-readable labels for each saving phase.
+	// Kept here (not in handleCreateSave) so the
+	// template can swap copy without polluting the
+	// control flow.
+	const savingLabels = {
+		local: 'Saving competition to local storage…',
+		children: 'Creating child tournaments for each round…',
+		drive: 'Pushing competition to Google Drive…',
+		nostr: 'Publishing to NOSTR relays (this can take 10–15 seconds)…',
+		done: 'Done!'
+	};
+	/** @param {'local' | 'children' | 'drive' | 'nostr' | 'done' | ''} phase */
+	function savingLabel(/** @type {string} */ phase) {
+		return savingLabels[/** @type {keyof typeof savingLabels} */ (phase)] || 'Saving…';
+	}
 
 	// Called by <CompetitionForm> when the user clicks the
 	// submit button (Create mode). The form component has
@@ -37,14 +61,17 @@
 	// its own state, so there's nothing to reset here.
 	async function handleCreateSave({ competition, matches }) {
 		saving = true;
+		savingPhase = 'local';
 		formError = '';
 		try {
+			savingPhase = 'local';
 			const created = await createCompetitionWithMatches(competition, matches);
 			// For league competitions, fan out per-round
 			// child tournaments. The child has its own
 			// date / time / location, takes the league
 			// scoring, and links back via parentLeagueId.
 			if (created.competition?.type === 'league') {
+				savingPhase = 'children';
 				try {
 					await createChildTournamentsForLeague(created.competition);
 				} catch (e) {
@@ -56,6 +83,7 @@
 			// the competition dirty so a future sync sweep
 			// can retry.
 			if (await isSignedIn()) {
+				savingPhase = 'drive';
 				try {
 					await pushCompetition(created.competition, created.matches, []);
 				} catch (e) {
@@ -69,6 +97,7 @@
 			// competition name. If publish fails the
 			// competition is still saved locally; the
 			// calendar just doesn't list it.
+			savingPhase = 'nostr';
 			await log('nostr', `handleCreateSave: starting NOSTR publish for ${created.competition.id} (type=${created.competition.type})`);
 			try {
 				const kp = getStoredKeypair();
@@ -100,6 +129,12 @@
 							date: parentStarts,
 							location: created.competition.location || '',
 							format: created.competition.format || created.competition.type || '',
+							// v0.4.26: ship the type so the
+							// calendar can render a league / tournament
+							// distinction. Parent of a league has
+							// type='league'; standalone tournament
+							// keeps 'tournament'.
+							type: created.competition.type || '',
 							// Ship the rich-text rules and a
 							// round summary alongside the
 							// parent so the calendar can
@@ -147,7 +182,10 @@
 									name: roundName,
 									date: starts,
 									location: r.location || created.competition.location || '',
-									format: created.competition.type
+									format: created.competition.type,
+									// v0.4.26: child round events are
+									// always league rounds.
+									type: 'league'
 								}
 							});
 							publishedRounds += 1;
@@ -175,6 +213,7 @@
 			formError = String(e?.message || e);
 		} finally {
 			saving = false;
+			savingPhase = '';
 		}
 	}
 
@@ -325,6 +364,25 @@
 		{/if}
 
 		{#if formOpen}
+			<!-- Saving overlay. The actual form submit fires
+			     onSave → handleCreateSave which flips `saving`
+			     true and walks `savingPhase` through local →
+			     children → drive → nostr → done. We don't try
+			     to render a percent-done bar; the NOSTR phase
+			     publishes in parallel across 3 relays and the
+			     drives are fire-and-forget, so percent-done
+			     would be a lie. A live status string is the
+			     honest answer. -->
+			{#if saving}
+				<div class="saving-overlay" role="alert" aria-live="polite" aria-busy="true">
+					<div class="saving-dialog">
+						<div class="saving-spinner" aria-hidden="true"></div>
+						<p class="saving-title">Saving your competition</p>
+						<p class="saving-phase">{savingLabel(savingPhase)}</p>
+						<p class="saving-hint">Don't close this tab — the relay upload is in progress.</p>
+					</div>
+				</div>
+			{/if}
 			<CompetitionForm
 				mode="create"
 				{saving}
@@ -336,6 +394,62 @@
 		</div>
 
 <style>
+	/* Saving overlay. A semi-transparent backdrop
+	   blocks the rest of the page so the user can't
+	   click Cancel / Previous while NOSTR is still
+	   publishing. We use the existing CSS variables
+	   for surface / text / accent so the dialog
+	   adapts to the active theme. */
+	.saving-overlay {
+		position: fixed;
+		inset: 0;
+		background: rgba(0, 0, 0, 0.55);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		z-index: 1000;
+		backdrop-filter: blur(2px);
+	}
+	.saving-dialog {
+		background: var(--surface);
+		color: var(--text);
+		border: 1px solid var(--line);
+		border-radius: 12px;
+		padding: var(--space-lg) var(--space-xl);
+		max-width: 420px;
+		width: calc(100vw - var(--space-xl) * 2);
+		text-align: center;
+		box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+	}
+	.saving-spinner {
+		width: 36px;
+		height: 36px;
+		margin: 0 auto var(--space-md);
+		border: 3px solid var(--line);
+		border-top-color: var(--accent);
+		border-radius: 50%;
+		animation: saving-spin 0.9s linear infinite;
+	}
+	@keyframes saving-spin {
+		to { transform: rotate(360deg); }
+	}
+	.saving-title {
+		font-size: var(--text-lg, 1.1rem);
+		font-weight: 600;
+		margin: 0 0 var(--space-xs);
+	}
+	.saving-phase {
+		font-size: var(--text-sm);
+		color: var(--muted);
+		margin: 0 0 var(--space-sm);
+		min-height: 1.4em; /* prevents the dialog from jumping when phase changes */
+	}
+	.saving-hint {
+		font-size: var(--text-xs, 0.8rem);
+		color: var(--muted);
+		margin: 0;
+		opacity: 0.7;
+	}
 	/* Override the global .screen / .screen.scrollable defaults so
 	   the form scrolls inside the page rather than getting clipped
 	   by the game-layout container in app.css. */

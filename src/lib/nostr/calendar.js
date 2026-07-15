@@ -147,7 +147,7 @@ export async function fetchTournaments(/** @type {{
  * to show.
  */
 export function parseTournamentEvent(/** @type {any} */ ev) {
-	let payload = { name: '', date: '', location: '', format: '', data_url: '' };
+	let payload = { name: '', date: '', location: '', format: '', type: '', data_url: '' };
 	if (typeof ev?.content === 'string' && ev.content.length > 0) {
 		try {
 			const parsed = JSON.parse(ev.content);
@@ -199,7 +199,7 @@ export function parseTournamentEvent(/** @type {any} */ ev) {
 export async function publishTournament(/** @type {{
  * relays?: string[],
  * secretKey: string,
- * tournament: { id: string, name: string, date?: string, location?: string, format?: string, data_url?: string }
+ * tournament: { id: string, name: string, date?: string, location?: string, format?: string, type?: string, data_url?: string }
  * }} */ opts) {
 	const skHex = String(opts?.secretKey || '');
 	if (!PUBKEY_HEX.test(skHex)) {
@@ -227,6 +227,13 @@ export async function publishTournament(/** @type {{
 			date: t.date || '',
 			location: t.location || '',
 			format: t.format || '',
+			// v0.4.26: ship `type` alongside `format` so the
+			// calendar can distinguish a parent league from a
+			// child round or a one-off tournament. Previously
+			// the calendar only saw `format` (e.g. "round
+			// robin") and could not tell a league from a
+			// tournament at a glance.
+			type: t.type || '',
 			data_url: t.data_url || '',
 			// Extra fields added so the calendar can
 			// surface a quick summary (round list + rules

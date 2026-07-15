@@ -1,17 +1,28 @@
 <script>
 	/**
-	 * Competition wizard. Six tabs:
-	 *   1. Tournament Setup      — name, season, status, rules
-	 *   2. Registration          — player list + SVK picker
-	 *   3. Seeding & Draw        — format, groups, advance, draw
-	 *   4. Live Tournament       — current matches (placeholder)
-	 *   5. Finalization          — winner + standings (placeholder)
-	 *   6. League Update         — only when competition.type === 'league'
+	 * Competition wizard. League flow uses 5 tabs:
+	 *   1. Setup
+	 *   2. Scoring (league points table + bonus)
+	 *   3. Scheduling (per-round date / time / location)
+	 *   4. Standings (live)
+	 *   5. Finalization
+	 *
+	 * Tournament flow uses 5 tabs:
+	 *   1. Setup
+	 *   2. Scoring
+	 *   3. Registration (player list + SVK picker)
+	 *   4. Seeding & Draw (format, groups, advance, draw)
+	 *   5. Finalization
+	 *
+	 * The v0.4.26 collapse: the `live` tournament tab is
+	 * gone, and the league's `scoring` tab moved up to the
+	 * second position (alongside tournaments). Both flows
+	 * now have the same width.
 	 *
 	 * The wizard is reused by:
 	 *   - /competitions (create mode, no id)
 	 *   - /competitions/[id]/edit (edit mode, id present)
-	 *   - /competitions/[id]/watch (watch mode, tabs 4+5, 6 if league)
+	 *   - /competitions/[id]/watch (watch mode, live+finalization, plus league if applicable)
 	 *
 	 * The parent owns:
 	 *   - the actual form state (bind:playerList, bind:meta)
@@ -98,12 +109,24 @@
 		if (competition?.type === 'league') {
 			return TABS.filter(t =>
 				t.key === 'setup' ||
+				t.key === 'scoring' ||
 				t.key === 'scheduling' ||
 				t.key === 'standings' ||
 				t.key === 'finalization'
 			);
 		}
-		return TABS.filter(t => t.key !== 'scheduling' && t.key !== 'standings' && t.key !== 'league');
+		// Non-league (tournament) flow: Setup / Scoring /
+		// Registration / Seeding / Finalization. The
+		// `live` tab is gone — v0.4.26 collapsed the
+		// single-tournament view into the Setup → Finalize
+		// path so the wizard is shorter and the user does
+		// not see a placeholder tab that does nothing.
+		return TABS.filter(t =>
+			t.key !== 'scheduling' &&
+			t.key !== 'standings' &&
+			t.key !== 'league' &&
+			t.key !== 'live'
+		);
 	});
 
 	// Clamp activeTab to a valid index whenever the visible set
