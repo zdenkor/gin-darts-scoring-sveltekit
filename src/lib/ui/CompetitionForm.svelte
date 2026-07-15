@@ -637,6 +637,21 @@
 </script>
 
 <form class="form" onsubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
+	<!-- Form-wide error banner. The per-tab
+	     `formError` placeholder inside the Setup slot
+	     is still there for backwards compat, but
+	     errors raised by Save (e.g. "Date is required")
+	     can fire while the user is sitting on the
+	     Finalization tab — that placeholder would be
+	     off-screen. The banner above the wizard is
+	     always visible regardless of which tab the
+	     user is currently on, so the message always
+	     lands somewhere the user can see it. -->
+	{#if formError}
+		<div class="form-error" role="alert" aria-live="polite">
+			<strong>Cannot save:</strong> {formError}
+		</div>
+	{/if}
 	<CompetitionWizard
 		mode={mode}
 		competition={formCompetition}
@@ -975,6 +990,22 @@
 	.muted { color: var(--muted); }
 	.small { font-size: var(--text-sm); }
 	.error { color: var(--danger, #ff6b6b); font-weight: 700; }
+	/* Form-wide error banner. Bigger than the inline
+	   `.error` used inside the Setup slot so it reads
+	   as a blocking issue from across the page. */
+	.form-error {
+		margin: 0 0 var(--space-md);
+		padding: var(--space-sm) var(--space-md);
+		background: var(--danger-bg, rgba(255, 107, 107, 0.12));
+		border: 1px solid var(--danger, #ff6b6b);
+		border-radius: 6px;
+		color: var(--danger, #ff6b6b);
+		font-size: var(--text-sm);
+	}
+	.form-error strong {
+		color: var(--danger, #ff6b6b);
+		margin-right: 0.25em;
+	}
 	.form { margin-top: var(--space-md); padding-top: var(--space-md); border-top: 1px solid var(--line); }
 	.form h3 {
 		margin: var(--space-md) 0 var(--space-sm);
