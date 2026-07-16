@@ -304,3 +304,15 @@ input:focus, select:focus {
   cursor: pointer;
   opacity: .8;
 }
+
+/* Element inspector highlight. Applied to whichever
+   element the cursor is over when the Settings →
+   Debug → "Show element information" toggle is on.
+   The class is added/removed from JS in
+   $lib/debug/elementInspector.js; we set it here so
+   the rule lives next to the rest of the visual
+   primitives instead of in an inline style. */
+.element-inspector-highlight {
+  outline: 2px solid var(--accent) !important;
+  outline-offset: 1px;
+}

@@ -23,6 +23,10 @@
 	import { LOG_CATEGORIES, LOG_CATEGORY_LABELS } from '$lib/debug/categories.js';
 	import { isCategoryEnabled, setCategoryEnabled } from '$lib/debug/settings.js';
 	import { invalidateLogCache, clearLogs } from '$lib/debug/logger.js';
+	import {
+		getInspectorSettings, setInspectorEnabled, setInspectorShow,
+		startElementInspector, stopElementInspector
+	} from '$lib/debug/elementInspector.js';
 	import LogsModal from '$lib/ui/LogsModal.svelte';
 	import {
 		parseSVKListText, importSVKList, getSVKCacheStats,
@@ -87,6 +91,27 @@
 		// re-checks the on/off flag.
 		invalidateLogCache();
 	}
+	// Element inspector — localStorage-backed toggle
+	// plus a sub-form for which DOM fields to show on
+	// hover. Default OFF (a developer-only helper; the
+	// user has to opt in). See
+	// $lib/debug/elementInspector.js.
+	let inspector = $state(getInspectorSettings());
+	function toggleInspector(/** @type {boolean} */ on) {
+		setInspectorEnabled(on);
+		inspector = { ...inspector, enabled: on };
+		if (on) startElementInspector();
+		else stopElementInspector();
+	}
+	function toggleInspectorShow(/** @type {string} */ key, /** @type {boolean} */ on) {
+		const next = { ...inspector.show, [key]: on };
+		setInspectorShow({ [key]: on });
+		inspector = { ...inspector, show: next };
+		// The settings object is re-read on every
+		// mouseover via getInspectorSettings(), so the
+		// change is picked up on the next hover. No
+		// restart needed.
+	}
 	// SVK search state (used by both the import preview and the
 	// player picker in /competitions — the picker uses its own
 	// local state, this is just the settings-panel preview).
@@ -135,6 +160,13 @@
 		} catch {
 			nostrKey = null;
 		}
+		// Re-start the element inspector if the user
+		// had it on from a previous session. The
+		// Settings page is the only place that toggles
+		// this; on every other page the inspector is
+		// dormant and just registers no listeners.
+		if (inspector.enabled) startElementInspector();
+		return () => stopElementInspector();
 	});
 
 	async function refreshSVKStats() {
@@ -375,7 +407,7 @@
 		<section class="settings-section">
 			<h2>Debug<HelpIcon topic="Debug logs" body="Each category logs to a private IndexedDB store when its toggle is on. The View Logs button opens a modal with a tab per category; entries are newest first. Toggling a category off prevents new entries from being written but does not delete existing ones — use the Clear button in the modal to wipe a category." /></h2>
 			{#each LOG_CATEGORIES as cat (cat)}
-				<label class="field debug-toggle">
+				<label class="checkbox">
 					<input
 						type="checkbox"
 						checked={debugEnabled[cat]}
@@ -385,6 +417,66 @@
 				</label>
 			{/each}
 			<button class="btn" type="button" onclick={() => (logsModalOpen = true)}>View logs</button>
+
+			<!-- Element inspector. When ON, hovering any
+			     DOM element shows a tooltip with the
+			     selected fields. The user can pick which
+			     fields and whether to walk N levels up
+			     (parent) / down (child). Default OFF —
+			     developer-only. -->
+			<details class="inspector-section">
+				<summary>Element inspector</summary>
+				<label class="checkbox">
+					<input
+						type="checkbox"
+						checked={inspector.enabled}
+						onchange={(e) => toggleInspector(/** @type {HTMLInputElement} */ (e.currentTarget).checked)}
+					/>
+					<span>Show element information<HelpIcon topic="Element inspector" body="When on, hovering any element shows a tooltip with the DOM details you select below. The hovered element is also outlined. Default off — turn off when you don't need it." /></span>
+				</label>
+				{#if inspector.enabled}
+					<div class="inspector-subform">
+						<p class="muted small">Show these fields in the tooltip:</p>
+						<label class="checkbox">
+							<input type="checkbox" checked={inspector.show.tag} onchange={(e) => toggleInspectorShow('tag', e.currentTarget.checked)} />
+							<span>Tag</span>
+						</label>
+						<label class="checkbox">
+							<input type="checkbox" checked={inspector.show.class} onchange={(e) => toggleInspectorShow('class', e.currentTarget.checked)} />
+							<span>Class</span>
+						</label>
+						<label class="checkbox">
+							<input type="checkbox" checked={inspector.show.id} onchange={(e) => toggleInspectorShow('id', e.currentTarget.checked)} />
+							<span>ID</span>
+						</label>
+						<label class="checkbox">
+							<input type="checkbox" checked={inspector.show.dataAttrs} onchange={(e) => toggleInspectorShow('dataAttrs', e.currentTarget.checked)} />
+							<span>Data attributes</span>
+						</label>
+						<label class="checkbox">
+							<input type="checkbox" checked={inspector.show.html} onchange={(e) => toggleInspectorShow('html', e.currentTarget.checked)} />
+							<span>HTML snippet</span>
+						</label>
+						<p class="muted small">Walk to related elements:</p>
+						<label class="checkbox">
+							<input type="checkbox" checked={inspector.show.parent1} onchange={(e) => toggleInspectorShow('parent1', e.currentTarget.checked)} />
+							<span>Parent (1 level up)</span>
+						</label>
+						<label class="checkbox">
+							<input type="checkbox" checked={inspector.show.parent2} onchange={(e) => toggleInspectorShow('parent2', e.currentTarget.checked)} />
+							<span>Parent (2 levels up — grandparent)</span>
+						</label>
+						<label class="checkbox">
+							<input type="checkbox" checked={inspector.show.child1} onchange={(e) => toggleInspectorShow('child1', e.currentTarget.checked)} />
+							<span>Child (1 level down)</span>
+						</label>
+						<label class="checkbox">
+							<input type="checkbox" checked={inspector.show.child2} onchange={(e) => toggleInspectorShow('child2', e.currentTarget.checked)} />
+							<span>Child (2 levels down)</span>
+						</label>
+					</div>
+				{/if}
+			</details>
 		</section>
 
 		<LogsModal open={logsModalOpen} onClose={() => (logsModalOpen = false)} />
@@ -491,6 +583,31 @@
 	.svk-msg { color: var(--accent); }
 	.svk-preview { margin-top: var(--space-sm); }
 	.svk-preview summary { cursor: pointer; color: var(--muted); }
+	/* Element inspector sub-form. The <details> keeps
+	   the section collapsed by default so the Settings
+	   page doesn't grow; clicking "Element inspector"
+	   reveals the on/off toggle plus the per-field
+	   checkboxes. The sub-form is just nested labels,
+	   so the existing .checkbox styling applies without
+	   extra CSS. */
+	.inspector-section {
+		margin-top: var(--space-sm);
+		border-top: 1px solid var(--line);
+		padding-top: var(--space-sm);
+	}
+	.inspector-section > summary {
+		cursor: pointer;
+		color: var(--muted);
+		font-size: var(--text-sm);
+		padding: 4px 0;
+	}
+	.inspector-subform {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		margin-top: var(--space-sm);
+		padding-left: var(--space-md);
+	}
 	.svk-preview input {
 		width: 100%;
 		margin: var(--space-sm) 0;
