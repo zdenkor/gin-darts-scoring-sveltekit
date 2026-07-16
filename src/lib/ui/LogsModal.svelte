@@ -18,8 +18,23 @@
 
 	async function refresh(/** @type {string} */ cat) {
 		loading = true;
+		// Reset the previous category's entries so the
+		// "{N} entries" counter and the "No log entries
+		// yet" empty-state don't briefly leak across while
+		// the new IDB read is in flight.
+		entries = [];
 		try {
 			entries = await getLogs(cat, 200);
+		} catch (e) {
+			// The old code only had `try / finally`, which
+			// is fine for a thrown rejection, but if
+			// `getLogs` hangs inside an IDB `await` the
+			// `finally` block never runs and the modal
+			// stays on "Loading…" forever. A `catch`
+			// gives us a paper trail in the console so
+			// the next time this happens we can see why
+			// the IDB call never resolved.
+			console.warn('LogsModal: getLogs failed', e);
 		} finally {
 			loading = false;
 		}
