@@ -141,9 +141,17 @@
 							// show a quick league preview
 							// without forcing the reader
 							// to open the bracket link.
+							// For leagues, the per-round
+							// schedule lives at
+							// competition.leagueRounds
+							// (buildLeague renames it
+							// from the form's `rounds`
+							// so the local KO-stage
+							// round counter doesn't
+							// collide).
 							rules: created.competition.rules || '',
-							rounds: Array.isArray(created.competition.rounds)
-								? created.competition.rounds.map((/** @type {any} */ r) => ({
+							rounds: Array.isArray(created.competition.leagueRounds)
+								? created.competition.leagueRounds.map((/** @type {any} */ r) => ({
 									name: r.name || '',
 									date: r.date || '',
 									time: r.time || '',

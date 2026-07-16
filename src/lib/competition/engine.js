@@ -329,7 +329,7 @@ function buildDoubleElim(matches, competition) {
    Group stage: split into groups; top N from each group advance to
    a knockout round (which we represent as additional bracket matches).
    ================================================================= */
-export function buildLeague({ name, ownerId, players, groups = 1, advancePerGroup = 2, doubleRoundRobin = false, manualGroups = null, gameMode = 'x01', gameOpts = {}, legsToWin = 1, createdAt = Date.now() }) {
+export function buildLeague({ name, ownerId, players, groups = 1, advancePerGroup = 2, doubleRoundRobin = false, manualGroups = null, gameMode = 'x01', gameOpts = {}, legsToWin = 1, createdAt = Date.now(), rounds = [] }) {
   if (groups < 1) throw new Error('groups must be >= 1');
   if (advancePerGroup < 1) throw new Error('advancePerGroup must be >= 1');
   // Distribute the seeded players into groups. Two modes:
@@ -390,6 +390,16 @@ export function buildLeague({ name, ownerId, players, groups = 1, advancePerGrou
     playerCount: players.length,
     winner: null,
     groupAssignments: buckets.map(b => b.slice()),
+    // The per-round schedule the user edited in the
+    // Scheduling tab (date / time / location for each
+    // league round). Forwarded through meta so the
+    // NOSTR publisher can ship it inside the parent's
+    // content JSON; the calendar then renders a
+    // "rounds" list on hover of the parent entry.
+    // We use `leagueRounds` (not `rounds`) because
+    // `buildLeague` already has a local `rounds` count
+    // for the optional KO stage below.
+    leagueRounds: Array.isArray(rounds) ? rounds : [],
   };
   const matches = [];
   // Round-robin within each group
