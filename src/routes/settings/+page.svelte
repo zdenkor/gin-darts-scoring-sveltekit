@@ -24,7 +24,7 @@
 	import { isCategoryEnabled, setCategoryEnabled } from '$lib/debug/settings.js';
 	import { invalidateLogCache, clearLogs } from '$lib/debug/logger.js';
 	import {
-		getInspectorSettings, setInspectorEnabled, setInspectorShow,
+		getInspectorSettings, setInspectorEnabled, setInspectorShow, setInspectorDisplay,
 		startElementInspector, stopElementInspector
 	} from '$lib/debug/elementInspector.js';
 	import LogsModal from '$lib/ui/LogsModal.svelte';
@@ -112,6 +112,18 @@
 		// change is picked up on the next hover. No
 		// restart needed.
 	}
+	function setInspectorDisplayMode(/** @type {'tooltip' | 'sidebar'} */ mode) {
+		if (mode !== 'tooltip' && mode !== 'sidebar') return;
+		setInspectorDisplay(mode);
+		inspector = { ...inspector, display: mode };
+		// Re-start so the existing listener pair is
+		// torn down and a fresh one is installed with
+		// the new display mode's DOM node + class.
+		if (inspector.enabled) {
+			stopElementInspector();
+			startElementInspector();
+		}
+	}
 	// SVK search state (used by both the import preview and the
 	// player picker in /competitions — the picker uses its own
 	// local state, this is just the settings-panel preview).
@@ -160,13 +172,10 @@
 		} catch {
 			nostrKey = null;
 		}
-		// Re-start the element inspector if the user
-		// had it on from a previous session. The
-		// Settings page is the only place that toggles
-		// this; on every other page the inspector is
-		// dormant and just registers no listeners.
-		if (inspector.enabled) startElementInspector();
-		return () => stopElementInspector();
+		// The element inspector is started in
+		// +layout.svelte on mount, so the same listener
+		// pair survives navigation. The Settings page
+		// only owns the toggle / display-mode controls.
 	});
 
 	async function refreshSVKStats() {
@@ -436,6 +445,25 @@
 				</label>
 				{#if inspector.enabled}
 					<div class="inspector-subform">
+						<p class="muted small">Display as:</p>
+						<label class="checkbox">
+							<input
+								type="radio"
+								name="inspector-display"
+								checked={inspector.display === 'tooltip'}
+								onchange={() => setInspectorDisplayMode('tooltip')}
+							/>
+							<span>Tooltip<HelpIcon topic="Tooltip" body="A small floating box that follows the cursor. Default; good for quick checks." /></span>
+						</label>
+						<label class="checkbox">
+							<input
+								type="radio"
+								name="inspector-display"
+								checked={inspector.display === 'sidebar'}
+								onchange={() => setInspectorDisplayMode('sidebar')}
+							/>
+							<span>Sidebar<HelpIcon topic="Sidebar" body="A fixed 320px panel on the right edge. The hovered element is scrolled into view. The last read-out stays visible after the cursor leaves so you can scroll around without losing it." /></span>
+						</label>
 						<p class="muted small">Show these fields in the tooltip:</p>
 						<label class="checkbox">
 							<input type="checkbox" checked={inspector.show.tag} onchange={(e) => toggleInspectorShow('tag', e.currentTarget.checked)} />

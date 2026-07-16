@@ -29,6 +29,7 @@ const STORAGE_KEY = 'gin-darts-element-inspector';
 
 const DEFAULTS = {
 	enabled: false,
+	display: 'tooltip', // 'tooltip' | 'sidebar'
 	show: {
 		tag: true,
 		class: true,
@@ -74,6 +75,13 @@ export function setInspectorEnabled(/** @type {boolean} */ on) {
 export function setInspectorShow(/** @type {Record<string, boolean>} */ show) {
 	const all = readAll();
 	all.show = { ...all.show, ...show };
+	writeAll(all);
+}
+
+export function setInspectorDisplay(/** @type {'tooltip' | 'sidebar'} */ display) {
+	if (display !== 'tooltip' && display !== 'sidebar') return;
+	const all = readAll();
+	all.display = display;
 	writeAll(all);
 }
 
@@ -130,30 +138,61 @@ function childAt(/** @type {Element | null} */ el, /** @type {number} */ n) {
  * tears down the previous one before installing a
  * fresh listener pair. Pass a `host` Element to
  * install the tooltip inside (default: document.body).
+ *
+ * Two display modes:
+ *   - 'tooltip' (default): a small floating box that
+ *     follows the cursor.
+ *   - 'sidebar': a fixed-width panel on the right
+ *     edge of the viewport. The hovered element is
+ *     scrolled into view if it isn't already, and
+ *     the highlight is the same accent outline.
+ *     Switching display mode is a re-start.
  */
 export function startElementInspector(/** @type {{ host?: HTMLElement }} */ opts = {}) {
 	stopElementInspector();
 	const host = opts.host || (typeof document !== 'undefined' ? document.body : null);
 	if (!host) return;
 
+	const settings0 = readAll();
+	const isSidebar = settings0.display === 'sidebar';
+
 	const tip = document.createElement('div');
-	tip.className = 'element-inspector-tip';
-	tip.style.cssText = [
-		'position: fixed',
-		'top: 0',
-		'left: 0',
-		'z-index: 99999',
-		'pointer-events: none',
-		'max-width: 360px',
-		'padding: 6px 8px',
-		'border-radius: 6px',
-		'background: rgba(0, 0, 0, 0.85)',
-		'color: #e6ecf5',
-		'font: 12px/1.4 ui-monospace, monospace',
-		'white-space: pre-wrap',
-		'word-break: break-all',
-		'display: none'
-	].join(';');
+	tip.className = isSidebar ? 'element-inspector-sidebar' : 'element-inspector-tip';
+	tip.style.cssText = isSidebar
+		? [
+			'position: fixed',
+			'top: 0',
+			'right: 0',
+			'bottom: 0',
+			'width: 320px',
+			'z-index: 99999',
+			'pointer-events: none',
+			'padding: 12px',
+			'border-left: 1px solid var(--line)',
+			'background: rgba(11, 15, 23, 0.92)',
+			'color: #e6ecf5',
+			'font: 12px/1.4 ui-monospace, monospace',
+			'white-space: pre-wrap',
+			'word-break: break-all',
+			'overflow-y: auto',
+			'display: none'
+		].join(';')
+		: [
+			'position: fixed',
+			'top: 0',
+			'left: 0',
+			'z-index: 99999',
+			'pointer-events: none',
+			'max-width: 360px',
+			'padding: 6px 8px',
+			'border-radius: 6px',
+			'background: rgba(0, 0, 0, 0.85)',
+			'color: #e6ecf5',
+			'font: 12px/1.4 ui-monospace, monospace',
+			'white-space: pre-wrap',
+			'word-break: break-all',
+			'display: none'
+		].join(';');
 	host.appendChild(tip);
 
 	let lastTarget = null;
@@ -161,18 +200,7 @@ export function startElementInspector(/** @type {{ host?: HTMLElement }} */ opts
 	const refreshSettings = () => readAll();
 	let settings = refreshSettings();
 
-	const onOver = (/** @type {MouseEvent} */ e) => {
-		settings = refreshSettings();
-		if (!settings.enabled) return;
-		const t = e.target;
-		if (!(t instanceof Element)) return;
-		if (t === tip) return;
-		if (lastTarget && lastTarget !== t) {
-			lastTarget.classList.remove('element-inspector-highlight');
-		}
-		t.classList.add('element-inspector-highlight');
-		lastTarget = t;
-
+	const buildLines = (/** @type {Element} */ t) => {
 		const lines = [];
 		lines.push('--- element ---');
 		lines.push(...describeElement(t, settings.show));
@@ -204,9 +232,14 @@ export function startElementInspector(/** @type {{ host?: HTMLElement }} */ opts
 				lines.push(...describeElement(c2, settings.show));
 			}
 		}
+		return lines;
+	};
 
-		tip.textContent = lines.join('\n');
+	const showTip = (/** @type {Element} */ t, /** @type {MouseEvent|null} */ e) => {
+		tip.textContent = buildLines(t).join('\n');
 		tip.style.display = 'block';
+		if (isSidebar) return;
+		if (!e) return;
 		const pad = 12;
 		const x = Math.min(e.clientX + pad, window.innerWidth - tip.offsetWidth - 8);
 		const y = Math.min(e.clientY + pad, window.innerHeight - tip.offsetHeight - 8);
@@ -214,8 +247,34 @@ export function startElementInspector(/** @type {{ host?: HTMLElement }} */ opts
 		tip.style.top = `${y}px`;
 	};
 
+	const hideTip = () => { tip.style.display = 'none'; };
+
+	const onOver = (/** @type {MouseEvent} */ e) => {
+		settings = refreshSettings();
+		if (!settings.enabled) return;
+		const t = e.target;
+		if (!(t instanceof Element)) return;
+		if (t === tip) return;
+		if (lastTarget && lastTarget !== t) {
+			lastTarget.classList.remove('element-inspector-highlight');
+		}
+		t.classList.add('element-inspector-highlight');
+		lastTarget = t;
+		// Sidebar mode: if the element is not in the
+		// viewport, scroll the nearest scrollable
+		// ancestor so the user can actually see it.
+		if (settings.display === 'sidebar') {
+			const rect = t.getBoundingClientRect();
+			if (rect.top < 0 || rect.bottom > window.innerHeight) {
+				try { t.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch { /* ignore */ }
+			}
+		}
+		showTip(t, e);
+	};
+
 	const onMove = (/** @type {MouseEvent} */ e) => {
 		if (!settings.enabled || tip.style.display === 'none') return;
+		if (settings.display === 'sidebar') return; // sidebar is fixed
 		const pad = 12;
 		const x = Math.min(e.clientX + pad, window.innerWidth - tip.offsetWidth - 8);
 		const y = Math.min(e.clientY + pad, window.innerHeight - tip.offsetHeight - 8);
@@ -229,7 +288,12 @@ export function startElementInspector(/** @type {{ host?: HTMLElement }} */ opts
 			t.classList.remove('element-inspector-highlight');
 		}
 		lastTarget = null;
-		tip.style.display = 'none';
+		// In sidebar mode, keep the last target's
+		// info visible after the cursor leaves so the
+		// user can scroll around without losing the
+		// read-out. The next mouseover will refresh.
+		if (settings.display === 'sidebar') return;
+		hideTip();
 	};
 
 	document.addEventListener('mouseover', onOver, true);

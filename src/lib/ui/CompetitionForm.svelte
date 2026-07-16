@@ -620,6 +620,14 @@
 		// competition id; in create mode we mint a new one.
 		const newId = existing?.id || `comp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 		result.competition.id = newId;
+		// TEMP DEBUG (v0.4.28): log the league shape so we can
+		// see why the calendar renders empty rounds[] even when
+		// the user filled in 5 rounds in the Scheduling tab.
+		// Remove once the bug is found.
+		if (formType === 'league') {
+			// eslint-disable-next-line no-console
+			console.log('[buildBracket DEBUG] type=league formRoundCount=' + formRoundCount + ' formRounds.length=' + formRounds.length + ' formRounds=' + JSON.stringify(formRounds.map((r) => ({ name: r.name, date: r.date, time: r.time }))));
+		}
 		result.matches = (result.matches || []).map((m, i) => ({
 			...m,
 			competitionId: newId,
@@ -629,8 +637,12 @@
 	}
 
 	async function handleSubmit() {
+		// eslint-disable-next-line no-console
+		console.log('[DEBUG] handleSubmit called, formType=' + formType + ' formRoundCount=' + formRoundCount);
 		if (saving) return;
 		const result = buildBracket();
+		// eslint-disable-next-line no-console
+		console.log('[DEBUG] buildBracket returned, formType=' + formType + ' competition.type=' + result?.competition?.type + ' rounds.length=' + (result?.competition?.rounds?.length ?? 'no rounds'));
 		if (!result) return;
 		await onSave({ competition: result.competition, matches: result.matches });
 	}
