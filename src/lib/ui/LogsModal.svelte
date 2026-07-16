@@ -110,7 +110,15 @@
 				{:else if entries.length === 0}
 					<p class="muted">No log entries yet for {LOG_CATEGORY_LABELS[activeTab]}.</p>
 				{:else}
-					{#each entries as e (e.ts)}
+					<!-- The logger writes multiple entries in
+					     the same millisecond (e.g. a fan-out
+					     publish that logs once per relay in
+					     quick succession), so `e.ts` alone is
+					     not a unique key. We tag the index
+					     instead — the list itself is short
+					     (~200 entries cap) so a numeric key
+					     is fine. -->
+					{#each entries as e, i (i)}
 						<div class="entry">
 							<span class="ts">{fmtTime(e.ts)}</span>
 							<span class="msg">{e.message}</span>
