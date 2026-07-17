@@ -826,10 +826,6 @@
 							</span>
 						</div>
 						<div class="summary-item">
-							<strong>Players</strong>
-							<span>{formPlayers.length}</span>
-						</div>
-						<div class="summary-item">
 							<strong>Rounds</strong>
 							<span>{formRounds.length || formRoundCount || 'Not set'}</span>
 						</div>

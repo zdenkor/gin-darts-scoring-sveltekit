@@ -199,16 +199,14 @@
 							});
 							publishedRounds += 1;
 						}
-								if (created.competition.type === 'league') {
-								await log('nostr', `handleCreateSave: league rounds published=${publishedRounds} skipped(no date)=${skippedRounds}`);
-								}
-								}
-								}
-								} catch (e) {
-								await log('nostr', `handleCreateSave: NOSTR publish threw — ${e?.message || e}`);
-								console.warn('Nostr publish on create failed', e);
-								}
-								await log('nostr', `handleCreateSave: NOSTR publish phase complete for ${created.competition.id}`);
+						await log('nostr', `handleCreateSave: league rounds published=${publishedRounds} skipped(no date)=${skippedRounds}`);
+					}
+					await log('nostr', `handleCreateSave: NOSTR publish phase complete for ${created.competition.id}`);
+				}
+			} catch (e) {
+				await log('nostr', `handleCreateSave: NOSTR publish threw — ${e?.message || e}`);
+				console.warn('Nostr publish on create failed', e);
+			}
 			// After a successful save we close the wizard and
 			// return to the main Svelte dashboard. refresh() is
 			// still called so the list view behind us stays
