@@ -66,7 +66,7 @@
 		{ key: 'scheduling', label: 'Scheduling', en: 'League_Scheduling' },
 		{ key: 'standings', label: 'Standings', en: 'League_Standings' },
 		{ key: 'league', label: 'League Update', en: 'League_Update' },
-		{ key: 'finalization', label: 'Finalization', en: 'Tournament_Finalization' }
+		{ key: 'finalization', label: 'Finalisation', en: 'Tournament_Finalization' }
 	];
 
 	// Two-way navigation: the tab nav at the top AND
@@ -107,13 +107,14 @@
 			return out;
 		}
 		if (competition?.type === 'league') {
-			return TABS.filter(t =>
-				t.key === 'setup' ||
-				t.key === 'scoring' ||
-				t.key === 'scheduling' ||
-				t.key === 'standings' ||
-				t.key === 'finalization'
-			);
+			// League create/edit flow: Setup -> Scheduling -> Scoring -> Finalization.
+			// Standings is live-only (watch mode), not shown while creating.
+			return [
+				TABS.find(t => t.key === 'setup'),
+				TABS.find(t => t.key === 'scheduling'),
+				TABS.find(t => t.key === 'scoring'),
+				TABS.find(t => t.key === 'finalization')
+			];
 		}
 		// Non-league (tournament) flow: Setup / Scoring /
 		// Registration / Seeding / Finalization. The
@@ -142,42 +143,25 @@
 </script>
 
 <div class="wizard">
-	{#if mode !== 'watch'}
-		<!-- X sits at the very top of the wizard (above
-		     the tab strip) so it's always a single click
-		     away from "throw it all away", no matter which
-		     tab the user is currently on. -->
-		<div class="wizard-close-row">
-			<button
-				type="button"
-				class="wizard-close"
-				onclick={onCancel}
-				aria-label="Close wizard and discard changes"
-				title="Close"
-			>
-				✕
-			</button>
-		</div>
-	{/if}
 	<nav class="wizard-tabs" role="tablist" aria-label="Competition sections">
-			{#each visibleTabs as tab, i (tab.key)}
-				<button
-					role="tab"
-					aria-selected={activeTab === i}
-					aria-controls="wizard-panel-{tab.key}"
-					id="wizard-tab-{tab.key}"
-					class="wizard-tab"
-					class:active={activeTab === i}
-					class:disabled={mode === 'watch' && (tab.key === 'live' || tab.key === 'finalization') ? false : false}
-					type="button"
-					onclick={() => { activeTab = i; scrollToTop(); }}
-				>
-					<span class="wizard-tab-num">{i + 1}</span>
-					<span class="wizard-tab-label">{tab.label}</span>
-					<span class="wizard-tab-en">{tab.en}</span>
-				</button>
-				{/each}
-				</nav>
+		{#each visibleTabs as tab, i (tab.key)}
+			<button
+				role="tab"
+				aria-selected={activeTab === i}
+				aria-controls="wizard-panel-{tab.key}"
+				id="wizard-tab-{tab.key}"
+				class="wizard-tab"
+				class:active={activeTab === i}
+				class:disabled={mode === 'watch' && (tab.key === 'live' || tab.key === 'finalization') ? false : false}
+				type="button"
+				onclick={() => { activeTab = i; scrollToTop(); }}
+			>
+				<span class="wizard-tab-num">{i + 1}</span>
+				<span class="wizard-tab-label">{tab.label}</span>
+				<span class="wizard-tab-en">{tab.en}</span>
+			</button>
+		{/each}
+	</nav>
 
 	<div class="wizard-panel" role="tabpanel" id="wizard-panel-{tabKey(activeTab)}" aria-labelledby="wizard-tab-{tabKey(activeTab)}">
 		{#if tabKey(activeTab) === 'setup'}
@@ -215,6 +199,15 @@
 				aria-label="Previous section"
 			>
 				← Previous
+			</button>
+			<button
+				type="button"
+				class="wizard-close"
+				onclick={onCancel}
+				aria-label="Close wizard and discard changes"
+				title="Close"
+			>
+				✕
 			</button>
 		{/if}
 		<span class="wizard-position muted small">
@@ -312,6 +305,24 @@
 	}
 	.wizard-nav .wizard-position {
 		flex: 0 0 auto;
+	}
+.wizard-close {
+		background: #000;
+		color: #fff;
+		border: 1px solid var(--line);
+		border-radius: 8px;
+		width: 2.5rem;
+		height: 2.5rem;
+		font-size: 1.25rem;
+		line-height: 1;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		cursor: pointer;
+	}
+	.wizard-close:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
 	}
 	@container app (min-width: 60rem) {
 		.wizard-tab {

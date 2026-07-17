@@ -107,20 +107,23 @@
 					await log('nostr', `handleCreateSave: competition has no name, skipping publish`);
 				} else {
 					await log('nostr', `handleCreateSave: publishing parent ${created.competition.id}`);
-					// For leagues the parent record has no
-					// own date/time (those live on each round),
-					// so we leave them blank and rely on the
-					// child-round events to populate the
-					// calendar. For non-league (single match
-					// or tournament) we use the Setup tab's
-					// date+time directly.
+					// For leagues the parent record may not have
+					// its own date/time (those live on each
+					// round), so we fall back to the first round's
+					// date so the calendar can still sort the
+					// league meaningfully. Non-league events use
+					// the Setup tab's date+time directly.
 					const parentStarts = (() => {
-						if (created.competition.type === 'league') return '';
-						const d = created.competition.date || '';
+						const roundDates = (created.competition.rounds || [])
+							.map((/** @type {any} */ r) => r?.date)
+							.filter((/** @type {any} */ d) => typeof d === 'string' && d.length > 0)
+							.sort();
+						const d = created.competition.date || roundDates[0] || '';
 						const t = created.competition.time || '';
 						if (!d) return '';
 						return t ? `${d}T${t}` : d;
 					})();
+
 					await publishTournament({
 						secretKey: kp.secretKey,
 						tournament: {
@@ -143,15 +146,13 @@
 							// to open the bracket link.
 							// For leagues, the per-round
 							// schedule lives at
-							// competition.leagueRounds
-							// (buildLeague renames it
-							// from the form's `rounds`
-							// so the local KO-stage
-							// round counter doesn't
-							// collide).
+							// competition.rounds
+							// (the form's `rounds` are
+							// preserved on the league
+							// record).
 							rules: created.competition.rules || '',
-							rounds: Array.isArray(created.competition.leagueRounds)
-								? created.competition.leagueRounds.map((/** @type {any} */ r) => ({
+							rounds: Array.isArray(created.competition.rounds)
+								? created.competition.rounds.map((/** @type {any} */ r) => ({
 									name: r.name || '',
 									date: r.date || '',
 									time: r.time || '',
@@ -208,15 +209,12 @@
 								console.warn('Nostr publish on create failed', e);
 								}
 								await log('nostr', `handleCreateSave: NOSTR publish phase complete for ${created.competition.id}`);
-								// The submit button reads 'Create and next phase' /
-			// 'Generate and next phase' — so after a successful
-			// create we jump straight to the detail page so
-			// the user can start the next phase (play matches,
-			// edit on the fly, etc.). refresh() is still
-			// called so the list view behind us stays current
-			// if the user navigates back.
+			// After a successful save we close the wizard and
+			// return to the main Svelte dashboard. refresh() is
+			// still called so the list view behind us stays
+			// current if the user navigates back.
 			await refresh();
-			await goto(`${base}/competitions/${created.competition.id}`);
+			await goto(`${base}/dashboard`);
 		} catch (e) {
 			formError = String(e?.message || e);
 		} finally {

@@ -781,7 +781,7 @@
 					Set the date / time / location of the first round,
 					then "Apply to all rounds" to repeat weekly.
 				</p>
-				<RoundsScheduler bind:rounds={formRounds} leagueName={formName || 'League'} season={formSeason || ''} />
+				<RoundsScheduler bind:rounds={formRounds} leagueName={formName || 'League'} season={formSeason || ''} location={formLocation || ''} />
 			{:else}
 				<p class="muted">Scheduling is only available for league competitions with rounds.</p>
 			{/if}
@@ -795,12 +795,92 @@
 		</svelte:fragment>
 
 		<svelte:fragment slot="finalization">
-			<!-- Save button lives in the wizard's bottom nav
-			     (CompetitionWizard's last-tab Save handler
-			     calls our onSave). We keep this slot as a
-			     place to add a summary of the configured
-			     competition later. -->
-			<h3>Finalization</h3>
+			<h3>Finalisation</h3>
+			{#if formType === 'league'}
+				<section class="summary">
+					<h4>Summary</h4>
+					<div class="summary-grid">
+						<div class="summary-item">
+							<strong>Name</strong>
+							<span>{formName || 'Unnamed league'}</span>
+						</div>
+						<div class="summary-item">
+							<strong>Season</strong>
+							<span>{formSeason}</span>
+						</div>
+						<div class="summary-item">
+							<strong>When / Where</strong>
+							<span>
+								{[formDate, formTime].filter(Boolean).join(' ') || 'No date set'}
+								{#if formLocation} &middot; {formLocation}{/if}
+							</span>
+						</div>
+						<div class="summary-item">
+							<strong>Players</strong>
+							<span>{formPlayers.length}</span>
+						</div>
+						<div class="summary-item">
+							<strong>Rounds</strong>
+							<span>{formRounds.length || formRoundCount || 'Not set'}</span>
+						</div>
+						<div class="summary-item">
+							<strong>Game</strong>
+							<span>
+								{formGameMode.toUpperCase()} {formStart}
+								({formInRule}-in / {formOutRule}-out)
+							</span>
+						</div>
+						{#if formScoring}
+							<div class="summary-item full">
+								<strong>Scoring</strong>
+								<span>
+									{formScoring.bonus?.max180 ?? 0} pts per max (180/171)
+									&middot;
+									{formScoring.bonus?.highCheckout ?? 0} pts per checkout ≥ {formScoring.bonus?.highCheckoutMin ?? 100}
+								</span>
+							</div>
+							{#if formScoring.pointsTable?.length}
+								<div class="summary-item full">
+									<strong>Points table</strong>
+									<ul class="points-preview">
+										{#each formScoring.pointsTable.slice(0, 5) as row}
+											<li>{row.placement}: {row.points.join(' / ')}</li>
+										{/each}
+										{#if formScoring.pointsTable.length > 5}
+											<li>… and {formScoring.pointsTable.length - 5} more</li>
+										{/if}
+									</ul>
+								</div>
+							{/if}
+						{/if}
+					</div>
+				</section>
+			{:else}
+				<section class="summary">
+					<h4>Summary</h4>
+					<div class="summary-grid">
+						<div class="summary-item">
+							<strong>Name</strong>
+							<span>{formName || 'Unnamed tournament'}</span>
+						</div>
+						<div class="summary-item">
+							<strong>Type</strong>
+							<span>{formEliminationFormat}</span>
+						</div>
+						<div class="summary-item">
+							<strong>Players</strong>
+							<span>{formPlayers.length}</span>
+						</div>
+						<div class="summary-item">
+							<strong>Game</strong>
+							<span>
+								{formGameMode.toUpperCase()} {formStart}
+								({formInRule}-in / {formOutRule}-out)
+							</span>
+						</div>
+					</div>
+				</section>
+			{/if}
 			<p class="muted small">
 				Review your competition above, then click Finish and Save in the bar at the bottom to publish it.
 			</p>
@@ -1227,6 +1307,50 @@
 		justify-content: flex-end;
 		margin-top: var(--space-md);
 	}
+	.summary {
+		margin: var(--space-sm) 0 var(--space-md);
+		padding: var(--space-sm) var(--space-md);
+		background: var(--surface, #161c27);
+		border: 1px solid var(--line, #2c3343);
+		border-radius: var(--radius, 8px);
+	}
+	.summary h4 {
+		margin: 0 0 var(--space-sm);
+		font-size: 0.95rem;
+		color: var(--text, #e6ecf5);
+	}
+	.summary-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+		gap: var(--space-sm);
+	}
+	.summary-item {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+	.summary-item.full {
+		grid-column: 1 / -1;
+	}
+	.summary-item strong {
+		font-size: 0.75rem;
+		color: var(--muted, #99a3b3);
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.03em;
+	}
+	.summary-item span {
+		font-size: 0.9rem;
+		color: var(--text, #e6ecf5);
+		line-height: 1.3;
+	}
+	.points-preview {
+		margin: var(--space-xs) 0 0;
+		padding-left: 1.2em;
+		font-size: 0.85rem;
+		color: var(--muted, #99a3b3);
+	}
+	.points-preview li { margin-bottom: 2px; }
 	@media (max-width: 40rem) {
 		.grid-2, .grid-3 { grid-template-columns: 1fr; }
 		.form-actions { flex-direction: column; }

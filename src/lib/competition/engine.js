@@ -392,14 +392,12 @@ export function buildLeague({ name, ownerId, players, groups = 1, advancePerGrou
     groupAssignments: buckets.map(b => b.slice()),
     // The per-round schedule the user edited in the
     // Scheduling tab (date / time / location for each
-    // league round). Forwarded through meta so the
-    // NOSTR publisher can ship it inside the parent's
-    // content JSON; the calendar then renders a
-    // "rounds" list on hover of the parent entry.
-    // We use `leagueRounds` (not `rounds`) because
-    // `buildLeague` already has a local `rounds` count
-    // for the optional KO stage below.
-    leagueRounds: Array.isArray(rounds) ? rounds : [],
+    // league round). The rest of the app
+    // (createChildTournamentsForLeague, NOSTR publish,
+    // edit mode) expects `competition.rounds`, so we
+    // keep that field name even though the local KO
+    // stage count below also uses the word "rounds".
+    rounds: Array.isArray(rounds) ? rounds : [],
   };
   const matches = [];
   // Round-robin within each group

@@ -73,8 +73,6 @@
 			<button type="button" class="rtb" class:on={editor.isActive('code')}
 				onclick={() => exec('toggleCode')} title="Inline code"><code>{'<>'}</code></button>
 			<span class="sep"></span>
-			<button type="button" class="rtb" class:on={editor.isActive('paragraph')}
-				onclick={() => exec('setParagraph')} title="Normal text (paragraph)">¶</button>
 			<button type="button" class="rtb" class:on={editor.isActive('heading', { level: 1 })}
 				onclick={() => editor?.chain().focus().toggleHeading({ level: 1 }).run()}>H1</button>
 			<button type="button" class="rtb" class:on={editor.isActive('heading', { level: 2 })}

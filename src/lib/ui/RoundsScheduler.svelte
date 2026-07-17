@@ -11,7 +11,7 @@
 	 * Parent binds `rounds` so the change is reflected
 	 * back into the league's per-round `rounds[]` array.
 	 */
-	let { rounds = $bindable(/** @type {any[]} */ ([])), leagueName = 'League', season = '' } = $props();
+	let { rounds = $bindable(/** @type {any[]} */ ([])), leagueName = 'League', season = '', location = '' } = $props();
 
 	// Outlook-style repeat interval. Applied from round 1.
 	let repeatEvery = $state(7); // 7 = weekly, 14 = bi-weekly, 30 = monthly
@@ -25,6 +25,18 @@
 		d.setDate(d.getDate() + days);
 		return d.toISOString().slice(0, 10);
 	}
+
+	// Seed round 1's location from the competition's main
+	// location when the scheduling tab first becomes
+	// available, but only if the user hasn't already typed
+	// something. This keeps manual edits intact.
+	$effect(() => {
+		if (!location || !rounds.length) return;
+		const first = rounds[0];
+		if (first && !first.location) {
+			first.location = location;
+		}
+	});
 
 	/**
 	 * Push the current `repeatEvery` + `repeatUnit`
@@ -106,9 +118,11 @@
 <style>
 	.rounds-scheduler { display: flex; flex-direction: column; gap: var(--space-md); }
 	.repeat-bar {
-		display: flex; flex-wrap: wrap; gap: var(--space-sm); align-items: flex-end;
+		display: flex; flex-wrap: wrap; gap: var(--space-sm); align-items: center;
+		padding-bottom: 1.15em;
 	}
 	.repeat-bar .field { display: flex; flex-direction: column; gap: 4px; min-width: 7em; }
+	.repeat-bar .btn { align-self: center; }
 	.small { font-size: 0.85em; }
 	.rounds-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: var(--space-sm); }
 	.round-row {

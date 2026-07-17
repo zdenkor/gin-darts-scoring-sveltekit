@@ -54,6 +54,18 @@
 		return `${datePart}, ${timePart}`;
 	}
 
+	function formatLeagueRange(/** @type {any[]} */ rounds) {
+		const dates = (rounds || [])
+			.map((/** @type {any} */ r) => r?.date)
+			.filter((/** @type {any} */ d) => typeof d === 'string' && d.length > 0)
+			.sort();
+		if (!dates.length) return '';
+		const first = formatStarts(dates[0]);
+		const last = formatStarts(dates[dates.length - 1]);
+		if (first === last) return first;
+		return `${first} – ${last}`;
+	}
+
 	// Fetch a fresh calendar on mount. The user can
 	// pull to refresh later via the Reload button; we
 	// deliberately keep the page static (no polling)
@@ -248,7 +260,11 @@
 								{/if}
 							</div>
 							<div class="meta">
-								{#if t.date}<span>{formatStarts(t.date)}</span>{/if}
+								{#if t.type === 'league' && Array.isArray(t.rounds) && t.rounds.length > 0}
+									<span>{formatLeagueRange(t.rounds)}</span>
+								{:else if t.date}
+									<span>{formatStarts(t.date)}</span>
+								{/if}
 								{#if t.location}<span> · {t.location}</span>{/if}
 								{#if t.format}<span> · {t.format}</span>{/if}
 							</div>

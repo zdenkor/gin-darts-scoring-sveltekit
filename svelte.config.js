@@ -13,8 +13,13 @@ const config = {
 			strict: true
 		}),
 		paths: {
-			// Pre dev je base prázdna; v produkcii na GitHub Pages sa pridá názov repozitára.
-			base: process.argv.includes('dev') ? '' : '/gin-darts-scoring-sveltekit'
+			// Base path can be overridden via BASE_PATH env var.
+			// Examples:
+			//   npm run build                    -> /gin-darts-scoring-sveltekit (GitHub Pages default)
+			//   BASE_PATH=/app npm run build     -> /app
+			//   BASE_PATH='' npm run build       -> '' (root domain / custom server)
+			//   npm run dev                      -> '' (localhost)
+			base: process.env.BASE_PATH ?? (process.argv.includes('dev') ? '' : '/gin-darts-scoring-sveltekit')
 		}
 	}
 };
