@@ -269,7 +269,7 @@
 	<div class="card">
 		<div class="card-header">
 			<h1>Competitions</h1>
-			<button class="btn ghost" onclick={back}>Back</button>
+			<button class="close-btn" onclick={back} aria-label="Close" title="Close">✕</button>
 		</div>
 
 		{#if loading}
@@ -764,6 +764,24 @@
 		display: flex;
 		gap: var(--space-md);
 		justify-content: flex-end;
+	}
+	.close-btn {
+		background: #000;
+		color: #fff;
+		border: 1px solid var(--line);
+		border-radius: 8px;
+		width: 2.5rem;
+		height: 2.5rem;
+		font-size: 1.25rem;
+		line-height: 1;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		cursor: pointer;
+	}
+	.close-btn:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
 	}
 	.muted { color: var(--muted); }
 	@media (max-width: 40rem) {

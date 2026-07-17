@@ -66,7 +66,7 @@
 		{ key: 'scheduling', label: 'Scheduling', en: 'League_Scheduling' },
 		{ key: 'standings', label: 'Standings', en: 'League_Standings' },
 		{ key: 'league', label: 'League Update', en: 'League_Update' },
-		{ key: 'finalization', label: 'Finalisation', en: 'Tournament_Finalization' }
+		{ key: 'finalization', label: 'Finalization', en: 'Tournament_Finalization' }
 	];
 
 	// Two-way navigation: the tab nav at the top AND
@@ -306,7 +306,7 @@
 	.wizard-nav .wizard-position {
 		flex: 0 0 auto;
 	}
-.wizard-close {
+	.wizard-close {
 		background: #000;
 		color: #fff;
 		border: 1px solid var(--line);

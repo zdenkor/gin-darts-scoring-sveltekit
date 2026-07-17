@@ -413,14 +413,13 @@ export function buildLeague({ name, ownerId, players, groups = 1, advancePerGrou
       }
     }
   }
-  // Knockout stage: best-of (advancePerGroup*groups) advance
+  // Knockout stage: best-of (advancePerGroup*groups) advance.
   const advancing = advancePerGroup * groups;
   if (advancing >= 2) {
     // Build a single-elim bracket for the top players (placeholder until standings computed).
-    // For now, create placeholder matches with p1/p2 = null and a flag.
     const size = nextPow2(advancing);
-    const rounds = Math.log2(size);
-    for (let r = 1; r <= rounds; r++) {
+    const koRounds = Math.log2(size);
+    for (let r = 1; r <= koRounds; r++) {
       const count = size / Math.pow(2, r);
       for (let s = 0; s < count; s++) {
         const m = emptyMatch(null, r, s, {
@@ -429,7 +428,7 @@ export function buildLeague({ name, ownerId, players, groups = 1, advancePerGrou
           gameOpts: competition.gameOpts,
         });
         m.bracket = 'KO';
-        if (r < rounds) {
+        if (r < koRounds) {
           m.next = { takeSlot: s % 2 === 0 ? 'p1' : 'p2' };
           const target = matches.findLast?.(x => x.round === r + 1 && x.slot === Math.floor(s / 2));
           // Manual find:

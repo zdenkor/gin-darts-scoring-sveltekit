@@ -613,7 +613,8 @@
 				groups: formGroups,
 				advancePerGroup: formAdvancePerGroup,
 				doubleRoundRobin: formEliminationFormat === 'double round robin',
-				manualGroups
+				manualGroups,
+				rounds: formRounds
 			});
 		}
 		// Stable string ids. In edit mode we keep the existing
@@ -795,7 +796,7 @@
 		</svelte:fragment>
 
 		<svelte:fragment slot="finalization">
-			<h3>Finalisation</h3>
+			<h3>Finalization</h3>
 			{#if formType === 'league'}
 				<section class="summary">
 					<h4>Summary</h4>
@@ -811,7 +812,16 @@
 						<div class="summary-item">
 							<strong>When / Where</strong>
 							<span>
-								{[formDate, formTime].filter(Boolean).join(' ') || 'No date set'}
+								{#if formDate}
+									{[formDate, formTime].filter(Boolean).join(' ')}
+								{:else if formRounds.length}
+									{(formRounds.map((/** @type {any} */ r) => r?.date).filter(Boolean).sort()[0] || '')}
+									{#if formRounds.length > 1}
+										 – {(formRounds.map((/** @type {any} */ r) => r?.date).filter(Boolean).sort()[formRounds.length - 1] || '')}
+									{/if}
+								{:else}
+									No date set
+								{/if}
 								{#if formLocation} &middot; {formLocation}{/if}
 							</span>
 						</div>
