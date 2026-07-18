@@ -1,11 +1,7 @@
 {
 	"name": "gin-darts-scoring-sveltekit",
 	"private": true,
-<<<<<<< HEAD
-	"version": "0.4.33",
-=======
 	"version": "0.4.34",
->>>>>>> 4f6a3b4 (v0.4.34: Calendar delete cascade + List/Month/Week views + form ids + inspector CSS)
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
