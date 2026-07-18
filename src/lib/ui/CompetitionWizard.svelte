@@ -200,16 +200,7 @@
 			>
 				← Previous
 			</button>
-			<button
-				type="button"
-				class="wizard-close"
-				onclick={onCancel}
-				aria-label="Close wizard and discard changes"
-				title="Close"
-			>
-				✕
-			</button>
-		{/if}
+			{/if}
 		<span class="wizard-position muted small">
 			{activeTab + 1} / {visibleTabs.length}
 		</span>
@@ -305,24 +296,6 @@
 	}
 	.wizard-nav .wizard-position {
 		flex: 0 0 auto;
-	}
-	.wizard-close {
-		background: #000;
-		color: #fff;
-		border: 1px solid var(--line);
-		border-radius: 8px;
-		width: 2.5rem;
-		height: 2.5rem;
-		font-size: 1.25rem;
-		line-height: 1;
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		cursor: pointer;
-	}
-	.wizard-close:focus-visible {
-		outline: 2px solid var(--accent);
-		outline-offset: 2px;
 	}
 	@container app (min-width: 60rem) {
 		.wizard-tab {

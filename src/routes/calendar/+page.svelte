@@ -4,6 +4,15 @@
 	import { getStoredKeypair } from '$lib/nostr/identity.js';
 	import { deleteCompetition, listChildTournaments } from '$lib/db/competitions.js';
 	import { log } from '$lib/debug/logger.js';
+	// Bits UI month grid. We use the headless
+	// Calendar primitive and lay our own week
+	// header on top so the column labels match
+	// the rest of the app (Sun-first, English).
+	// @internationalized/date gives us a
+	// timezone-aware DateValue that the Calendar
+	// uses for `placeholder` / `value`.
+	import { Calendar } from 'bits-ui';
+	import { CalendarDate, getLocalTimeZone, today } from '@internationalized/date';
 	// `base` is the configured URL prefix (empty in dev,
 	// `/gin-darts-scoring-sveltekit` on GitHub Pages).
 	// Raw `href="/..."` strings would otherwise resolve
@@ -41,6 +50,21 @@
 	// on mount keeps the user on the month they're
 	// looking at; prev/next buttons move the cursor.
 	let cursor = $state(new Date());
+	// Bits UI Calendar placeholder. A CalendarDate
+	// (timezone-aware DateValue) is the only thing
+	// `bind:placeholder` accepts on <Calendar.Root>.
+	// We sync it both ways with the native `cursor`
+	// above so the prev / next / Today buttons keep
+	// working without re-implementing the nav.
+	const localTZ = getLocalTimeZone();
+	const t = today(localTZ);
+	let calendarPlaceholder = $state(new CalendarDate(t.year, t.month, t.day));
+	// YYYY-MM-DD key for "today", used to mark
+	// the day cell with the .today class.
+	let todayKey = dayKeyImpl(new Date());
+	function dayKeyImpl(/** @type {Date} */ d) {
+		return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+	}
 
 	// The NOSTR event carries the start time in an ISO
 	// stamp like "2026-04-15" or "2026-04-15T18:00". The
@@ -292,33 +316,18 @@
 		}
 		return cells;
 	});
-	// Week view: 7 cells anchored on the Sunday before /
-	// containing the cursor.
-	let weekCells = $derived.by(() => {
-		const offset = cursor.getDay();
-		const start = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() - offset);
-		const cells = [];
-		for (let i = 0; i < 7; i++) {
-			const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
-			cells.push({
-				date: d,
-				key: dayKey(d),
-				today: dayKey(d) === dayKey(new Date())
-			});
-		}
-		return cells;
-	});
 	function monthLabel(/** @type {Date} */ d) {
 		return d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
 	}
-	function weekLabel(/** @type {Date} */ d) {
-		const start = new Date(d.getFullYear(), d.getMonth(), d.getDate() - d.getDay());
-		const end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6);
-		const fmt = (/** @type {Date} */ x) => x.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
-		return `${fmt(start)} – ${fmt(end)}`;
-	}
 	function shiftCursor(/** @type {number} */ days) {
 		cursor = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + days);
+		// Sync to the Bits UI Calendar placeholder.
+		calendarPlaceholder = new CalendarDate(cursor.getFullYear(), cursor.getMonth() + 1, cursor.getDate());
+	}
+	function jumpToToday() {
+		cursor = new Date();
+		const tn = today(localTZ);
+		calendarPlaceholder = new CalendarDate(tn.year, tn.month, tn.day);
 	}
 </script>
 
@@ -336,7 +345,6 @@
 				<div class="view-toggle" role="tablist" aria-label="Calendar view">
 					<button type="button" class="view-btn" class:active={view === 'list'} aria-pressed={view === 'list'} onclick={() => setView('list')}>List</button>
 					<button type="button" class="view-btn" class:active={view === 'month'} aria-pressed={view === 'month'} onclick={() => setView('month')}>Month</button>
-					<button type="button" class="view-btn" class:active={view === 'week'} aria-pressed={view === 'week'} onclick={() => setView('week')}>Week</button>
 				</div>
 				<button class="btn ghost" type="button" onclick={load} disabled={loading}>
 					{loading ? 'Loading…' : 'Reload'}
@@ -366,12 +374,12 @@
 			     cursor changes; "Today" snaps back to
 			     the current month/week. -->
 			<div class="cursor-row">
-				<button type="button" class="btn ghost small" onclick={() => shiftCursor(view === 'month' ? -30 : -7)} aria-label="Previous {view}">‹</button>
+				<button type="button" class="btn ghost small" onclick={() => shiftCursor(-30)} aria-label="Previous month">‹</button>
 				<span class="cursor-label">
-					{view === 'month' ? monthLabel(cursor) : weekLabel(cursor)}
+					{monthLabel(cursor)}
 				</span>
-				<button type="button" class="btn ghost small" onclick={() => shiftCursor(view === 'month' ? 30 : 7)} aria-label="Next {view}">›</button>
-				<button type="button" class="btn ghost small" onclick={() => cursor = new Date()}>Today</button>
+				<button type="button" class="btn ghost small" onclick={() => shiftCursor(30)} aria-label="Next month">›</button>
+				<button type="button" class="btn ghost small" onclick={jumpToToday}>Today</button>
 			</div>
 		{/if}
 
@@ -510,65 +518,59 @@
 								{/each}
 								</ul>
 								{:else if view === 'month'}
-								<!-- Month grid: 7 columns × 6 rows. Each
-								cell lists up to 3 event names; the
-								"+N more" line collapses the rest. -->
-								<div class="cal-grid" role="grid" aria-label="Month view">
-								<div class="cal-row cal-head" role="row">
-								{#each ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as wd (wd)}
-								<div class="cal-cell cal-weekday" role="columnheader">{wd}</div>
-								{/each}
-								</div>
-								{#each Array.from({ length: 6 }, (_, i) => monthCells.slice(i * 7, i * 7 + 7)) as week, wi (wi)}
-									<div class="cal-row" role="row">
-										{#each week as cell (cell.key)}
-											{@const dayEvents = eventsByDay[cell.key] || []}
-											<div class="cal-cell" class:out={!cell.inMonth} class:today={cell.today} role="gridcell">
-												<div class="cal-day-num">{cell.date.getDate()}</div>
-												{#each dayEvents.slice(0, 3) as e (e.id)}
-													<div class="cal-event" title={e.name || ''}>
-														<span class="kind-dot kind-{e.type === 'tournament' ? 'tournament' : (e.type === 'league' ? 'league' : 'unknown')}"></span>
-														<span class="cal-event-name">{e.name || 'Untitled'}</span>
-													</div>
-												{/each}
-												{#if dayEvents.length > 3}
-													<div class="cal-more">+{dayEvents.length - 3} more</div>
-												{/if}
-											</div>
-										{/each}
-									</div>
-								{/each}
-								</div>
-								{:else if view === 'week'}
-								<!-- Week view: 7 cells in a single row,
-								each cell taller than month cells so
-								every event in the day can show. -->
-								<div class="cal-grid cal-grid-week" role="grid" aria-label="Week view">
-								<div class="cal-row cal-head" role="row">
-									{#each weekCells as cell (cell.key)}
-										<div class="cal-cell cal-weekday" role="columnheader">
-											{cell.date.toLocaleDateString(undefined, { weekday: 'short' })} {cell.date.getDate()}
-										</div>
-									{/each}
-								</div>
-								<div class="cal-row cal-row-week" role="row">
-									{#each weekCells as cell (cell.key)}
-										{@const dayEvents = eventsByDay[cell.key] || []}
-										<div class="cal-cell cal-cell-week" class:today={cell.today} role="gridcell">
-											{#if dayEvents.length === 0}
-												<div class="muted small">—</div>
-											{/if}
-											{#each dayEvents as e (e.id)}
-												<div class="cal-event cal-event-week" title={e.name || ''}>
-													<span class="kind-dot kind-{e.type === 'tournament' ? 'tournament' : (e.type === 'league' ? 'league' : 'unknown')}"></span>
-													<span class="cal-event-name">{e.name || 'Untitled'}</span>
-													{#if e.date && e.date.includes('T')}<span class="muted small"> · {e.date.slice(11, 16)}</span>{/if}
-												</div>
+								<!-- Month grid: Bits UI Calendar. We supply
+								     our own week header (Sun-first, English)
+								     and render events inside the cell
+								     snippet via a tiny helper. The
+								     `placeholder` is bound to a
+								     @internationalized/date CalendarDate
+								     and synced both ways with the local
+								     `cursor` so the prev/next/Today
+								     buttons above keep working. -->
+								<Calendar.Root
+									class="cal-grid"
+									weekdayFormat="short"
+									fixedWeeks={true}
+									type="single"
+									bind:placeholder={
+										() => calendarPlaceholder,
+										(v) => { if (v) { calendarPlaceholder = v; cursor = new Date(v.year, v.month - 1, v.day); } }
+									}
+								>
+									{#snippet children({ months, weekdayLabels })}
+										<Calendar.Header class="cal-row cal-head">
+											{#each weekdayLabels as wd (wd)}
+												<div class="cal-cell cal-weekday">{wd}</div>
 											{/each}
-										</div>
-									{/each}
-								</div>
-								</div>
+										</Calendar.Header>
+										{#each months as month (month.value.toString())}
+											<Calendar.Grid month={month.value} class="cal-month">
+												<Calendar.GridBody>
+													{#each month.weeks as weekDates, wi (wi)}
+														<Calendar.GridRow class="cal-row">
+															{#each weekDates as date, di (di)}
+																{@const key = `${date.year}-${String(date.month).padStart(2, '0')}-${String(date.day).padStart(2, '0')}`}
+																{@const dayEvents = eventsByDay[key] || []}
+																<Calendar.Cell {date} class={date.month !== calendarPlaceholder.month ? 'cal-cell out' : (key === todayKey ? 'cal-cell today' : 'cal-cell')}>
+																	<Calendar.Day class="cal-day-num" />
+																	{#each dayEvents.slice(0, 3) as e (e.id)}
+																		<div class="cal-event" title={e.name || ''}>
+																			<span class="kind-dot kind-{e.type === 'tournament' ? 'tournament' : (e.type === 'league' ? 'league' : 'unknown')}"></span>
+																			<span class="cal-event-name">{e.name || 'Untitled'}</span>
+																		</div>
+																	{/each}
+																	{#if dayEvents.length > 3}
+																		<div class="cal-more">+{dayEvents.length - 3} more</div>
+																	{/if}
+																</Calendar.Cell>
+															{/each}
+														</Calendar.GridRow>
+													{/each}
+												</Calendar.GridBody>
+											</Calendar.Grid>
+										{/each}
+									{/snippet}
+								</Calendar.Root>
 								{/if}
 
 		<footer class="foot muted">
@@ -679,17 +681,10 @@
 	.kind-dot.kind-league { background: var(--accent); }
 	.kind-dot.kind-tournament { background: var(--warn, #e8b923); }
 	.cal-more { font-size: var(--text-xs); color: var(--muted); padding-left: 10px; }
-	/* Week view: each cell taller to fit several
-	   events; same column proportions as month. */
-	.cal-grid-week .cal-cell-week {
-		min-height: 200px;
-	}
-	.cal-event-week { white-space: normal; }
 	/* Stack the layout vertically on small viewports
 	   so the rows still fit one screen wide. */
 	@media (max-width: 480px) {
 		.cal-cell { min-height: 60px; }
-		.cal-grid-week .cal-cell-week { min-height: 140px; }
 	}
 	.rounds-list {
 		list-style: none;

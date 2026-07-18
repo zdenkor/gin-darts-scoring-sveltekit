@@ -60,12 +60,18 @@
 	// persist it and trigger the Drive push. The form owns
 	// its own state, so there's nothing to reset here.
 	async function handleCreateSave({ competition, matches }) {
+		// eslint-disable-next-line no-console
+		console.log('[DEBUG save] handleCreateSave called, competition.id=' + competition?.id + ' matches=' + (matches?.length || 0));
 		saving = true;
 		savingPhase = 'local';
 		formError = '';
 		try {
+			// eslint-disable-next-line no-console
+			console.log('[DEBUG save] about to createCompetitionWithMatches');
 			savingPhase = 'local';
 			const created = await createCompetitionWithMatches(competition, matches);
+			// eslint-disable-next-line no-console
+			console.log('[DEBUG save] createCompetitionWithMatches done, created=' + (created?.competition?.id || 'null'));
 			// For league competitions, fan out per-round
 			// child tournaments. The child has its own
 			// date / time / location, takes the league
@@ -214,6 +220,8 @@
 			await refresh();
 			await goto(`${base}/dashboard`);
 		} catch (e) {
+			// eslint-disable-next-line no-console
+			console.log('[DEBUG save] catch in handleCreateSave: ' + (e?.message || e) + ' stack=' + (e?.stack || '').split('\n').slice(0,3).join(' | '));
 			formError = String(e?.message || e);
 		} finally {
 			saving = false;
