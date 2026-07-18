@@ -445,9 +445,9 @@
 			     selected fields. The user can pick which
 			     fields and whether to walk N levels up
 			     (parent) / down (child). Default OFF —
-			     developer-only. -->
-			<details class="inspector-section" open>
-				<summary>Element inspector</summary>
+			     developer-only. Same heading + HelpIcon
+			     pattern as <h2>Debug above. -->
+			<h3 class="inspector-heading">Element inspector<HelpIcon topic="Element inspector" body="When on, hovering any element shows a tooltip with the DOM details you select below. The hovered element is also outlined. Default off — turn off when you don't need it." /></h3>
 				<label class="checkbox">
 					<input
 						id="inspector-enabled"
@@ -520,9 +520,8 @@
 							<span>Child (2 levels down)</span>
 						</label>
 					</div>
-				{/if}
-			</details>
-		</section>
+					{/if}
+					</section>
 
 		<LogsModal open={logsModalOpen} onClose={() => (logsModalOpen = false)} />
 

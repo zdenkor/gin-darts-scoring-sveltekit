@@ -85,6 +85,12 @@
 				<button class="btn ghost" type="button" onclick={onClose} aria-label="Close">✕</button>
 			</header>
 
+			<!-- "Logs" label matches the Settings →
+			     Debug <h2>Debug</h2> heading style: small
+			     muted label that gives the tab strip
+			     below a name without competing with the
+			     modal title. -->
+			<div class="logs-label">Logs</div>
 			<nav class="tabs" role="tablist">
 				{#each LOG_CATEGORIES as cat (cat)}
 					<button

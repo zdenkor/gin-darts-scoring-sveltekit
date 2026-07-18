@@ -73,11 +73,38 @@ export async function createCompetition(/** @type {any} */ data) {
 // for rewriting match.id and match.competitionId to match the
 // competition's new id.
 export async function createCompetitionWithMatches(/** @type {any} */ competitionData, /** @type {any[]} */ matches) {
-	const comp = await createCompetition(competitionData);
+	// Deep-clone both the competition and the matches
+	// before they reach IDB. Svelte 5 wraps state in
+	// reactive proxies (Proxy / Symbol / non-cloneable
+	// getters) which `IDBObjectStore.put` refuses to
+	// serialise: "DataCloneError: [object Array] could
+	// not be cloned". `structuredClone` walks the
+	// object the same way IDB would and strips the
+	// reactive glue, leaving plain JSON-safe values.
+	// Falls back to a JSON round-trip if the
+	// structured clone throws (e.g. on functions /
+	// Symbols — anything that's not JSON safe).
+	let compData, msData;
+	try {
+		compData = structuredClone(competitionData);
+		msData = (matches || []).map((/** @type {any} */ m) => structuredClone(m));
+	} catch (cloneErr) {
+		// eslint-disable-next-line no-console
+		console.warn('[createCompetitionWithMatches] structuredClone failed, falling back to JSON', cloneErr);
+		try {
+			compData = JSON.parse(JSON.stringify(competitionData));
+			msData = (matches || []).map((/** @type {any} */ m) => JSON.parse(JSON.stringify(m)));
+		} catch (jsonErr) {
+			// eslint-disable-next-line no-console
+			console.error('[createCompetitionWithMatches] JSON clone also failed', jsonErr);
+			throw jsonErr;
+		}
+	}
+	const comp = await createCompetition(compData);
 	// Rewrite competitionId on every match so it lines up with the
 	// freshly-generated competition id. Each match gets a stable
 	// string id derived from the competition id + its index.
-	const ms = (matches || []).map((/** @type {any} */ m, /** @type {number} */ i) => ({
+	const ms = msData.map((/** @type {any} */ m, /** @type {number} */ i) => ({
 		...m,
 		competitionId: comp.id,
 		id: m.id || `m-${comp.id}-${i}`,
