@@ -630,8 +630,12 @@
 	}
 
 	async function handleSubmit() {
+		// eslint-disable-next-line no-console
+		console.log('[DEBUG save] handleSubmit called, saving=' + saving + ' formType=' + formType + ' formName=' + JSON.stringify(formName) + ' formRoundCount=' + formRoundCount + ' formRounds.length=' + formRounds.length);
 		if (saving) return;
 		const result = buildBracket();
+		// eslint-disable-next-line no-console
+		console.log('[DEBUG save] buildBracket returned ' + (result ? 'truthy' : 'falsy') + ' formError=' + JSON.stringify(formError));
 		if (!result) return;
 		await onSave({ competition: result.competition, matches: result.matches });
 	}
@@ -671,14 +675,14 @@
 			<div class="grid-3">
 				<label class="field">
 					<span>Type</span>
-					<select bind:value={formType}>
+					<select id="form-type" name="form-type" bind:value={formType}>
 						{#each COMP_TYPES as opt}<option value={opt.value}>{opt.label}</option>{/each}
 					</select>
 				</label>
 				{#if formType === 'league'}
 					<label class="field">
 						<span>Number of rounds</span>
-						<input type="number" min="0" max="52" bind:value={formRoundCount} />
+						<input id="form-round-count" name="form-round-count" type="number" min="0" max="52" bind:value={formRoundCount} />
 					</label>
 				{/if}
 			</div>
@@ -686,7 +690,7 @@
 			<div class="grid-3">
 				<label class="field">
 					<span>Name</span>
-					<input type="text" bind:value={formName} placeholder="League or tournament name" required />
+					<input id="form-name" name="form-name" type="text" bind:value={formName} placeholder="League or tournament name" required />
 				</label>
 				<!-- For leagues, the date / time live on each
 				     round in the Scheduling tab. Showing them
@@ -696,20 +700,20 @@
 				{#if formType !== 'league'}
 					<label class="field">
 						<span>Date</span>
-						<input type="date" bind:value={formDate} />
+						<input id="form-date" name="form-date" type="date" bind:value={formDate} />
 					</label>
 					<label class="field">
 						<span>Time</span>
-						<input type="time" bind:value={formTime} />
+						<input id="form-time" name="form-time" type="time" bind:value={formTime} />
 					</label>
 				{/if}
 				<label class="field">
 					<span>Location</span>
-					<input type="text" bind:value={formLocation} placeholder="e.g. Nitra, pub Centrum" />
+					<input id="form-location" name="form-location" type="text" bind:value={formLocation} placeholder="e.g. Nitra, pub Centrum" />
 				</label>
 				<label class="field">
 					<span>Season</span>
-					<input type="text" bind:value={formSeason} placeholder="2026" />
+					<input id="form-season" name="form-season" type="text" bind:value={formSeason} placeholder="2026" />
 				</label>
 			</div>
 
@@ -725,13 +729,13 @@
 				<div class="grid-3">
 				<label class="field">
 					<span>Participants</span>
-					<select bind:value={formParticipantFormat}>
+					<select id="form-participant-format" name="form-participant-format" bind:value={formParticipantFormat}>
 						{#each PARTICIPANT_FORMATS as opt}<option value={opt.value}>{opt.label}</option>{/each}
 					</select>
 				</label>
 				<label class="field">
 					<span>Format</span>
-					<select bind:value={formEliminationFormat}>
+					<select id="form-elimination-format" name="form-elimination-format" bind:value={formEliminationFormat}>
 						{#each ELIMINATION_FORMATS as opt}<option value={opt.value}>{opt.label}</option>{/each}
 					</select>
 				</label>
@@ -741,19 +745,19 @@
 				<div class="grid-3">
 				<label class="field">
 					<span>Game mode</span>
-					<select bind:value={formGameMode}>
+					<select id="form-game-mode" name="form-game-mode" bind:value={formGameMode}>
 						<option value="x01">x01</option>
 					</select>
 				</label>
 				<label class="field">
 					<span>Start score</span>
-					<select bind:value={formStart}>
+					<select id="form-start" name="form-start" bind:value={formStart}>
 						{#each START_OPTIONS as opt}<option value={opt}>{opt}</option>{/each}
 					</select>
 				</label>
 				<label class="field">
 					<span>Out rule</span>
-					<select bind:value={formOutRule}>
+					<select id="form-out-rule" name="form-out-rule" bind:value={formOutRule}>
 						{#each Object.entries(X01_OUT_OPTIONS) as [key, opt]}<option value={key}>{opt.label}</option>{/each}
 					</select>
 				</label>
@@ -761,17 +765,17 @@
 			<div class="grid-2">
 				<label class="field">
 					<span>Legs to win</span>
-					<input type="number" min="1" max="99" bind:value={formLegsToWin} />
+					<input id="form-legs-to-win" name="form-legs-to-win" type="number" min="1" max="99" bind:value={formLegsToWin} />
 				</label>
 				<label class="field">
 					<span>Sets to win</span>
-					<input type="number" min="1" max="99" bind:value={formSetsToWin} />
+					<input id="form-sets-to-win" name="form-sets-to-win" type="number" min="1" max="99" bind:value={formSetsToWin} />
 				</label>
 			</div>
 
 			<label class="field">
 				<span>Notes (optional)</span>
-				<textarea rows="2" bind:value={formNotes} placeholder="Anything to remember about this competition"></textarea>
+				<textarea id="form-notes" name="form-notes" rows="2" bind:value={formNotes} placeholder="Anything to remember about this competition"></textarea>
 			</label>
 		</svelte:fragment>
 
@@ -903,6 +907,8 @@
 					<div class="player-row">
 						<span class="player-num">P{i + 1}</span>
 						<input
+							id="player-name-{i}"
+							name="player-name"
 							type="text"
 							value={p.name}
 							oninput={(e) => updatePlayerName(i, e.currentTarget.value)}
@@ -923,6 +929,7 @@
 					</label>
 					<input
 						id="svk-picker-input"
+						name="svk-picker-input"
 						type="text"
 						class="svk-picker-input"
 						bind:value={svkPickerQuery}
@@ -968,11 +975,11 @@
 				<div class="grid-2">
 					<label class="field">
 						<span>Groups</span>
-						<input type="number" min="1" max="8" bind:value={formGroups} />
+						<input id="form-groups" name="form-groups" type="number" min="1" max="8" bind:value={formGroups} />
 					</label>
 					<label class="field">
 						<span>Advance per group</span>
-						<input type="number" min="1" max="4" bind:value={formAdvancePerGroup} />
+						<input id="form-advance-per-group" name="form-advance-per-group" type="number" min="1" max="4" bind:value={formAdvancePerGroup} />
 					</label>
 				</div>
 				<p class="hint">
@@ -1026,6 +1033,8 @@
 										<th class="row-num">{i + 1}</th>
 										<th class="row-head">
 											<select
+												id="matrix-slot-{previewGroupTab}-{i}"
+												name="matrix-slot"
 												class="matrix-slot-select"
 												value={rowName || ''}
 												onchange={(e) => {
@@ -1063,7 +1072,7 @@
 				<h3>Tournament seeding</h3>
 				<label class="field">
 					<span>Seeding</span>
-					<select bind:value={formSeeding}>
+					<select id="form-seeding" name="form-seeding" bind:value={formSeeding}>
 						{#each SEEDINGS as opt}<option value={opt.value}>{opt.label}</option>{/each}
 					</select>
 				</label>

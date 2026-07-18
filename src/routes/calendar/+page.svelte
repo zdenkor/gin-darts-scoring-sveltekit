@@ -2,6 +2,8 @@
 	import { onMount } from 'svelte';
 	import { fetchTournaments, parseTournamentEvent, deleteTournament, DEFAULT_RELAYS } from '$lib/nostr/calendar.js';
 	import { getStoredKeypair } from '$lib/nostr/identity.js';
+	import { deleteCompetition, listChildTournaments } from '$lib/db/competitions.js';
+	import { log } from '$lib/debug/logger.js';
 	// `base` is the configured URL prefix (empty in dev,
 	// `/gin-darts-scoring-sveltekit` on GitHub Pages).
 	// Raw `href="/..."` strings would otherwise resolve
@@ -24,6 +26,21 @@
 	// delete, so we can show "deleting…" feedback. Keyed
 	// by NOSTR event id.
 	let deletingId = $state(/** @type {string} */ (''));
+	// View mode: list (default), month, week. Persisted in
+	// localStorage so the choice survives reloads. The
+	// underlying data fetch is the same regardless of view —
+	// only the render layout changes.
+	let view = $state(/** @type {'list' | 'month' | 'week'} */ (
+		(typeof localStorage !== 'undefined' && localStorage.getItem('gin-darts-calendar-view')) || 'list'
+	));
+	function setView(/** @type {'list' | 'month' | 'week'} */ v) {
+		view = v;
+		try { localStorage.setItem('gin-darts-calendar-view', v); } catch { /* ignore */ }
+	}
+	// Reference date for the month/week views. New Date()
+	// on mount keeps the user on the month they're
+	// looking at; prev/next buttons move the cursor.
+	let cursor = $state(new Date());
 
 	// The NOSTR event carries the start time in an ISO
 	// stamp like "2026-04-15" or "2026-04-15T18:00". The
@@ -133,6 +150,38 @@
 				}
 			});
 			if (success) {
+				// Local cascade. Calendar is the
+				// canonical view: deleting here also
+				// removes the competition from the
+				// device's IDB store so the offline
+				// list / brackets stay in sync.
+				// We resolve the underlying
+				// competition id (strip the
+				// `round-` prefix used by child
+				// round events) and pull the
+				// sibling child tournaments from
+				// IDB so the parent + every round
+				// disappear together.
+				const compId = t.tournamentId
+					? (t.tournamentId.startsWith('round-')
+						? t.tournamentId.replace(/^round-/, '')
+						: t.tournamentId)
+					: null;
+				if (compId) {
+					try {
+						const children = await listChildTournaments(compId);
+						for (const child of children) {
+							await deleteCompetition(child.id);
+						}
+						await deleteCompetition(compId);
+					} catch (e) {
+						// Non-fatal — the NIP-09
+						// deletion already succeeded
+						// on the relay. Log it so the
+						// user can investigate.
+						await log('nostr', `handleDelete: local cascade failed for ${compId} — ${e?.message || e}`);
+					}
+				}
 				// Hide the row optimistically — the next
 				// Reload will confirm the relay dropped it.
 				tournaments = tournaments.filter((/** @type {any} */ x) => x.id !== t.id);
@@ -198,15 +247,101 @@
 		}
 		return '';
 	}
+
+	// Calendar grid helpers for month / week views.
+	// We index events by their YYYY-MM-DD start day so
+	// the cell render is O(1) per day. Events without a
+	// start date fall into the "undated" bucket and are
+	// only shown in the list view.
+	function dayKey(/** @type {Date} */ d) {
+		return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+	}
+	/** @type {Record<string, any[]>} */
+	let eventsByDay = $derived.by(() => {
+		const out = /** @type {Record<string, any[]>} */ ({});
+		for (const t of tournaments) {
+			if (!t.date) continue;
+			// t.date may be "2026-04-15" or
+			// "2026-04-15T18:00" — take the prefix.
+			const k = String(t.date).slice(0, 10);
+			if (!out[k]) out[k] = [];
+			out[k].push(t);
+		}
+		return out;
+	});
+	// 42-cell grid (6 weeks × 7 days) anchored on the
+	// first day of the week that contains the 1st of the
+	// cursor's month.
+	let monthCells = $derived.by(() => {
+		const y = cursor.getFullYear();
+		const m = cursor.getMonth();
+		const first = new Date(y, m, 1);
+		// 0 = Sunday, so the offset to the first cell is
+		// the weekday of `first` itself.
+		const offset = first.getDay();
+		const start = new Date(y, m, 1 - offset);
+		const cells = [];
+		for (let i = 0; i < 42; i++) {
+			const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
+			cells.push({
+				date: d,
+				key: dayKey(d),
+				inMonth: d.getMonth() === m,
+				today: dayKey(d) === dayKey(new Date())
+			});
+		}
+		return cells;
+	});
+	// Week view: 7 cells anchored on the Sunday before /
+	// containing the cursor.
+	let weekCells = $derived.by(() => {
+		const offset = cursor.getDay();
+		const start = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() - offset);
+		const cells = [];
+		for (let i = 0; i < 7; i++) {
+			const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
+			cells.push({
+				date: d,
+				key: dayKey(d),
+				today: dayKey(d) === dayKey(new Date())
+			});
+		}
+		return cells;
+	});
+	function monthLabel(/** @type {Date} */ d) {
+		return d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+	}
+	function weekLabel(/** @type {Date} */ d) {
+		const start = new Date(d.getFullYear(), d.getMonth(), d.getDate() - d.getDay());
+		const end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6);
+		const fmt = (/** @type {Date} */ x) => x.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+		return `${fmt(start)} – ${fmt(end)}`;
+	}
+	function shiftCursor(/** @type {number} */ days) {
+		cursor = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + days);
+	}
 </script>
 
 <div class="screen scrollable">
 	<div class="card">
 		<header class="head">
 			<h1>Calendar</h1>
-			<button class="btn ghost" type="button" onclick={load} disabled={loading}>
-				{loading ? 'Loading…' : 'Reload'}
-			</button>
+			<div class="head-actions">
+				<!-- View toggle. List keeps the
+				     scannable rows; month shows a
+				     6-week grid with event dots;
+				     week shows the current 7 days
+				     stacked. Choice persists in
+				     localStorage. -->
+				<div class="view-toggle" role="tablist" aria-label="Calendar view">
+					<button type="button" class="view-btn" class:active={view === 'list'} aria-pressed={view === 'list'} onclick={() => setView('list')}>List</button>
+					<button type="button" class="view-btn" class:active={view === 'month'} aria-pressed={view === 'month'} onclick={() => setView('month')}>Month</button>
+					<button type="button" class="view-btn" class:active={view === 'week'} aria-pressed={view === 'week'} onclick={() => setView('week')}>Week</button>
+				</div>
+				<button class="btn ghost" type="button" onclick={load} disabled={loading}>
+					{loading ? 'Loading…' : 'Reload'}
+				</button>
+			</div>
 		</header>
 
 		<p class="muted">
@@ -216,12 +351,29 @@
 			sign in and create it from the Competitions tab.
 		</p>
 
-		<input
-			class="search"
-			type="search"
-			placeholder="Search by name, location, or format…"
-			bind:value={query}
-		/>
+		{#if view === 'list'}
+			<input
+				class="search"
+				type="search"
+				placeholder="Search by name, location, or format…"
+				bind:value={query}
+			/>
+		{/if}
+
+		{#if view !== 'list'}
+			<!-- Month / week cursor: prev/next/labelled
+			     header. The label updates live as the
+			     cursor changes; "Today" snaps back to
+			     the current month/week. -->
+			<div class="cursor-row">
+				<button type="button" class="btn ghost small" onclick={() => shiftCursor(view === 'month' ? -30 : -7)} aria-label="Previous {view}">‹</button>
+				<span class="cursor-label">
+					{view === 'month' ? monthLabel(cursor) : weekLabel(cursor)}
+				</span>
+				<button type="button" class="btn ghost small" onclick={() => shiftCursor(view === 'month' ? 30 : 7)} aria-label="Next {view}">›</button>
+				<button type="button" class="btn ghost small" onclick={() => cursor = new Date()}>Today</button>
+			</div>
+		{/if}
 
 		{#if error}
 			<p class="error">Couldn't reach the relays: {error}</p>
@@ -229,11 +381,13 @@
 
 		{#if loading && tournaments.length === 0}
 			<p class="muted">Loading tournaments…</p>
-		{:else if visible.length === 0}
+		{:else if view === 'list' && visible.length === 0}
 			<p class="muted">No tournaments matched the search.</p>
-		{:else}
+		{:else if view === 'list'}
 			<ul class="list">
 				{#each visible as t (t.id)}
+					<!-- (list row markup below) -->
+					{@const _ = ''}
 					<li class="row">
 						<div class="row-main">
 							<strong class="name">
@@ -350,12 +504,72 @@
 								>
 									{deletingId === t.id ? 'Deleting…' : 'Delete'}
 								</button>
-							{/if}
-							</div>
-					</li>
-				{/each}
-			</ul>
-		{/if}
+								{/if}
+								</div>
+								</li>
+								{/each}
+								</ul>
+								{:else if view === 'month'}
+								<!-- Month grid: 7 columns × 6 rows. Each
+								cell lists up to 3 event names; the
+								"+N more" line collapses the rest. -->
+								<div class="cal-grid" role="grid" aria-label="Month view">
+								<div class="cal-row cal-head" role="row">
+								{#each ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as wd (wd)}
+								<div class="cal-cell cal-weekday" role="columnheader">{wd}</div>
+								{/each}
+								</div>
+								{#each Array.from({ length: 6 }, (_, i) => monthCells.slice(i * 7, i * 7 + 7)) as week, wi (wi)}
+									<div class="cal-row" role="row">
+										{#each week as cell (cell.key)}
+											{@const dayEvents = eventsByDay[cell.key] || []}
+											<div class="cal-cell" class:out={!cell.inMonth} class:today={cell.today} role="gridcell">
+												<div class="cal-day-num">{cell.date.getDate()}</div>
+												{#each dayEvents.slice(0, 3) as e (e.id)}
+													<div class="cal-event" title={e.name || ''}>
+														<span class="kind-dot kind-{e.type === 'tournament' ? 'tournament' : (e.type === 'league' ? 'league' : 'unknown')}"></span>
+														<span class="cal-event-name">{e.name || 'Untitled'}</span>
+													</div>
+												{/each}
+												{#if dayEvents.length > 3}
+													<div class="cal-more">+{dayEvents.length - 3} more</div>
+												{/if}
+											</div>
+										{/each}
+									</div>
+								{/each}
+								</div>
+								{:else if view === 'week'}
+								<!-- Week view: 7 cells in a single row,
+								each cell taller than month cells so
+								every event in the day can show. -->
+								<div class="cal-grid cal-grid-week" role="grid" aria-label="Week view">
+								<div class="cal-row cal-head" role="row">
+									{#each weekCells as cell (cell.key)}
+										<div class="cal-cell cal-weekday" role="columnheader">
+											{cell.date.toLocaleDateString(undefined, { weekday: 'short' })} {cell.date.getDate()}
+										</div>
+									{/each}
+								</div>
+								<div class="cal-row cal-row-week" role="row">
+									{#each weekCells as cell (cell.key)}
+										{@const dayEvents = eventsByDay[cell.key] || []}
+										<div class="cal-cell cal-cell-week" class:today={cell.today} role="gridcell">
+											{#if dayEvents.length === 0}
+												<div class="muted small">—</div>
+											{/if}
+											{#each dayEvents as e (e.id)}
+												<div class="cal-event cal-event-week" title={e.name || ''}>
+													<span class="kind-dot kind-{e.type === 'tournament' ? 'tournament' : (e.type === 'league' ? 'league' : 'unknown')}"></span>
+													<span class="cal-event-name">{e.name || 'Untitled'}</span>
+													{#if e.date && e.date.includes('T')}<span class="muted small"> · {e.date.slice(11, 16)}</span>{/if}
+												</div>
+											{/each}
+										</div>
+									{/each}
+								</div>
+								</div>
+								{/if}
 
 		<footer class="foot muted">
 			Read from {DEFAULT_RELAYS.length} relays: {DEFAULT_RELAYS.join(', ')}
@@ -365,6 +579,118 @@
 
 <style>
 	.head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-sm); }
+	.head-actions { display: flex; align-items: center; gap: var(--space-sm); flex-wrap: wrap; }
+	.view-toggle {
+		display: inline-flex;
+		gap: 2px;
+		padding: 2px;
+		background: var(--surface);
+		border: 1px solid var(--line);
+		border-radius: 8px;
+	}
+	.view-btn {
+		padding: 4px 10px;
+		font: inherit;
+		font-size: var(--text-sm);
+		background: transparent;
+		color: var(--muted);
+		border: 1px solid transparent;
+		border-radius: 6px;
+		cursor: pointer;
+	}
+	.view-btn.active {
+		background: var(--bg);
+		color: var(--text);
+		border-color: var(--line);
+	}
+	.cursor-row {
+		display: flex;
+		align-items: center;
+		gap: var(--space-sm);
+		margin: var(--space-sm) 0;
+	}
+	.cursor-label {
+		font-weight: 600;
+		min-width: 12em;
+		text-align: center;
+	}
+	.cal-grid {
+		display: grid;
+		grid-template-columns: repeat(7, 1fr);
+		gap: 2px;
+		margin-top: var(--space-sm);
+	}
+	.cal-row {
+		display: grid;
+		grid-template-columns: repeat(7, 1fr);
+		gap: 2px;
+	}
+	.cal-cell {
+		min-height: 80px;
+		padding: 4px 6px;
+		background: var(--surface);
+		border: 1px solid var(--line);
+		border-radius: 6px;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		overflow: hidden;
+	}
+	.cal-cell.out { opacity: 0.45; }
+	.cal-cell.today {
+		border-color: var(--accent);
+		box-shadow: inset 0 0 0 1px var(--accent);
+	}
+	.cal-cell.cal-weekday {
+		min-height: 0;
+		padding: 4px 6px;
+		background: transparent;
+		border: 0;
+		font-size: var(--text-xs);
+		font-weight: 600;
+		color: var(--muted);
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+	}
+	.cal-day-num {
+		font-size: var(--text-sm);
+		font-weight: 600;
+		color: var(--muted);
+	}
+	.cal-event {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+		font-size: var(--text-xs);
+		padding: 1px 4px;
+		border-radius: 3px;
+		background: color-mix(in srgb, var(--accent) 14%, transparent);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.cal-event-name { overflow: hidden; text-overflow: ellipsis; }
+	.kind-dot {
+		width: 6px; height: 6px;
+		border-radius: 50%;
+		flex: 0 0 auto;
+		background: var(--muted);
+	}
+	.kind-dot.kind-league { background: var(--accent); }
+	.kind-dot.kind-tournament { background: var(--warn, #e8b923); }
+	.cal-more { font-size: var(--text-xs); color: var(--muted); padding-left: 10px; }
+	/* Week view: each cell taller to fit several
+	   events; same column proportions as month. */
+	.cal-grid-week .cal-cell-week {
+		min-height: 200px;
+	}
+	.cal-event-week { white-space: normal; }
+	/* Stack the layout vertically on small viewports
+	   so the rows still fit one screen wide. */
+	@media (max-width: 480px) {
+		.cal-cell { min-height: 60px; }
+		.cal-grid-week .cal-cell-week { min-height: 140px; }
+	}
 	.rounds-list {
 		list-style: none;
 		padding: 0;

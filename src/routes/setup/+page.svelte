@@ -121,6 +121,8 @@
 							/>
 					{:else}
 						<input
+							id="player-name-{i}"
+							name="player-name"
 							type="text"
 							value={p.name}
 							oninput={(e) => updateName(i, e.currentTarget.value)}
@@ -184,13 +186,13 @@
 			<div class="field-row">
 				<div class="field">
 					<label>Legs to win<HelpIcon topic="Legs to win" body="How many legs a player must win to take the set. The first to reach this count wins." /></label>
-					<input type="number" min="1" max="99" bind:value={legsToWin} />
-				</div>
+					<input id="legs-to-win" name="legs-to-win" type="number" min="1" max="99" bind:value={legsToWin} />
+					</div>
 
 				<div class="field">
 					<label>Sets to win<HelpIcon topic="Sets to win" body="How many sets a player must win to take the match. The first to reach this count wins." /></label>
-					<input type="number" min="1" max="99" bind:value={setsToWin} />
-				</div>
+					<input id="sets-to-win" name="sets-to-win" type="number" min="1" max="99" bind:value={setsToWin} />
+					</div>
 			</div>
 		</div>
 

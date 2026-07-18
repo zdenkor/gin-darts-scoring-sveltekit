@@ -244,7 +244,7 @@
 			<h2>Appearance</h2>
 			<div class="field">
 				<label for="theme">Theme<HelpIcon topic="Theme" body="Auto follows your phone or system setting. Dark is the default for the app, Light is the bright alternative." /></label>
-				<select id="theme" bind:value={s.theme}>
+				<select id="theme" name="theme" bind:value={s.theme}>
 					{#each themes as t}
 						<option value={t.value}>{t.label}</option>
 					{/each}
@@ -252,7 +252,7 @@
 			</div>
 			<div class="field">
 				<label for="language">Language<HelpIcon topic="Language" body="Switch the UI between English and Slovenčina. Only labels and a handful of messages are translated; the rest of the app stays in English." /></label>
-				<select id="language" bind:value={s.language}>
+				<select id="language" name="language" bind:value={s.language}>
 					{#each languages as l}
 						<option value={l.value}>{l.label}</option>
 					{/each}
@@ -263,19 +263,19 @@
 		<section class="settings-section">
 			<h2>Game</h2>
 			<label class="checkbox">
-				<input type="checkbox" bind:checked={s.sound} />
+				<input id="sound" name="sound" type="checkbox" bind:checked={s.sound} />
 				<span>Sound effects<HelpIcon topic="Sound effects" body="Plays a soft click and a win tone. Useful on desktop; mobile users usually prefer vibration." /></span>
 			</label>
 			<label class="checkbox">
-				<input type="checkbox" bind:checked={s.vibration} />
+				<input id="vibration" name="vibration" type="checkbox" bind:checked={s.vibration} />
 				<span>Vibration on submit<HelpIcon topic="Vibration on submit" body="Short vibration when a throw is committed. Only works on devices with a vibration motor (most phones)." /></span>
 			</label>
 			<label class="checkbox">
-				<input type="checkbox" bind:checked={s.statsCheckout} />
+				<input id="stats-checkout" name="stats-checkout" type="checkbox" bind:checked={s.statsCheckout} />
 				<span>Show checkout stats<HelpIcon topic="Show checkout stats" body="When on, the Stats screen shows the Checkout section (highest checkout, 100+ count, checkout %)." /></span>
 			</label>
 			<label class="checkbox">
-				<input type="checkbox" bind:checked={s.askCheckout} />
+				<input id="ask-checkout" name="ask-checkout" type="checkbox" bind:checked={s.askCheckout} />
 				<span>Ask checkout attempts<HelpIcon topic="Ask checkout attempts" body="When a throw could have aimed at a close-out, a small modal asks how many of your 3 darts were aimed there. The answer goes to your stats. Turn off to auto-record the maximum without asking." /></span>
 			</label>
 		</section>
@@ -283,7 +283,7 @@
 		<section class="settings-section">
 			<h2>Help</h2>
 			<label class="checkbox">
-				<input type="checkbox" bind:checked={s.showHelp} />
+				<input id="show-help" name="show-help" type="checkbox" bind:checked={s.showHelp} />
 				<span>Show help icons<HelpIcon topic="Show help icons" body="When on, small ⓘ icons appear next to labels across the app. Tap (or hover on desktop) for a short explanation of what the field does. When off, the icons stay hidden." /></span>
 			</label>
 		</section>
@@ -292,12 +292,12 @@
 			<h2>Google sync</h2>
 			<div class="field">
 				<label for="clientId">Google Client ID (runtime override)<HelpIcon topic="Google Client ID" body="Paste your own OAuth Web Client ID here to use a Google Cloud project other than the one bundled in the app. Most users can leave this empty — the default Client ID works for the public deployment." /></label>
-				<input id="clientId" type="text" bind:value={s.googleClientId} placeholder={getEffectiveGoogleClientId() || 'Paste your OAuth Client ID'} />
+				<input id="clientId" name="google-client-id" type="text" bind:value={s.googleClientId} placeholder={getEffectiveGoogleClientId() || 'Paste your OAuth Client ID'} />
 				<p class="hint">Leave empty to use window.GOOGLE_CLIENT_ID from index.html.</p>
 			</div>
 			<div class="field">
 				<label for="superadmin">Superadmin emails (comma separated)<HelpIcon topic="Superadmin emails" body="Google accounts in this list get admin powers on this device. Used to gate the dev-only sign-in for the app owner. Leave empty to use the built-in superadmin list." /></label>
-				<input id="superadmin" type="text" bind:value={s.superadminEmails} placeholder={getEffectiveSuperadminEmails().join(', ') || 'admin@example.com'} />
+				<input id="superadmin" name="superadmin-emails" type="text" bind:value={s.superadminEmails} placeholder={getEffectiveSuperadminEmails().join(', ') || 'admin@example.com'} />
 				<p class="hint">Leave empty to use window.SUPERADMIN_EMAILS.</p>
 			</div>
 		</section>
@@ -328,7 +328,14 @@
 			     room to breathe. -->
 			{#if nostrKey}
 				<div class="nostr-id">
-					<label class="nostr-label">NOSTR public key (npub)</label>
+					<!-- These are display-only rows: the
+					     value is a <code> snippet with a
+					     copy button, not a form field. A
+					     <label> would require a `for` /
+					     nested input, so we use a plain
+					     <div> with the same .nostr-label
+					     styling. -->
+					<div class="nostr-label">NOSTR public key (npub)</div>
 					<div class="nostr-row">
 						<code class="nostr-code" title={nostrKey.publicKey}>{npub}</code>
 						<button
@@ -339,7 +346,7 @@
 							{copyState === 'npub' ? 'Copied!' : 'Copy'}
 						</button>
 					</div>
-					<label class="nostr-label">Hex (raw 64-char pubkey)</label>
+					<div class="nostr-label">Hex (raw 64-char pubkey)</div>
 					<div class="nostr-row">
 						<code class="nostr-code nostr-code-hex" title={nostrKey.publicKey}>{nostrKey.publicKey}</code>
 						<button
@@ -361,6 +368,8 @@
 			<h2>SVK license list<HelpIcon topic="SVK import" body="The Slovak darts federation (SVK) portal has no CORS headers, so the app can't fetch it directly. Instead, you copy the licence table once from the portal and paste it here. The import is stored in the local svk_players IndexedDB store. After import, the player picker in /competitions can search this cache by name." /></h2>
 			<p class="hint">Import the SVK licence list once. Steps: open the portal, Ctrl+A inside the table, Ctrl+C, then paste below and click Import.</p>
 			<textarea
+				id="svk-paste"
+				name="svk-paste"
 				class="svk-paste"
 				bind:value={svkPaste}
 				placeholder="Paste rows from https://portal.slovaksteeldarts.sk/licencie here…"
@@ -389,6 +398,8 @@
 				<details class="svk-preview">
 					<summary>Test search ({svkStats.count} cached)</summary>
 					<input
+						id="svk-preview-search"
+						name="svk-preview-search"
 						type="text"
 						bind:value={svkPreviewQuery}
 						oninput={onSVKPreviewInput}
@@ -418,6 +429,8 @@
 			{#each LOG_CATEGORIES as cat (cat)}
 				<label class="checkbox">
 					<input
+						id="debug-{cat}"
+						name="debug-{cat}"
 						type="checkbox"
 						checked={debugEnabled[cat]}
 						onchange={(e) => toggleDebugCategory(cat, /** @type {HTMLInputElement} */ (e.currentTarget).checked)}
@@ -433,10 +446,12 @@
 			     fields and whether to walk N levels up
 			     (parent) / down (child). Default OFF —
 			     developer-only. -->
-			<details class="inspector-section">
+			<details class="inspector-section" open>
 				<summary>Element inspector</summary>
 				<label class="checkbox">
 					<input
+						id="inspector-enabled"
+						name="inspector-enabled"
 						type="checkbox"
 						checked={inspector.enabled}
 						onchange={(e) => toggleInspector(/** @type {HTMLInputElement} */ (e.currentTarget).checked)}
@@ -448,6 +463,7 @@
 						<p class="muted small">Display as:</p>
 						<label class="checkbox">
 							<input
+								id="inspector-display-tooltip"
 								type="radio"
 								name="inspector-display"
 								checked={inspector.display === 'tooltip'}
@@ -457,6 +473,7 @@
 						</label>
 						<label class="checkbox">
 							<input
+								id="inspector-display-sidebar"
 								type="radio"
 								name="inspector-display"
 								checked={inspector.display === 'sidebar'}
@@ -466,40 +483,40 @@
 						</label>
 						<p class="muted small">Show these fields in the tooltip:</p>
 						<label class="checkbox">
-							<input type="checkbox" checked={inspector.show.tag} onchange={(e) => toggleInspectorShow('tag', e.currentTarget.checked)} />
+							<input id="inspector-show-tag" name="inspector-show-tag" type="checkbox" checked={inspector.show.tag} onchange={(e) => toggleInspectorShow('tag', e.currentTarget.checked)} />
 							<span>Tag</span>
 						</label>
 						<label class="checkbox">
-							<input type="checkbox" checked={inspector.show.class} onchange={(e) => toggleInspectorShow('class', e.currentTarget.checked)} />
+							<input id="inspector-show-class" name="inspector-show-class" type="checkbox" checked={inspector.show.class} onchange={(e) => toggleInspectorShow('class', e.currentTarget.checked)} />
 							<span>Class</span>
 						</label>
 						<label class="checkbox">
-							<input type="checkbox" checked={inspector.show.id} onchange={(e) => toggleInspectorShow('id', e.currentTarget.checked)} />
+							<input id="inspector-show-id" name="inspector-show-id" type="checkbox" checked={inspector.show.id} onchange={(e) => toggleInspectorShow('id', e.currentTarget.checked)} />
 							<span>ID</span>
 						</label>
 						<label class="checkbox">
-							<input type="checkbox" checked={inspector.show.dataAttrs} onchange={(e) => toggleInspectorShow('dataAttrs', e.currentTarget.checked)} />
+							<input id="inspector-show-data-attrs" name="inspector-show-data-attrs" type="checkbox" checked={inspector.show.dataAttrs} onchange={(e) => toggleInspectorShow('dataAttrs', e.currentTarget.checked)} />
 							<span>Data attributes</span>
 						</label>
 						<label class="checkbox">
-							<input type="checkbox" checked={inspector.show.html} onchange={(e) => toggleInspectorShow('html', e.currentTarget.checked)} />
+							<input id="inspector-show-html" name="inspector-show-html" type="checkbox" checked={inspector.show.html} onchange={(e) => toggleInspectorShow('html', e.currentTarget.checked)} />
 							<span>HTML snippet</span>
 						</label>
 						<p class="muted small">Walk to related elements:</p>
 						<label class="checkbox">
-							<input type="checkbox" checked={inspector.show.parent1} onchange={(e) => toggleInspectorShow('parent1', e.currentTarget.checked)} />
+							<input id="inspector-show-parent1" name="inspector-show-parent1" type="checkbox" checked={inspector.show.parent1} onchange={(e) => toggleInspectorShow('parent1', e.currentTarget.checked)} />
 							<span>Parent (1 level up)</span>
 						</label>
 						<label class="checkbox">
-							<input type="checkbox" checked={inspector.show.parent2} onchange={(e) => toggleInspectorShow('parent2', e.currentTarget.checked)} />
+							<input id="inspector-show-parent2" name="inspector-show-parent2" type="checkbox" checked={inspector.show.parent2} onchange={(e) => toggleInspectorShow('parent2', e.currentTarget.checked)} />
 							<span>Parent (2 levels up — grandparent)</span>
 						</label>
 						<label class="checkbox">
-							<input type="checkbox" checked={inspector.show.child1} onchange={(e) => toggleInspectorShow('child1', e.currentTarget.checked)} />
+							<input id="inspector-show-child1" name="inspector-show-child1" type="checkbox" checked={inspector.show.child1} onchange={(e) => toggleInspectorShow('child1', e.currentTarget.checked)} />
 							<span>Child (1 level down)</span>
 						</label>
 						<label class="checkbox">
-							<input type="checkbox" checked={inspector.show.child2} onchange={(e) => toggleInspectorShow('child2', e.currentTarget.checked)} />
+							<input id="inspector-show-child2" name="inspector-show-child2" type="checkbox" checked={inspector.show.child2} onchange={(e) => toggleInspectorShow('child2', e.currentTarget.checked)} />
 							<span>Child (2 levels down)</span>
 						</label>
 					</div>
@@ -611,30 +628,63 @@
 	.svk-msg { color: var(--accent); }
 	.svk-preview { margin-top: var(--space-sm); }
 	.svk-preview summary { cursor: pointer; color: var(--muted); }
-	/* Element inspector sub-form. The <details> keeps
-	   the section collapsed by default so the Settings
-	   page doesn't grow; clicking "Element inspector"
-	   reveals the on/off toggle plus the per-field
-	   checkboxes. The sub-form is just nested labels,
-	   so the existing .checkbox styling applies without
-	   extra CSS. */
+	/* Element inspector sub-form. We want the same
+	   visual language as the rest of the Settings
+	   sections: same font, same color, same spacing
+	   rhythm, no <details> chrome. The toggle +
+	   sub-form live inline so the user sees the
+	   controls next to their labels, just like the
+	   Sound / Vibration / Show checkout stats
+	   rows. */
 	.inspector-section {
 		margin-top: var(--space-sm);
-		border-top: 1px solid var(--line);
-		padding-top: var(--space-sm);
+		/* No border, no padding-top: the inspector
+		   is a peer of the other Settings sections
+		   (Sound, Vibration, …), each rendered as
+		   a row in the same Debug section. */
 	}
 	.inspector-section > summary {
-		cursor: pointer;
+		/* Hide the disclosure triangle + inherit
+		   font/color from the parent so the
+		   summary doesn't pick up the browser's
+		   monospace list-item defaults. We also
+		   kill the default <summary> cursor so
+		   it stops looking like a separate
+		   clickable header. */
+		display: block;
+		list-style: none;
+		font: inherit;
 		color: var(--muted);
 		font-size: var(--text-sm);
-		padding: 4px 0;
+		font-weight: 600;
+		padding: 0;
+		margin: var(--space-sm) 0 4px;
+		cursor: default;
+	}
+	.inspector-section > summary::-webkit-details-marker {
+		display: none;
 	}
 	.inspector-subform {
+		/* Same flat column layout the rest of the
+		   section uses; no padding-left (we're not
+		   a child of a summary block anymore
+		   visually). */
 		display: flex;
 		flex-direction: column;
 		gap: 4px;
-		margin-top: var(--space-sm);
-		padding-left: var(--space-md);
+		margin-top: var(--space-xs, 4px);
+	}
+	/* Open by default so the user doesn't have to
+	   click to see the inspector controls — same
+	   affordance as the Sound / Vibration rows
+	   right above. The <details> wrapper is kept
+	   purely as a semantic group, not as a
+	   collapse widget. */
+	.inspector-section[open] > summary,
+	.inspector-section:not([open]) > summary {
+		/* Force the summary to look the same in
+		   both states; the <details> stays open
+		   from the markup below. */
 	}
 	.svk-preview input {
 		width: 100%;

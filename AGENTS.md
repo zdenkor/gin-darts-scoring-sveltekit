@@ -22,13 +22,34 @@ and is the source of truth for behaviour.
 - `bits-ui@2.18.1` for headless UI primitives (see below)
 - PWA via `manifest.webmanifest` + service worker
 
-## UI primitives: use Bits UI, not native <select>
+## UI primitives: Bits UI first, SvelteKit second
 
-The project uses **bits-ui** for select / listbox / dropdown
-components. **Do NOT add new native `<select>` elements** in
-feature work — wrap the call in
+The project uses **bits-ui** for headless UI primitives
+(calendar, select, listbox, dropdown, popover, modal,
+dialog, tabs, tooltip, etc.). **Do NOT add new native
+HTML form elements** (`<select>`, `<dialog>`, etc.) or
+hand-rolled popovers in feature work — wire up the
+existing Bits UI component (or a project wrapper around
+it) instead. The priority order when picking a UI
+primitive is:
+
+1. **Bits UI** — `bits-ui@2.18.1` (select, calendar,
+   popover, dialog, tooltip, tabs, etc.). We already
+   consume several; the rest of its surface is
+   available off the shelf.
+2. **SvelteKit / Svelte 5** — built-in constructs
+   (`$state`, `$derived`, `$props`, snippet / {#each /
+   {#if}) and SvelteKit primitives
+   (`$app/navigation`, `$app/paths`, etc.).
+3. **Plain DOM / native HTML** — only as a last
+   resort and only with a written reason in the
+   commit message.
+
+The project ships a thin wrapper for the most common
+case — wrap the call in
 `<Select options={…} bind:value={…} />` from
-`$lib/ui/Select.svelte` instead. The wrapper:
+`$lib/ui/Select.svelte` instead of reaching for a
+native `<select>`. The wrapper:
 
 - accepts `options` as either an array of
   `{ value, label, desc? }` or a `Record<key, { label, desc? }>`

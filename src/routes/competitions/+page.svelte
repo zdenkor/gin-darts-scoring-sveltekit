@@ -169,10 +169,10 @@
 					// "League Season Round N") and combine
 					// date+time into a single ISO stamp that
 					// NOSTR calendars can sort by.
-					if (created.competition.type === 'league' && Array.isArray(created.competition.rounds)) {
+					if (created.competition.type === 'league' && Array.isArray(created.competition.leagueRounds)) {
 						let publishedRounds = 0;
 						let skippedRounds = 0;
-						for (const r of created.competition.rounds) {
+						for (const r of created.competition.leagueRounds) {
 							if (!r.date) { skippedRounds += 1; continue; } // only rounds with a date go on the calendar
 							// Round name: prefer the user-edited
 							// `r.name` (set in the Scheduling tab
