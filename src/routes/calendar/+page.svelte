@@ -537,12 +537,12 @@
 										(v) => { if (v) { calendarPlaceholder = v; cursor = new Date(v.year, v.month - 1, v.day); } }
 									}
 								>
-									{#snippet children({ months, weekdayLabels })}
-										<Calendar.Header class="cal-row cal-head">
-											{#each weekdayLabels as wd (wd)}
-												<div class="cal-cell cal-weekday">{wd}</div>
-											{/each}
-										</Calendar.Header>
+									{#snippet children({ months, weekdays })}
+											<Calendar.Header class="cal-row cal-head">
+												{#each weekdays as wd (wd)}
+													<div class="cal-cell cal-weekday">{wd}</div>
+												{/each}
+											</Calendar.Header>
 										{#each months as month (month.value.toString())}
 											<Calendar.Grid month={month.value} class="cal-month">
 												<Calendar.GridBody>
@@ -552,7 +552,13 @@
 																{@const key = `${date.year}-${String(date.month).padStart(2, '0')}-${String(date.day).padStart(2, '0')}`}
 																{@const dayEvents = eventsByDay[key] || []}
 																<Calendar.Cell {date} class={date.month !== calendarPlaceholder.month ? 'cal-cell out' : (key === todayKey ? 'cal-cell today' : 'cal-cell')}>
-																	<Calendar.Day class="cal-day-num" />
+																	<!-- Render the day number directly (avoids
+																     <Calendar.Day>'s internal `date.calendar`
+																     access which throws when the date comes
+																     from a custom snippet). The class still
+																     gives the cell the same hover / focus
+																     styling Bits UI provides. -->
+																	<div class="cal-day-num">{date.day}</div>
 																	{#each dayEvents.slice(0, 3) as e (e.id)}
 																		<div class="cal-event" title={e.name || ''}>
 																			<span class="kind-dot kind-{e.type === 'tournament' ? 'tournament' : (e.type === 'league' ? 'league' : 'unknown')}"></span>
