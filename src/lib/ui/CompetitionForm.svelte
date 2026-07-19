@@ -80,6 +80,15 @@
 		saving = false,
 		onSave = () => {},
 		onCancel = () => {},
+		// Lock the competition type (league / tournament)
+		// for the entire form. Used by the Edit-Child-Round
+		// flow so the user can't accidentally turn a per-
+		// round tournament back into a league.
+		lockType = false,
+		// Tab keys to hide in the wizard, in addition to
+		// the per-format exclusions. Set e.g. ['registration']
+		// to skip the SVK picker for a per-round edit.
+		hiddenTabs = [],
 		submitLabel = ''
 	} = $props();
 
@@ -718,6 +727,8 @@
 		competition={formCompetition}
 		bind:matches={formMatches}
 		bind:activeTab={formTab}
+		{lockType}
+		{hiddenTabs}
 		onSave={handleSubmit}
 		onCancel={() => onCancel()}
 	>
@@ -727,14 +738,20 @@
 			{/if}
 			<!-- Type is the first field on the form so the
 			     rest of the UI can branch on league / single /
-			     team / elimination without re-shuffling. -->
+			     team / elimination without re-shuffling. When
+			     `lockType` is true (e.g. editing a per-round
+			     child of a league), the select is hidden and
+			     the type is whatever the loaded competition
+			     already has — defaulting to 'tournament'. -->
 			<div class="grid-3">
-				<label class="field">
-					<span>Type</span>
-					<select id="form-type" name="form-type" bind:value={formType}>
-						{#each COMP_TYPES as opt}<option value={opt.value}>{opt.label}</option>{/each}
-					</select>
-				</label>
+				{#if !lockType}
+					<label class="field">
+						<span>Type</span>
+						<select id="form-type" name="form-type" bind:value={formType}>
+							{#each COMP_TYPES as opt}<option value={opt.value}>{opt.label}</option>{/each}
+						</select>
+					</label>
+				{/if}
 				{#if formType === 'league'}
 					<label class="field">
 						<span>Number of rounds</span>

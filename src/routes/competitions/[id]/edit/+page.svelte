@@ -162,6 +162,8 @@
 				{saving}
 				onSave={handleEditSave}
 				onCancel={back}
+				lockType={Boolean(competition.parentLeagueId)}
+				hiddenTabs={competition.parentLeagueId ? ['scoring'] : []}
 			/>
 
 			<RoundsEditor bind:competition={competition} />

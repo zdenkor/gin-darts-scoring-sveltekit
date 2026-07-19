@@ -35,12 +35,19 @@
 	/** @type {'create' | 'edit' | 'watch'} */
 	let {
 		mode = 'create',
-		competition = $bindable(/** @type {any} */ (null)),
-		matches = $bindable(/** @type {any[]} */ ([])),
-		standings = $bindable(/** @type {any[]} */ ([])),
+		competition = null,
+		matches = $bindable([]),
 		activeTab = $bindable(0),
 		onSave = () => {},
-		onCancel = () => {}
+		onCancel = () => {},
+		// Lock the competition type. When true the
+		// form type select is hidden and the type
+		// stays whatever `competition.type` already
+		// is (default: 'tournament' for child rounds).
+		lockType = false,
+		// Tab keys to hide, in addition to the
+		// per-format exclusions in `visibleTabs`.
+		hiddenTabs = []
 	} = $props();
 
 	// League flow uses 4 tabs (Setup / Scheduling / Standings /
@@ -122,12 +129,15 @@
 		// single-tournament view into the Setup → Finalize
 		// path so the wizard is shorter and the user does
 		// not see a placeholder tab that does nothing.
-		return TABS.filter(t =>
+		// `hiddenTabs` removes extras (e.g. 'registration'
+		// when editing a per-round child of a league).
+		const base = TABS.filter(t =>
 			t.key !== 'scheduling' &&
 			t.key !== 'standings' &&
 			t.key !== 'league' &&
 			t.key !== 'live'
 		);
+		return base.filter((t) => !hiddenTabs.includes(t.key));
 	});
 
 	// Clamp activeTab to a valid index whenever the visible set

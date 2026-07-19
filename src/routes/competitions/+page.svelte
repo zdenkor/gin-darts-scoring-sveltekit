@@ -260,6 +260,19 @@
 		goto(`${base}/`);
 	}
 
+	// Opens the create-competition flow. Also reused
+	// by the `+` button in the page header (same
+	// behaviour as the inline "Create competition"
+	// button below). The first step is the sign-in
+	// gate — see the comment on the inline button.
+	async function startCreate() {
+		if (!(await isSignedIn())) {
+			goto(`${base}/login?return=/competitions`);
+			return;
+		}
+		formOpen = true;
+	}
+
 	function badgeColor(status) {
 		if (status === 'active') return 'var(--accent)';
 		if (status === 'upcoming') return 'var(--warn, #e8b923)';
@@ -275,7 +288,15 @@
 	<div class="card">
 		<div class="card-header">
 			<h1>Competitions</h1>
-			<button class="close-btn" onclick={back} aria-label="Close" title="Close">✕</button>
+			<!-- + button: same action as 'Create
+			     competition' below, but reachable from
+			     the header for quick repeat. -->
+			<button class="icon-btn" onclick={() => startCreate()} aria-label="Create competition" title="Create competition">
+				<img src="{base}/assets/add.svg" alt="" />
+			</button>
+			<button class="icon-btn close-btn" onclick={back} aria-label="Close" title="Close">
+				<img src="{base}/assets/close.svg" alt="" />
+			</button>
 		</div>
 
 		{#if loading}
@@ -356,22 +377,7 @@
 		{#if !formOpen}
 			<button
 				class="btn primary"
-				onclick={async () => {
-					// The first step of creating a competition
-					// is signing in. Anonymous users get bounced
-					// to the Google sign-in page; the redirect
-					// comes back here when the auth flow resolves.
-					// `isSignedIn` is async (reads Google Identity
-					// services) — must `await` it; calling without
-					// `await` always returns a Promise which is
-					// truthy, so the guard would let anonymous
-					// users through and open the form anyway.
-					if (!(await isSignedIn())) {
-						goto(`${base}/login?return=/competitions`);
-						return;
-					}
-					formOpen = true;
-				}}
+				onclick={startCreate}
 			>Create competition</button>
 		{/if}
 

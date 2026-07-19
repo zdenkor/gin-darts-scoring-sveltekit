@@ -540,18 +540,13 @@
 									placeholder={calendarPlaceholder}
 								>
 									{#snippet children({ months, weekdays })}
-											<!-- TEMP DEBUG: log the first week's first date so we can see what type the cell receives. -->
-											{#if months[0]?.weeks?.[0]?.[0]}
-												<script>console.log('[Calendar debug] first cell date:', months[0].weeks[0][0], 'constructor:', months[0].weeks[0][0]?.constructor?.name);</script>
-											{/if}
 											<Calendar.Header class="cal-row cal-head">
 												{#each weekdays as wd (wd)}
 													<div class="cal-cell cal-weekday">{wd}</div>
 												{/each}
 											</Calendar.Header>
-										{#each months as month (month.value.toString())}
-											<Calendar.Grid month={month.value} class="cal-month">
-												<Calendar.GridBody>
+											{#each months as month (month.value.toString())}
+												<Calendar.GridBody class="cal-month">
 													{#each month.weeks as weekDates, wi (wi)}
 														<Calendar.GridRow class="cal-row">
 															{#each weekDates as date, di (di)}
@@ -581,8 +576,7 @@
 														</Calendar.GridRow>
 													{/each}
 												</Calendar.GridBody>
-											</Calendar.Grid>
-										{/each}
+											{/each}
 									{/snippet}
 								</Calendar.Root>
 								{/if}
