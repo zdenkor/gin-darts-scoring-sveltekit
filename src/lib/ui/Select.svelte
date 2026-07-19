@@ -104,9 +104,19 @@
 		width: 100%;
 		min-height: 48px;
 		padding: 0 var(--space-sm);
-		background: var(--bg);
-		border: 1px solid var(--line);
-		color: var(--text);
+		/* Hard-coded dark fallbacks. The wrapper
+		   `.bot-level-select` already passes var(--bg)
+		   to its own background, but the Bits UI
+		   Select trigger is in a teleported subtree
+		   where the page-level CSS custom properties
+		   may not resolve. Without these fallback
+		   values the trigger falls back to the
+		   browser's native control background
+		   (white) and the placeholder text reads as
+		   white-on-white in the dark theme. */
+		background: var(--bg, #1a1f2b);
+		border: 1px solid var(--line, #2c3343);
+		color: var(--text, #e6ebf2);
 		border-radius: 10px;
 		font: inherit;
 		font-size: var(--text-md);

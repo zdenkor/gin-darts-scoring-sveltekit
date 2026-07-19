@@ -260,8 +260,12 @@
 		flex: 0 0 auto;
 	}
 	.player-row input {
+		/* Same flex / size as .bot-level-select so the
+		   Bot ON/OFF toggle doesn't visually jump when
+		   a player switches from human to bot. */
 		flex: 1 1 8em;
 		min-width: 0;
+		max-width: 14em;
 		font-size: clamp(0.9rem, 1.8cqi, 1.4rem);
 		padding: clamp(0.4rem, 1.2cqi, 0.8rem);
 	}
@@ -274,8 +278,10 @@
 		   ships with width: 100%, which would expand the
 		   trigger to fill the wrapper — we override it to
 		   the wrapper's width here so the trigger stays
-		   the same size as the wrapper. */
-		flex: 0 1 12em;
+		   the same size as the wrapper. Sized to match
+		   the human .player-row input so the toggle
+		   doesn't shift when isBot flips. */
+		flex: 1 1 8em;
 		min-width: 8em;
 		max-width: 14em;
 		font-size: clamp(0.9rem, 1.8cqi, 1.4rem);

@@ -540,6 +540,10 @@
 									placeholder={calendarPlaceholder}
 								>
 									{#snippet children({ months, weekdays })}
+											<!-- TEMP DEBUG: log the first week's first date so we can see what type the cell receives. -->
+											{#if months[0]?.weeks?.[0]?.[0]}
+												<script>console.log('[Calendar debug] first cell date:', months[0].weeks[0][0], 'constructor:', months[0].weeks[0][0]?.constructor?.name);</script>
+											{/if}
 											<Calendar.Header class="cal-row cal-head">
 												{#each weekdays as wd (wd)}
 													<div class="cal-cell cal-weekday">{wd}</div>
@@ -551,26 +555,28 @@
 													{#each month.weeks as weekDates, wi (wi)}
 														<Calendar.GridRow class="cal-row">
 															{#each weekDates as date, di (di)}
-																{@const key = `${date.year}-${String(date.month).padStart(2, '0')}-${String(date.day).padStart(2, '0')}`}
-																{@const dayEvents = eventsByDay[key] || []}
-																<Calendar.Cell {date} class={date.month !== calendarPlaceholder.month ? 'cal-cell out' : (key === todayKey ? 'cal-cell today' : 'cal-cell')}>
-																	<!-- Render the day number directly (avoids
-																     <Calendar.Day>'s internal `date.calendar`
-																     access which throws when the date comes
-																     from a custom snippet). The class still
-																     gives the cell the same hover / focus
-																     styling Bits UI provides. -->
-																	<div class="cal-day-num">{date.day}</div>
-																	{#each dayEvents.slice(0, 3) as e (e.id)}
-																		<div class="cal-event" title={e.name || ''}>
-																			<span class="kind-dot kind-{e.type === 'tournament' ? 'tournament' : (e.type === 'league' ? 'league' : 'unknown')}"></span>
-																			<span class="cal-event-name">{e.name || 'Untitled'}</span>
-																		</div>
-																	{/each}
-																	{#if dayEvents.length > 3}
-																		<div class="cal-more">+{dayEvents.length - 3} more</div>
-																	{/if}
-																</Calendar.Cell>
+																{#if date}
+																	{@const key = `${date.year}-${String(date.month).padStart(2, '0')}-${String(date.day).padStart(2, '0')}`}
+																	{@const dayEvents = eventsByDay[key] || []}
+																	<Calendar.Cell {date} class={date.month !== calendarPlaceholder.month ? 'cal-cell out' : (key === todayKey ? 'cal-cell today' : 'cal-cell')}>
+																		<!-- Render the day number directly (avoids
+																	     <Calendar.Day>'s internal `date.calendar`
+																	     access which throws when the date comes
+																	     from a custom snippet). The class still
+																	     gives the cell the same hover / focus
+																	     styling Bits UI provides. -->
+																		<div class="cal-day-num">{date.day}</div>
+																		{#each dayEvents.slice(0, 3) as e (e.id)}
+																			<div class="cal-event" title={e.name || ''}>
+																				<span class="kind-dot kind-{e.type === 'tournament' ? 'tournament' : (e.type === 'league' ? 'league' : 'unknown')}"></span>
+																				<span class="cal-event-name">{e.name || 'Untitled'}</span>
+																			</div>
+																		{/each}
+																		{#if dayEvents.length > 3}
+																			<div class="cal-more">+{dayEvents.length - 3} more</div>
+																		{/if}
+																	</Calendar.Cell>
+																{/if}
 															{/each}
 														</Calendar.GridRow>
 													{/each}
