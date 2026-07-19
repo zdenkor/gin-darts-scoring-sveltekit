@@ -791,6 +791,32 @@
 		justify-content: center;
 		cursor: pointer;
 	}
+	/* The new add/close SVGs ship with a hard-coded
+	   black fill (they were drawn for a light
+	   background). On the dark theme that fill blends
+	   into the card background, so the icons disappear.
+	   `invert(1)` flips the black to white; combined
+	   with `brightness(1.1)` it matches the rest of
+	   the icon set in the dark theme. The SVGs also
+	   carry their own `width="800" height="800"`
+	   attribute which would otherwise fill the
+	   viewport, so we cap the rendered size with
+	   !important to override the inline attribute. */
+	.icon-btn {
+		width: 2.5rem;
+		height: 2.5rem;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0;
+	}
+	.icon-btn img {
+		filter: invert(1) brightness(1.1);
+		width: 1.25rem !important;
+		height: 1.25rem !important;
+		max-width: 1.25rem;
+		max-height: 1.25rem;
+	}
 	.close-btn:focus-visible {
 		outline: 2px solid var(--accent);
 		outline-offset: 2px;

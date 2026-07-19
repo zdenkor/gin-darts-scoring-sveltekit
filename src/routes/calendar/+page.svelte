@@ -62,6 +62,17 @@
 	// YYYY-MM-DD key for "today", used to mark
 	// the day cell with the .today class.
 	let todayKey = dayKeyImpl(new Date());
+	// Day the user clicked in the month view. When
+	// set, the details panel below the grid lists
+	// every event on that day. `null` collapses the
+	// panel back to nothing.
+	let selectedDayKey = $state(/** @type {string|null} */ (null));
+	// Events for the selected day, recomputed from
+	// `eventsByDay` so the panel re-renders when the
+	// user navigates between months / days.
+	let selectedDayEvents = $derived(
+		selectedDayKey ? (eventsByDay[selectedDayKey] || []) : []
+	);
 	function dayKeyImpl(/** @type {Date} */ d) {
 		return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 	}
@@ -553,7 +564,7 @@
 																{#if date}
 																	{@const key = `${date.year}-${String(date.month).padStart(2, '0')}-${String(date.day).padStart(2, '0')}`}
 																	{@const dayEvents = eventsByDay[key] || []}
-																	<Calendar.Cell {date} class={date.month !== calendarPlaceholder.month ? 'cal-cell out' : (key === todayKey ? 'cal-cell today' : 'cal-cell')}>
+																	<Calendar.Cell {date} class={(date.month !== calendarPlaceholder.month ? 'cal-cell out' : (key === todayKey ? 'cal-cell today' : 'cal-cell')) + (key === selectedDayKey ? ' selected' : '')} onclick={() => { selectedDayKey = key; }}>
 																		<!-- Render the day number directly (avoids
 																	     <Calendar.Day>'s internal `date.calendar`
 																	     access which throws when the date comes
@@ -578,8 +589,35 @@
 												</Calendar.GridBody>
 											{/each}
 									{/snippet}
-								</Calendar.Root>
-								{/if}
+									</Calendar.Root>
+
+									<!-- Day-details panel: shown when the
+									     user has clicked a day in the month
+									     grid. Same event shape as the list
+									     view, so the two read identically. -->
+									{#if selectedDayKey}
+										<section class="day-details" aria-label="Events on {selectedDayKey}">
+											<header class="day-details-head">
+												<h3>{selectedDayKey}</h3>
+												<button type="button" class="btn ghost small" onclick={() => (selectedDayKey = null)} aria-label="Close day details">✕</button>
+											</header>
+											{#if selectedDayEvents.length === 0}
+												<p class="muted small">No events on this day.</p>
+											{:else}
+												<ul class="rounds-list">
+													{#each selectedDayEvents as e (e.id)}
+														<li class="cal-event-detail">
+															<span class="kind-dot kind-{e.type === 'tournament' ? 'tournament' : (e.type === 'league' ? 'league' : 'unknown')}"></span>
+															<span class="cal-event-name">{e.name || 'Untitled'}</span>
+															{#if e.date && e.date.includes('T')}<span class="muted small"> · {e.date.slice(11, 16)}</span>{/if}
+															{#if e.location}<span class="muted small"> · {e.location}</span>{/if}
+														</li>
+													{/each}
+												</ul>
+											{/if}
+										</section>
+									{/if}
+									{/if}
 
 		<footer class="foot muted">
 			Read from {DEFAULT_RELAYS.length} relays: {DEFAULT_RELAYS.join(', ')}
@@ -707,6 +745,44 @@
 		color: var(--muted);
 	}
 	.round-name { color: var(--text); font-weight: 500; }
+	/* Selected day in the month grid: yellow outline
+	   to match the existing kind-tournament colour
+	   and make the currently-focused cell obvious
+	   when the day-details panel below lists its
+	   events. */
+	:global(.cal-cell.selected) {
+		outline: 2px solid var(--warn, #e8b923);
+		outline-offset: -2px;
+	}
+	/* Day-details panel: sits below the month grid,
+	   outlined card so it reads as a separate region
+	   from the grid. The header is the date itself
+	   (YYYY-MM-DD) plus a small close button. */
+	.day-details {
+		margin-top: var(--space-md);
+		padding: var(--space-sm) var(--space-md);
+		border: 1px solid var(--line);
+		border-radius: 8px;
+		background: var(--surface);
+	}
+	.day-details-head {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--space-sm);
+	}
+	.day-details-head h3 {
+		margin: 0;
+		font-size: var(--text-md);
+	}
+	.cal-event-detail {
+		display: flex;
+		align-items: center;
+		gap: var(--space-xs);
+		padding: 4px 0;
+		font-size: var(--text-sm);
+		color: var(--text);
+	}
 	.round-when, .round-where { color: var(--muted); }
 	.rules-excerpt {
 		margin: var(--space-xs) 0 0;
