@@ -521,21 +521,23 @@
 								<!-- Month grid: Bits UI Calendar. We supply
 								     our own week header (Sun-first, English)
 								     and render events inside the cell
-								     snippet via a tiny helper. The
-								     `placeholder` is bound to a
-								     @internationalized/date CalendarDate
-								     and synced both ways with the local
-								     `cursor` so the prev/next/Today
-								     buttons above keep working. -->
+								     snippet via a tiny helper. We use a
+								     one-way \`placeholder\` binding (no
+								     \`bind:\`) — the two-way variant was
+								     re-entering the cell snippet on every
+								     placeholder tick and crashing the
+								     cell with 'date.calendar' undefined
+								     because each rebuild lost the DateValue
+								     proxy before the cell could read it.
+								     Our own prev / next / Today buttons
+								     drive \`calendarPlaceholder\` directly,
+								     which is enough to navigate. -->
 								<Calendar.Root
 									class="cal-grid"
 									weekdayFormat="short"
 									fixedWeeks={true}
 									type="single"
-									bind:placeholder={
-										() => calendarPlaceholder,
-										(v) => { if (v) { calendarPlaceholder = v; cursor = new Date(v.year, v.month - 1, v.day); } }
-									}
+									placeholder={calendarPlaceholder}
 								>
 									{#snippet children({ months, weekdays })}
 											<Calendar.Header class="cal-row cal-head">

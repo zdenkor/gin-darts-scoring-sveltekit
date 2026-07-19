@@ -41,8 +41,15 @@ export async function createCompetition(/** @type {any} */ data) {
 		// calendar. Each round has its own date / location
 		// and its own player list — registration happens
 		// per round, not per league.
+		//
+		// We accept either \`rounds\` or \`leagueRounds\` on
+		// the input because the engine renamed the field
+		// in v0.4.29 to avoid a collision with its internal
+		// KO-stage round counter. Callers that go through
+		// \`buildLeague\` send \`leagueRounds\`; the rest
+		// of the form / sync code still uses \`rounds\`.
 		roundCount: data.roundCount || 0,
-		rounds: (data.rounds || []).map(r => ({
+		rounds: (data.leagueRounds || data.rounds || []).map(r => ({
 			...r,
 			players: r.players || []
 		})),

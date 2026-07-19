@@ -159,6 +159,62 @@
 			formSetsToWin = existing.setsToWin ?? 1;
 			formNotes = existing.notes || '';
 			formPlayers = (existing.players || []).map((name, i) => ({ id: i, name }));
+			// Fallback: legacy / sparse records may have
+			// player names living only in the
+			// groupAssignments matrix (the first group
+			// is the only one the user can see in the
+			// Edit matrix today, so we seed from that).
+			if (formPlayers.length === 0 && Array.isArray(existing.groupAssignments) && existing.groupAssignments.length) {
+				const flat = [];
+				for (const g of existing.groupAssignments) {
+					if (Array.isArray(g)) for (const name of g) if (name) flat.push(name);
+				}
+				formPlayers = flat.map((name, i) => ({ id: i, name }));
+			}
+			// Rounds hydration: leagues created before
+			// the v0.4.36 IDB fix store `rounds: []` even
+			// though the per-round child tournaments live
+			// in the same store under `parentLeagueId`.
+			// Walk those children to recover round
+			// metadata (date / time / location) AND to
+			// collect the union of round players back
+			// into `formPlayers` when both arrays are
+			// empty. The $effect body can't be `await`-ed
+			// directly (Svelte forbids it), so we wrap
+			// the IDB walk in an IIFE.
+			if (existing.type === 'league' && (formRounds.length === 0 || formPlayers.length < 2)) {
+				(async () => {
+					try {
+						const { listChildTournaments } = await import('$lib/db/competitions.js');
+						const children = await listChildTournaments(existing.id);
+						if (!children.length) return;
+						if (formRounds.length === 0) {
+							formRounds = children.map((c) => ({
+								name: c.name || `Round ${c.roundNumber || ''}`.trim(),
+								date: c.date || '',
+								time: c.time || '',
+								location: c.location || '',
+								players: Array.isArray(c.players) ? c.players : []
+							}));
+							formRoundCount = children.length;
+						}
+						if (formPlayers.length < 2) {
+							const seen = new Set(formPlayers.map((p) => p.name));
+							for (const c of children) {
+								for (const name of c.players || []) {
+									if (!seen.has(name)) {
+										seen.add(name);
+										formPlayers = [...formPlayers, { id: formPlayers.length, name }];
+									}
+								}
+							}
+						}
+					} catch (e) {
+						// eslint-disable-next-line no-console
+						console.warn('[CompetitionForm] child-tournament hydrate failed', e);
+					}
+				})();
+			}
 			// Keep the same id, don't generate a new one.
 		} else if (mode === 'create') {
 			// Seed the scoring block so the Scoring tab is
