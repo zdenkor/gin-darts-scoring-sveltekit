@@ -31,11 +31,25 @@
 			<span class="action">Open dashboard →</span>
 		</button>
 
-		<a class="version-tile legacy" href={`${base}/legacy/index.html`}>
+		<!--
+		  The legacy "classic" app is hosted on its own Pages
+		  site (gins-online-darts-scoring). Linking out instead
+		  of embedding a copy under /legacy/ here means there's
+		  exactly one source of truth for the vanilla UI: any fix
+		  or release pushed there is immediately visible to users
+		  who pick "Classic version" on this landing page. The
+		  old static/legacy/ snapshot (commits 4f258cb and
+		  ef88eb9) was retired as part of v0.4.45 — see CHANGELOG.
+		-->
+		<a
+			class="version-tile legacy"
+			href="https://zdenkor.github.io/gins-online-darts-scoring/"
+			rel="noopener noreferrer"
+		>
 			<span class="badge legacy-badge">LEGACY</span>
 			<h2>Classic version</h2>
 			<p>Original vanilla app. Use this if you prefer the previous interface.</p>
-			<span class="action">Open classic version →</span>
+			<span class="action">Open classic version ↗</span>
 		</a>
 	</div>
 

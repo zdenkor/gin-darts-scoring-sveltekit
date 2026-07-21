@@ -70,7 +70,7 @@
 	</div>
 
 	<footer class="footer-note">
-		<a href={`${base}/`}>Switch version</a> • <a href={`${base}/legacy/index.html`}>Legacy</a>
+		<a href={`${base}/`}>Switch version</a> • <a href="https://zdenkor.github.io/gins-online-darts-scoring/" rel="noopener noreferrer">Legacy (classic)</a>
 		{#if auth.isSignedIn}
 			• signed in as {auth.displayUser?.username || auth.displayUser?.email}
 			<button class="link" type="button" onclick={() => auth.signOut()}>Sign out</button>
