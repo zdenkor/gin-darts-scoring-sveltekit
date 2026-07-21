@@ -290,8 +290,10 @@
 			<h1>Competitions</h1>
 			<!-- + button: same action as 'Create
 			     competition' below, but reachable from
-			     the header for quick repeat. -->
-			<button class="icon-btn" onclick={() => startCreate()} aria-label="Create competition" title="Create competition">
+			     the header for quick repeat. Same
+			     close-btn styling so the two header
+			     buttons line up visually. -->
+			<button class="icon-btn close-btn" onclick={() => startCreate()} aria-label="Create competition" title="Create competition">
 				<img src="{base}/assets/add.svg" alt="" />
 			</button>
 			<button class="icon-btn close-btn" onclick={back} aria-label="Close" title="Close">
@@ -801,21 +803,36 @@
 	   carry their own `width="800" height="800"`
 	   attribute which would otherwise fill the
 	   viewport, so we cap the rendered size with
-	   !important to override the inline attribute. */
+	   !important to override the inline attribute.
+	   Sizing matches src/lib/ui/Header.svelte
+	   (2.4em square, transparent background, 10px
+	   radius) so the cards-header icon row reads the
+	   same as the top-of-page nav. */
 	.icon-btn {
-		width: 2.5rem;
-		height: 2.5rem;
+		width: 2.4em;
+		height: 2.4em;
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
 		padding: 0;
+		background: transparent;
+		border: 1px solid transparent;
+		border-radius: 10px;
+		color: var(--text);
+		cursor: pointer;
+		transition: background 120ms ease, border-color 120ms ease;
+	}
+	.icon-btn:hover { background: var(--surface); border-color: var(--line); }
+	.icon-btn:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
 	}
 	.icon-btn img {
 		filter: invert(1) brightness(1.1);
-		width: 1.25rem !important;
-		height: 1.25rem !important;
-		max-width: 1.25rem;
-		max-height: 1.25rem;
+		width: 1.4em !important;
+		height: 1.4em !important;
+		max-width: 1.4em;
+		max-height: 1.4em;
 	}
 	.close-btn:focus-visible {
 		outline: 2px solid var(--accent);

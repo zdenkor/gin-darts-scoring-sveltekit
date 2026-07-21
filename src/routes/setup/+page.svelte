@@ -266,21 +266,23 @@
 		flex: 1 1 8em;
 		min-width: 0;
 		max-width: 14em;
-		font-size: clamp(0.9rem, 1.8cqi, 1.4rem);
-		padding: clamp(0.4rem, 1.2cqi, 0.8rem);
+		font-size: var(--text-md);
+		padding: 0 var(--space-sm);
+		min-height: 48px;
+		border-radius: 10px;
+		background: var(--bg, #1a1f2b);
+		border: 1px solid var(--line, #2c3343);
+		color: var(--text, #e6ebf2);
 	}
 	.bot-level-select {
-		/* Compact, fixed-size select for the bot level
-		   picker. Sits between the name input and the
-		   Bot ON/OFF toggle. Background is opaque so the
-		   dropdown options are readable on dark theme.
-		   The inner trigger from src/lib/ui/Select.svelte
-		   ships with width: 100%, which would expand the
-		   trigger to fill the wrapper — we override it to
-		   the wrapper's width here so the trigger stays
-		   the same size as the wrapper. Sized to match
-		   the human .player-row input so the toggle
-		   doesn't shift when isBot flips. */
+		/* Sits between the P number and the Bot ON/OFF
+		   toggle. Sized to match the human .player-row
+		   input so the toggle doesn't shift when isBot
+		   flips. The inner <Select.Portal> trigger needs
+		   the same min-height / padding / font / border /
+		   radius as the input above; we override the
+		   defaults set in src/lib/ui/Select.svelte so the
+		   two read as a single row. */
 		flex: 1 1 8em;
 		min-width: 8em;
 		max-width: 14em;
@@ -295,9 +297,18 @@
 		/* The trigger inside the Bits UI Select wrapper
 		   wants width: 100% by default; constrain it to
 		   the wrapper's width so the row layout (P | sel |
-		   Bot ON | ✕) keeps its right edge. */
+		   Bot ON | ✕) keeps its right edge. Force the
+		   same min-height / padding / font as the human
+		   input above so the two render identically —
+		   that's what keeps the Bot ON/OFF toggle at the
+		   same x-offset whether the player is human or
+		   bot. */
 		width: auto;
 		min-width: 8em;
+		min-height: 48px;
+		padding: 0 var(--space-sm);
+		font-size: var(--text-md);
+		border-radius: 10px;
 	}
 	.bot-toggle-btn {
 		/* Stay on the right edge, never shrink, never

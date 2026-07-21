@@ -4,15 +4,16 @@
 	import { getStoredKeypair } from '$lib/nostr/identity.js';
 	import { deleteCompetition, listChildTournaments } from '$lib/db/competitions.js';
 	import { log } from '$lib/debug/logger.js';
-	// Bits UI month grid. We use the headless
-	// Calendar primitive and lay our own week
-	// header on top so the column labels match
-	// the rest of the app (Sun-first, English).
-	// @internationalized/date gives us a
-	// timezone-aware DateValue that the Calendar
-	// uses for `placeholder` / `value`.
-	import { Calendar } from 'bits-ui';
-	import { CalendarDate, getLocalTimeZone, today } from '@internationalized/date';
+	// SVAR Calendar (svar-widgets) drives the
+	// day / week / month views. It is event-aware,
+	// theme-able (Willow / WillowDark), and ships
+	// a built-in toolbar with prev / next / today.
+	// The wrapper src/lib/ui/SVARCalendar.svelte
+	// maps our NOSTR event shape to SVAR's
+	// expected { start_date, end_date, text, type,
+	// details } shape and picks the light / dark
+	// theme from the page's `theme-dark` class.
+	import SVARCalendar from '$lib/ui/SVARCalendar.svelte';
 	// `base` is the configured URL prefix (empty in dev,
 	// `/gin-darts-scoring-sveltekit` on GitHub Pages).
 	// Raw `href="/..."` strings would otherwise resolve
@@ -35,16 +36,18 @@
 	// delete, so we can show "deleting…" feedback. Keyed
 	// by NOSTR event id.
 	let deletingId = $state(/** @type {string} */ (''));
-	// View mode: list (default), month, week. Persisted in
-	// localStorage so the choice survives reloads. The
-	// underlying data fetch is the same regardless of view —
-	// only the render layout changes.
-	let view = $state(/** @type {'list' | 'month' | 'week'} */ (
-		(typeof localStorage !== 'undefined' && localStorage.getItem('gin-darts-calendar-view')) || 'list'
+	// View mode: day / week / month (all rendered by
+	// the SVAR Calendar wrapper below). Persisted in
+	// localStorage so the choice survives reloads.
+	// The underlying data fetch is the same regardless
+	// of view — only the render layout changes.
+	const VIEW_KEY = 'gin-darts-calendar-view';
+	let view = $state(/** @type {'day' | 'week' | 'month'} */ (
+		/** @type {any} */ ((typeof localStorage !== 'undefined' && localStorage.getItem(VIEW_KEY)) || 'month')
 	));
-	function setView(/** @type {'list' | 'month' | 'week'} */ v) {
+	function setView(/** @type {'day' | 'week' | 'month'} */ v) {
 		view = v;
-		try { localStorage.setItem('gin-darts-calendar-view', v); } catch { /* ignore */ }
+		try { localStorage.setItem(VIEW_KEY, v); } catch { /* ignore */ }
 	}
 	// Reference date for the month/week views. New Date()
 	// on mount keeps the user on the month they're
@@ -354,9 +357,10 @@
 				     stacked. Choice persists in
 				     localStorage. -->
 				<div class="view-toggle" role="tablist" aria-label="Calendar view">
-					<button type="button" class="view-btn" class:active={view === 'list'} aria-pressed={view === 'list'} onclick={() => setView('list')}>List</button>
-					<button type="button" class="view-btn" class:active={view === 'month'} aria-pressed={view === 'month'} onclick={() => setView('month')}>Month</button>
-				</div>
+							<button type="button" class="view-btn" class:active={view === 'day'} aria-pressed={view === 'day'} onclick={() => setView('day')}>Day</button>
+							<button type="button" class="view-btn" class:active={view === 'week'} aria-pressed={view === 'week'} onclick={() => setView('week')}>Week</button>
+							<button type="button" class="view-btn" class:active={view === 'month'} aria-pressed={view === 'month'} onclick={() => setView('month')}>Month</button>
+						</div>
 				<button class="btn ghost" type="button" onclick={load} disabled={loading}>
 					{loading ? 'Loading…' : 'Reload'}
 				</button>
@@ -370,254 +374,40 @@
 			sign in and create it from the Competitions tab.
 		</p>
 
-		{#if view === 'list'}
-			<input
-				class="search"
-				type="search"
-				placeholder="Search by name, location, or format…"
-				bind:value={query}
-			/>
-		{/if}
-
-		{#if view !== 'list'}
-			<!-- Month / week cursor: prev/next/labelled
-			     header. The label updates live as the
-			     cursor changes; "Today" snaps back to
-			     the current month/week. -->
-			<div class="cursor-row">
-				<button type="button" class="btn ghost small" onclick={() => shiftCursor(-30)} aria-label="Previous month">‹</button>
-				<span class="cursor-label">
-					{monthLabel(cursor)}
-				</span>
-				<button type="button" class="btn ghost small" onclick={() => shiftCursor(30)} aria-label="Next month">›</button>
-				<button type="button" class="btn ghost small" onclick={jumpToToday}>Today</button>
-			</div>
-		{/if}
-
+		<!-- Day / Week / Month views all share the
+		     same SVAR Calendar instance; only the
+		     `view` prop flips. The wrapper's own
+		     toolbar gives the user prev / next /
+		     today / view-switch, so we don't
+		     duplicate those here. -->
 		{#if error}
 			<p class="error">Couldn't reach the relays: {error}</p>
 		{/if}
 
 		{#if loading && tournaments.length === 0}
 			<p class="muted">Loading tournaments…</p>
-		{:else if view === 'list' && visible.length === 0}
+		{:else if visible.length === 0}
 			<p class="muted">No tournaments matched the search.</p>
-		{:else if view === 'list'}
-			<ul class="list">
-				{#each visible as t (t.id)}
-					<!-- (list row markup below) -->
-					{@const _ = ''}
-					<li class="row">
-						<div class="row-main">
-							<strong class="name">
-								{#if t.legacy}
-									Untitled (legacy event)
-								{:else}
-									{t.name || 'Untitled competition'}
-								{/if}
-							</strong>
-							<!-- v0.4.26: league / tournament /
-							     round label surfaces the kind of
-							     event this row represents. The
-							     NOSTR event ships `type` in its
-							     content JSON; older events that
-							     pre-date the field fall through
-							     to the legacy placeholder. -->
-							<div class="kind-row">
-								{#if t.type === 'league'}
-									<span class="kind-badge kind-league">League</span>
-								{:else if t.type === 'tournament'}
-									<span class="kind-badge kind-tournament">Tournament</span>
-								{:else}
-									<span class="kind-badge kind-unknown">Event</span>
-								{/if}
-							</div>
-							<div class="meta">
-								{#if t.type === 'league' && Array.isArray(t.rounds) && t.rounds.length > 0}
-									<span>{formatLeagueRange(t.rounds)}</span>
-								{:else if t.date}
-									<span>{formatStarts(t.date)}</span>
-								{/if}
-								{#if t.location}<span> · {t.location}</span>{/if}
-								{#if t.format}<span> · {t.format}</span>{/if}
-							</div>
-							{#if Array.isArray(t.rounds) && t.rounds.length > 0}
-								<!-- Round list. For a league the
-								     publisher ships one event per
-								     round, but the parent event
-								     also carries a summary so the
-								     reader can see the whole
-								     schedule at a glance. -->
-								<ul class="rounds-list">
-									{#each t.rounds as r, i (i)}
-										<li>
-											<span class="round-name">{r.name || `Round ${i + 1}`}</span>
-											{#if r.date}<span class="round-when"> · {formatStarts(r.time ? `${r.date}T${r.time}` : r.date)}</span>{/if}
-											{#if r.location && r.location !== t.location}<span class="round-where"> · {r.location}</span>{/if}
-										</li>
-									{/each}
-								</ul>
-							{/if}
-							{#if t.rules}
-								<p class="rules-excerpt">{rulesExcerpt(t.rules)}</p>
-							{/if}
-						</div>
-						<div class="row-actions">
-							{#if myPubkey && t.pubkey === myPubkey}
-								<!-- The signed-in user is the
-								     author of this NOSTR event.
-								     Surface an Edit shortcut
-								     that takes them straight
-								     to the existing edit
-								     route. We only render the
-								     link when we have a
-								     usable `tournamentId`
-								     (parsed from the `d`
-								     tag). Round events use
-								     `round-{roundId}` and
-								     can be edited through
-								     their parent league.
-								     Legacy events (JSON
-								     parse failed) and events
-								     without a stable `d` tag
-								     are skipped — clicking
-								     through to a non-existent
-								     IDB record would land on
-								     GitHub Pages' raw 404
-								     page. -->
-								{#if t.tournamentId && !t.legacy}
-									{@const editId = t.tournamentId.startsWith('round-')
-										? t.tournamentId.replace(/^round-/, '')
-										: t.tournamentId}
-									<a
-										class="btn ghost small"
-										href={`${base}/competitions/${editId}/edit`}
-										aria-label="Edit this competition"
-									>
-										Edit
-									</a>
-								{/if}
-							{/if}
-							{#if moreInfoHref(t)}
-								<a
-									class="btn ghost small"
-									href={moreInfoHref(t)}
-									target={t.data_url ? '_blank' : undefined}
-									rel={t.data_url ? 'noopener' : undefined}
-									aria-label="More info about this competition"
-								>
-									More info
-								</a>
-							{/if}
-							{#if t.data_url}
-								<a class="btn ghost small" href={t.data_url} target="_blank" rel="noopener">Open bracket</a>
-							{/if}
-							{#if myPubkey && t.pubkey === myPubkey && t.tournamentId && !t.legacy}
-								<button
-									type="button"
-									class="btn danger small"
-									onclick={() => handleDelete(t)}
-									disabled={deletingId === t.id}
-									aria-label="Delete this competition from NOSTR"
-									title="Send a NIP-09 deletion request"
-								>
-									{deletingId === t.id ? 'Deleting…' : 'Delete'}
-								</button>
-								{/if}
-								</div>
-								</li>
-								{/each}
-								</ul>
-								{:else if view === 'month'}
-								<!-- Month grid: Bits UI Calendar. We supply
-								     our own week header (Sun-first, English)
-								     and render events inside the cell
-								     snippet via a tiny helper. We use a
-								     one-way \`placeholder\` binding (no
-								     \`bind:\`) — the two-way variant was
-								     re-entering the cell snippet on every
-								     placeholder tick and crashing the
-								     cell with 'date.calendar' undefined
-								     because each rebuild lost the DateValue
-								     proxy before the cell could read it.
-								     Our own prev / next / Today buttons
-								     drive \`calendarPlaceholder\` directly,
-								     which is enough to navigate. -->
-								<Calendar.Root
-									class="cal-grid"
-									weekdayFormat="short"
-									fixedWeeks={true}
-									type="single"
-									placeholder={calendarPlaceholder}
-								>
-									{#snippet children({ months, weekdays })}
-											<Calendar.Header class="cal-row cal-head">
-												{#each weekdays as wd (wd)}
-													<div class="cal-cell cal-weekday">{wd}</div>
-												{/each}
-											</Calendar.Header>
-											{#each months as month (month.value.toString())}
-												<Calendar.GridBody class="cal-month">
-													{#each month.weeks as weekDates, wi (wi)}
-														<Calendar.GridRow class="cal-row">
-															{#each weekDates as date, di (di)}
-																{#if date}
-																	{@const key = `${date.year}-${String(date.month).padStart(2, '0')}-${String(date.day).padStart(2, '0')}`}
-																	{@const dayEvents = eventsByDay[key] || []}
-																	<Calendar.Cell {date} class={(date.month !== calendarPlaceholder.month ? 'cal-cell out' : (key === todayKey ? 'cal-cell today' : 'cal-cell')) + (key === selectedDayKey ? ' selected' : '')} onclick={() => { selectedDayKey = key; }}>
-																		<!-- Render the day number directly (avoids
-																	     <Calendar.Day>'s internal `date.calendar`
-																	     access which throws when the date comes
-																	     from a custom snippet). The class still
-																	     gives the cell the same hover / focus
-																	     styling Bits UI provides. -->
-																		<div class="cal-day-num">{date.day}</div>
-																		{#each dayEvents.slice(0, 3) as e (e.id)}
-																			<div class="cal-event" title={e.name || ''}>
-																				<span class="kind-dot kind-{e.type === 'tournament' ? 'tournament' : (e.type === 'league' ? 'league' : 'unknown')}"></span>
-																				<span class="cal-event-name">{e.name || 'Untitled'}</span>
-																			</div>
-																		{/each}
-																		{#if dayEvents.length > 3}
-																			<div class="cal-more">+{dayEvents.length - 3} more</div>
-																		{/if}
-																	</Calendar.Cell>
-																{/if}
-															{/each}
-														</Calendar.GridRow>
-													{/each}
-												</Calendar.GridBody>
-											{/each}
-									{/snippet}
-									</Calendar.Root>
-
-									<!-- Day-details panel: shown when the
-									     user has clicked a day in the month
-									     grid. Same event shape as the list
-									     view, so the two read identically. -->
-									{#if selectedDayKey}
-										<section class="day-details" aria-label="Events on {selectedDayKey}">
-											<header class="day-details-head">
-												<h3>{selectedDayKey}</h3>
-												<button type="button" class="btn ghost small" onclick={() => (selectedDayKey = null)} aria-label="Close day details">✕</button>
-											</header>
-											{#if selectedDayEvents.length === 0}
-												<p class="muted small">No events on this day.</p>
-											{:else}
-												<ul class="rounds-list">
-													{#each selectedDayEvents as e (e.id)}
-														<li class="cal-event-detail">
-															<span class="kind-dot kind-{e.type === 'tournament' ? 'tournament' : (e.type === 'league' ? 'league' : 'unknown')}"></span>
-															<span class="cal-event-name">{e.name || 'Untitled'}</span>
-															{#if e.date && e.date.includes('T')}<span class="muted small"> · {e.date.slice(11, 16)}</span>{/if}
-															{#if e.location}<span class="muted small"> · {e.location}</span>{/if}
-														</li>
-													{/each}
-												</ul>
-											{/if}
-										</section>
-									{/if}
-									{/if}
+		{:else}
+			<!-- SVAR Calendar handles day / week / month
+			     from a single primitive. The host page
+			     only owns the view toggle (the toolbar
+			     in SVAR exposes its own prev / next /
+			     today / view switch, but we keep the
+			     page-level toggle for visibility). The
+			     `events` prop is the filtered list of
+			     NOSTR tournaments, the `view` prop
+			     drives the layout, and `date` is the
+			     currently-focused day so prev / next
+			     stays in sync with the list of fetched
+			     events. -->
+			<SVARCalendar
+				events={visible}
+				view={view}
+				date={cursor}
+				onDateChange={(d) => { cursor = d; }}
+			/>
+		{/if}
 
 		<footer class="foot muted">
 			Read from {DEFAULT_RELAYS.length} relays: {DEFAULT_RELAYS.join(', ')}
