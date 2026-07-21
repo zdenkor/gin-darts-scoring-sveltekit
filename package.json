@@ -1,7 +1,7 @@
 {
 	"name": "gin-darts-scoring-sveltekit",
 	"private": true,
-	"version": "0.4.42",
+	"version": "0.4.43",
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
@@ -22,6 +22,7 @@
 		"vite": "^8.0.16"
 	},
 	"dependencies": {
+		"@internationalized/date": "^3.12.2",
 		"@svar-ui/svelte-calendar": "^2.6.0",
 		"@tiptap/core": "^3.27.3",
 		"@tiptap/starter-kit": "^3.27.3",

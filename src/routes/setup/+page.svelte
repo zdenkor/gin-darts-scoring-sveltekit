@@ -237,13 +237,14 @@
 		align-items: center;
 		gap: clamp(0.4rem, 1.5cqi, 1rem);
 		margin-bottom: clamp(0.4rem, 1.5cqi, 1rem);
-		/* Players row: P label | name input | Bot ON/OFF | ✕
-		   (and the level <select> when bot is on, between
-		   the input and the toggle). The input is the only
-		   thing that grows; the toggle and the remove button
-		   stay compact on the right edge. We disabled
-		   flex-wrap so a long row never breaks the toggle
-		   away from its player. */
+		/* Players row: P label | name input (or bot-level
+		   select when isBot) | Bot ON/OFF | ✕. The input
+		   / select is the only thing that grows; the
+		   toggle and the remove button stay compact on
+		   the right edge (flex: 0 0 auto on .bot-toggle-btn
+		   and the .btn.ghost ✕ below). `flex-wrap: nowrap`
+		   keeps a long row from breaking the toggle away
+		   from its player. */
 		flex-wrap: nowrap;
 	}
 	.player-row.bot-row {
@@ -260,12 +261,20 @@
 		flex: 0 0 auto;
 	}
 	.player-row input {
-		/* Same flex / size as .bot-level-select so the
-		   Bot ON/OFF toggle doesn't visually jump when
-		   a player switches from human to bot. */
+		/* The input/select is the only thing that
+		   grows; the toggle and the remove button
+		   stay compact on the right edge (flex: 0 0
+		   auto below). Previously we capped this at
+		   14em to keep the toggle's x-offset the same
+		   whether the player was human or bot, but
+		   that left a visible gap on the right when
+		   the row was wider than ~14em + buttons.
+		   With `flex: 1 1 8em` (grow, shrink, basis
+		   8em) and no max-width, the input/select
+		   fills the row and pins the toggle to the
+		   right edge in both modes. */
 		flex: 1 1 8em;
 		min-width: 0;
-		max-width: 14em;
 		font-size: var(--text-md);
 		padding: 0 var(--space-sm);
 		min-height: 48px;
@@ -276,16 +285,17 @@
 	}
 	.bot-level-select {
 		/* Sits between the P number and the Bot ON/OFF
-		   toggle. Sized to match the human .player-row
-		   input so the toggle doesn't shift when isBot
-		   flips. The inner <Select.Portal> trigger needs
-		   the same min-height / padding / font / border /
+		   toggle. Same flex sizing as the human input
+		   above so the Select fills the row exactly
+		   like the input does, keeping the toggle
+		   pinned to the right edge in both modes. The
+		   inner <Select.Portal> trigger needs the
+		   same min-height / padding / font / border /
 		   radius as the input above; we override the
-		   defaults set in src/lib/ui/Select.svelte so the
-		   two read as a single row. */
+		   defaults set in src/lib/ui/Select.svelte so
+		   the two read as a single row. */
 		flex: 1 1 8em;
 		min-width: 8em;
-		max-width: 14em;
 		font-size: clamp(0.9rem, 1.8cqi, 1.4rem);
 		padding: clamp(0.4rem, 1.2cqi, 0.8rem);
 		background: var(--bg, #1a1f2b);

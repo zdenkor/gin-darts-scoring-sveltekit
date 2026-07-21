@@ -20,6 +20,14 @@
 	// against the bare origin and skip the prefix, so we
 	// prepend `base` to every internal link below.
 	import { base } from '$app/paths';
+	// `getLocalTimeZone`, `today` and `CalendarDate` come
+	// from the @internationalized/date package (a
+	// transitive dep of bits-ui and SVAR). The inline
+	// comment above used to say "Bits UI Calendar
+	// placeholder" but we render SVAR below; the helpers
+	// are still needed to build a timezone-aware
+	// CalendarDate for the native Date ↔ SVAR sync.
+	import { getLocalTimeZone, today, CalendarDate } from '@internationalized/date';
 
 	let loading = $state(true);
 	let error = $state(/** @type {string} */ (''));
@@ -53,12 +61,11 @@
 	// on mount keeps the user on the month they're
 	// looking at; prev/next buttons move the cursor.
 	let cursor = $state(new Date());
-	// Bits UI Calendar placeholder. A CalendarDate
-	// (timezone-aware DateValue) is the only thing
-	// `bind:placeholder` accepts on <Calendar.Root>.
-	// We sync it both ways with the native `cursor`
-	// above so the prev / next / Today buttons keep
-	// working without re-implementing the nav.
+	// SVAR Calendar uses a timezone-aware CalendarDate
+	// as its `placeholder` value. We sync it both ways
+	// with the native `cursor` above so the prev / next /
+	// Today buttons keep working without re-implementing
+	// the nav.
 	const localTZ = getLocalTimeZone();
 	const t = today(localTZ);
 	let calendarPlaceholder = $state(new CalendarDate(t.year, t.month, t.day));

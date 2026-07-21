@@ -116,7 +116,24 @@ export async function put(storeName, value, key) {
   // the value object — passing an explicit key in that case throws a
   // DataError. Only forward the key when the store uses out-of-line keys.
   const useKey = !store.keyPath;
-  const id = await reqToPromise(useKey ? store.put(value, key) : store.put(value));
+  // Svelte 5 wraps reactive state in Proxies that IndexedDB's
+  // internal structuredClone refuses to serialise:
+  //   DataCloneError: Failed to execute 'structuredClone' on
+  //   'Window': [object Array] could not be cloned.
+  // Strip the proxy via a JSON round-trip before handing
+  // the value to IDB. All persisted data is JSON-safe by
+  // design (timestamps are Date.now() numbers, no Date
+  // objects, no Maps/Sets/Blobs in these stores). If JSON
+  // round-trip fails (e.g. a stray function), the IDB write
+  // would fail anyway — we throw a clearer error than the
+  // raw DOMException.
+  let safe = value;
+  try {
+    safe = JSON.parse(JSON.stringify(value));
+  } catch (e) {
+    throw new Error(`put(${storeName}): value is not JSON-serialisable: ${e?.message || e}`);
+  }
+  const id = await reqToPromise(useKey ? store.put(safe, key) : store.put(safe));
   await done;
   return id;
 }
